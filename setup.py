@@ -11,7 +11,7 @@ VERSION = '0.6.0'
 AUTHOR = 'Cisco SAS team'
 EMAIL = 'kitty-fuzzer@googlegroups.com'
 URL = 'https://github.com/cisco-sas/kitty.git'
-DESCRIPTION = read('README.md')
+DESCRIPTION = read('README.rst')
 
 
 # python 3 - install only the remote package
