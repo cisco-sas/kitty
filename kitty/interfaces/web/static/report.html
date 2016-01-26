@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Kitty Fuzzer 0.2 - Report</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="static/style.css">
+</head>
+
+<body>
+    <script src="js/jquery-1.11.1.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="static/jquery.js"></script>
+
+    <div class="page-header">
+        <h2 id="report_name"></h2>
+    </div>
+
+    <table id="reports_container_table" class="table table-main-layout">
+        <tbody id="reports_container_table_body">
+            <tr><td>
+                <div class="panel panel-danger">
+                    <div class="panel-heading">Main Report</div>
+                    <table id="main_report_table" class="table table-hover table-striped table-bordered info-table">
+                        <tr><td>Issuer</td><td id="main_report_name"></td></tr>
+                        <tr><td>Failed</td><td id="main_report_failed"></td></tr>
+                        <tr><td>Fuzz Path</td><td id="main_report_fuzz_path"></td></tr>
+                    </table>
+                </div>
+            </td></tr>
+        </tbody>
+        
+    </table>
+
+    <script>
+
+        function toTitleCase(str)
+        {
+            return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();}).replace('_', ' ');
+        }
+
+        function sanitizeName(str)
+        {
+            return str.replace(/\W+/g, '_');
+        }
+
+        function add_to_table(base_name, key, value){
+            if(key != 'sub_reports'){
+                var is_code = false;
+                if((typeof value) == 'string') {
+                    value = window.atob(value);
+                    if(value.indexOf('\n') != -1) {
+                        is_code = true;
+                    }
+                }
+                if(is_code) {
+                    $('<tr>').append($('<td>').text(toTitleCase(key.replace(/_/g, ' '))), $('<td class="textarea-data">').append($('<pre>').text(value))).appendTo($('#' + base_name + '_table'));
+                }
+                else {
+                    $('<tr>').append($('<td>').text(toTitleCase(key.replace(/_/g, ' '))), $('<td class="textarea-data">').text(value)).appendTo($('#' + base_name + '_table'));
+                }
+            }
+        }
+        function fill_table(base_name, report, first_fields){
+            var sub_reports = report.sub_reports;  //JSON.parse(window.atob(report.sub_reports));
+            $.each(first_fields, function(idx, val){
+                v = report[val];
+                if ((typeof v) == 'string') {
+                    v = window.atob(v);
+                }
+                $('#' + base_name + '_' + val).text(v);
+                delete report[val];
+            });
+            var keys = [];
+            for (var prop in report) {
+                keys.push(prop);
+            }
+            keys.sort();
+            for (var i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                var value = report[key];
+                if(sub_reports.indexOf(key) == -1) {
+                    add_to_table(base_name, key, value);
+                }
+            }
+            // $.each(report, function(key, val){
+            //     if(sub_reports.indexOf(key) == -1){
+            //         add_to_table(base_name, key, val);
+            //     }                
+            // });
+        }
+
+        function create_table(name, title) {
+            var row1 = '<tr><td>Issuer</td><td id="' + name +'_name"></td></tr>';
+            var row2 = '<tr><td>Failed</td><td id="' + name +'_failed"></td></tr>';
+            var table = '<table id="' + name + '_table" class="table table-hover table-striped table-bordered info-table">' + row1 + row2 + '</table>';
+            var heading = '<div class="panel-heading">' + title + '</div>';
+            var panel = '<div class="panel panel-danger">' + heading + table + '</div>';
+            var wrap = '<tr><td>' + panel + '</td></tr>';
+            var tbody = $('#reports_container_table_body');
+            tbody.append(wrap);
+            
+        }
+
+        function build_tables(response) {
+            var report = response.report;
+            var sub_reports = report.sub_reports; //JSON.parse(window.atob(report.sub_reports));
+            $('#report_name').text('Report for test #' + report_num);
+            fill_table('main_report', report, ['name', 'failed', 'fuzz_path']);
+            sub_reports.sort();
+            $.each(sub_reports, function(idx, val){
+                subrep = report[val]
+                create_table(sanitizeName(val), toTitleCase(val));
+                fill_table(sanitizeName(val), subrep, ['name', 'failed']);
+            });
+        }
+
+        function handle_failure() {
+            alert('Failed to load report');
+        }
+
+        /* dirty dirty dirty dirty */
+        function get_report_num() {
+            return document.URL.split('=').slice(-1)[0];
+        }
+
+        report_num = get_report_num();
+        $.getJSON('../api/report?report_id=' + report_num, build_tables).fail(handle_failure);
+    </script>
+</body>
+</html>

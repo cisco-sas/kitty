@@ -1,0 +1,73 @@
+html, body {
+  height: 95%;
+  width: 95%;
+  /*position: fixed;*/
+  padding: 0;
+  margin: 0;
+}
+
+h1, h2 {
+  text-align: center;
+}
+
+.progress {
+    max-width: inherit;
+}
+
+td {
+  max-width: 100%;
+  overflow: scroll;
+  overflow-y:hidden;
+  overflow-x:hidden;
+}
+
+.info-table td:first-child{
+  width: 1px;
+  white-space: nowrap;
+}
+
+.textarea-data{
+  word-wrap: word-break;
+  width: 100%;
+}
+
+.table-main-layout th, .table-main-layout td { 
+     border-top: none !important; 
+ }
+
+/*
+.info-table td:first-child + td{
+  width: 80%;
+}
+*/
+
+#stats_table {
+  max-height: inherit;
+  max-width: inherit;
+}
+
+.table {
+    max-height: inherit;
+    max-width: inherit;
+}
+
+.well {
+  text-align: center;
+}
+
+#report-panel {
+  max-height: 80%;
+  min-width: 200px;
+  position: fixed;
+}
+
+.reportlist {
+  max-height: inherit;
+  min-width: inherit;
+  overflow: scroll;
+  position: fixed;
+}
+
+.value_cell {
+  max-width: 100px;
+}

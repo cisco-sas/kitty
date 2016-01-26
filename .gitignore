@@ -1,0 +1,4 @@
+*.pyc
+.idea/
+.ropeproject/
+unit_tests/logs/

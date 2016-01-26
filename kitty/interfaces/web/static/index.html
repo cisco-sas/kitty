@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="static/style.css">
+    <title>Kitty Fuzzer</title>
+</head>
+<body>
+
+    <div id="body">
+        <script src="js/jquery-1.11.1.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <div class="page-header">
+            <h1>Kitty Fuzzer <div id="fuzzer_version" style="display:inline"></div></h1>
+        </div>
+
+        <h3  align="center" id="error_message"></h3>
+        
+        <table class="table table-main-layout">
+            <col width="5%">
+            <col width="75%">
+            <col width="20%">
+            <tr>
+                <td rowspan="2">
+                </td> 
+                <td>
+                    <div class="panel panel-danger">
+                        <div class="panel-heading">Fuzzing Session</div>
+                        <table id="stats_table" class="table table-hover table-striped table-bordered info-table"></table>
+                        <div class="progress">
+                            <div class="progress-bar  progress-bar-striped active progress-bar-danger" role="progress-bar" id="progress_bar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
+                            </div>
+                        </div>
+                        <div id="progress_text" class="well well-danger"></div>
+                        <button id="pause_button" type="button" class="btn btn-default btn-danger"></button>
+                    </div>
+                </td>
+                <td rowspan="2">
+                    <div id="report-panel" class="panel panel-danger">
+                        <div class="panel-heading">Reports</div>
+                        <!--<div class="reportlist">-->
+                            <lu id="reports" class="list-group reportlist"></lu>
+                        <!--</div>-->
+                        
+                    </div>
+                </td>
+                
+            </tr>
+            <tr>
+                <td>
+                    <div class="panel panel-danger">
+                        <div class="panel-heading">Current Fuzzed Node</div>
+                        <table id="current_test" class="table table-hover table-striped table-bordered info-table">
+                            
+                        </table>
+                    </div>
+                </td>
+                
+            </tr>
+        </table>
+    </div>
+    <script src="static/jquery.js"></script>
+    <script>
+        function updateReports(reports) {
+            $('#reports a').remove();
+            if (reports.length > 0) {
+                reports.sort(function(a, b){return a-b});
+                $.each(reports, function(index, test_number) {
+                    var link = '<a href="static/report.html?report_id=' + test_number + '" class="list-group-item list-group-item-danger">Report #' + test_number + '</a>';
+                    //$('<li class="list-group-item list-group-item-danger">').append(link).appendTo('#reports');
+                    $(link).appendTo('#reports');
+                });    
+            }
+            reports = null;
+        }
+
+        function updateButton(paused) {
+            var btn_text = (paused == true) ? 'Resume' : 'Pause';
+            var btn_action = (paused == true) ? 'doResume();' : 'doPause();';
+            $('#pause_button').text(btn_text);
+            $('#pause_button').attr('onclick', btn_action);
+            btn_action = null;
+            btn_text = null;
+        }
+
+        function setErrorMessage(msg) {
+            $('#error_message').text(msg);
+        }
+
+        function updateStatsTable(stats) {
+            var blacklisted = ['kitty_version'];
+            //$('#stats_table tr').remove();
+            $.each(stats, function(key, val) {
+                var data_id = 'stats_data_' + key.replace(/[()/\s]/g, '_');
+                if(blacklisted.indexOf(key) == -1){
+                    if(key == 'start_time') {
+                        val = new Date(Math.floor(val * 1000)) + '';
+                    }
+                    var item = $('#' + data_id);
+                    if(item.length == 0) {
+                        $('<tr>').append($('<td>').text(toTitleCase(key)), $('<td>').attr('id', data_id).text(val)).appendTo('#stats_table');
+                    }
+                    else {
+                        if(val != item.text()){
+                            $('#' + data_id).text(val);    
+                        }
+                    }
+                }
+            });
+            blacklisted = null;
+        }
+
+        function setProgress(stats, eta) {
+            var start = stats.start_index;
+            var end = stats.end_index;
+            var current = stats.current_index;
+            var percent = Math.round(100.0 / (end - start) * (current - start));
+            $('#progress_bar').text(percent + '%');
+            $('#progress_bar').css('width', percent + '%').attr('aria-valuenow', percent); 
+            //$('#progress_bar').css('width', percent).attr('aria-valuenow', percent);
+            var msg;
+            if (current > end) {
+                msg = 'Fuzzing session completed';
+            }
+            else {
+                msg = 'Estimated completion in ' + eta;
+            }
+            $('#progress_text').text(msg);
+        }
+
+        function toTitleCase(str) {
+            return str.replace(/_/g, ' ').replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+        }
+
+        function updateTestDetails(test_details) {
+            //$('#current_test tr').remove();
+            var keys = [];
+            for (var prop in test_details) {
+                keys.push(prop);
+            }
+            keys.sort();
+            for (var i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                var value = test_details[key];
+                var fkey = toTitleCase(key);
+                var data_id = 'test_details_' + key.replace(/[()/\s]/g, '_');
+                if($('#' + data_id).length == 0) {
+                    $('<tr>').append($('<td>').text(fkey), $('<td>').addClass("value_cell").attr('id', data_id).text(value)).appendTo('#current_test');
+                }
+                else {
+                    $('#' + data_id).text(value);
+                }
+            }
+        }
+
+        function doPause() {
+            $.post('/api/action/pause');
+            $('#pause_button').disabled = true;
+        }
+
+        function doResume() {
+            $.post('/api/action/resume');
+            $('#pause_button').disabled = true;
+        }
+
+        function updateTitle(version) {
+            $('#fuzzer_version').text(version);
+        }
+
+        function processResponse(data) {
+            setErrorMessage(' ');
+            updateTitle(data.stats.kitty_version)
+            updateButton(data.paused);
+            updateStatsTable(data.stats);
+            setProgress(data.stats, data.eta);
+            updateTestDetails(data.current_test);
+            updateReports(data.reports);
+            setTimeout(performUpdate, 3000);
+        }
+
+        function handleFailure() {
+            setErrorMessage('Error communicating with fuzzer web server');
+            setTimeout(performUpdate, 10000);
+        }
+
+        function performUpdate() {
+            $.getJSON('api/stats.json', processResponse).fail(handleFailure);
+        }
+
+        performUpdate();
+
+    </script>
+</body>
+
+</html>
