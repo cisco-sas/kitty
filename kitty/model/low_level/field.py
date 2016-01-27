@@ -410,6 +410,8 @@ class String(_LibraryField):
                 String('this is the default value', max_size=5)
         '''
         self._max_size = None if max_size is None else max_size
+        if isinstance(value, unicode):
+            value = value.encode('utf-8')
         super(String, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
 
     def _get_local_lib(self):

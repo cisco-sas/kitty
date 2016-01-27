@@ -29,7 +29,6 @@ There are three families of encoders:
     Used to encode fields that inherit from BitField or contain BitField (UInt8, Size, Checksum etc.)
     Those encoders are also refferred to as Int Encoders.
 '''
-import types
 from bitstring import Bits, BitArray
 from kitty.core import kassert, KittyException
 
@@ -63,7 +62,7 @@ class StrEncoder(object):
         :type value: ``str``
         :param value: value to encode
         '''
-        kassert.is_of_types(value, types.StringTypes)
+        kassert.is_of_types(value, str)
         return Bits(bytes=value)
 
 
@@ -79,7 +78,7 @@ class StrFuncEncoder(StrEncoder):
         self._func = func
 
     def encode(self, value):
-        kassert.is_of_types(value, types.StringTypes)
+        kassert.is_of_types(value, str)
         encoded = self._func(value)
         return Bits(bytes=encoded)
 
@@ -100,7 +99,7 @@ class StrEncodeEncoder(StrEncoder):
         '''
         :param value: value to encode
         '''
-        kassert.is_of_types(value, types.StringTypes)
+        kassert.is_of_types(value, str)
         try:
             encoded = value.encode(self._encoding)
         except UnicodeError:
@@ -122,7 +121,7 @@ class StrBase64NoNewLineEncoder(StrEncoder):
         '''
         :param value: value to encode
         '''
-        kassert.is_of_types(value, types.StringTypes)
+        kassert.is_of_types(value, str)
         encoded = value.encode('base64')
         if encoded:
             encoded = encoded[:-1]
@@ -138,7 +137,7 @@ class StrNullTerminatedEncoder(StrEncoder):
         '''
         :param value: value to encode
         '''
-        kassert.is_of_types(value, types.StringTypes)
+        kassert.is_of_types(value, str)
         encoded = value + '\x00'
         return Bits(bytes=encoded)
 
