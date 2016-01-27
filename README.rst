@@ -122,6 +122,6 @@ Contribution FAQ
 *Found an interesting bug using a Kitty-based fuzzer?*
    We'd love to hear about it! please drop us a line
 
-.. image:: https://readthedocs.org/projects/katnip/badge/?version=latest
-:target: http://katnip.readthedocs.org/en/latest/?badge=latest
+.. image:: https://readthedocs.org/projects/kitty/badge/?version=latest
+:target: http://kitty.readthedocs.org/en/latest/?badge=latest
 :alt: Documentation Status
