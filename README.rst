@@ -122,6 +122,10 @@ Contribution FAQ
 *Found an interesting bug using a Kitty-based fuzzer?*
    We'd love to hear about it! please drop us a line
 
-.. image:: https://readthedocs.org/projects/kitty/badge/?version=latest
-:target: http://kitty.readthedocs.org/en/latest/?badge=latest
-:alt: Documentation Status
+|docs|
+
+
+.. |docs| image:: https://readthedocs.org/projects/kitty/badge/?version=latest
+    :alt: Documentation Status
+    :scale: 100%
+    :target: https://kitty.readthedocs.org/en/latest/?badge=latest
