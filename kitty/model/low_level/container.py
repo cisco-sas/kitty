@@ -601,6 +601,20 @@ class OneOf(Container):
         self.set_current_value(rendered)
         return self._current_rendered
 
+    def _calculate_mutations(self, num):
+        '''
+        Each element, with its original value, is a mutation by itself.
+        '''
+        self._num_mutations = num + len(self._fields)
+
+    def _mutate(self):
+        if self._current_index < len(self._fields):
+            self._field_idx = self._current_index
+            return True
+        elif self._current_index == len(self._fields):
+            self._field_idx = 0
+        return super(OneOf, self)._mutate()
+
 
 class TakeFrom(OneOf):
     '''
