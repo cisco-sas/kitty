@@ -83,7 +83,7 @@ data transactions with a target, but it doesn't provide implementations
 for data transmition over HTTP, TCP or UART.
 
 Implementations of all sorts of classes can be found in the complimentary
-repository **Katnip** (link TBD), which has the sole porpuse of providing specific
+repository Katnip_, which has the sole porpuse of providing specific
 *implementaions*. As such, Katnip contains different implementations for
 targets (such as ``TcpTarget`` and ``SslTarget``), controllers (such as
 ``TelnetController`` and ``SshController``), monitors and templates. Use
@@ -101,17 +101,16 @@ What's Next?
 Contribution FAQ
 ----------------
 
-(TBD links)
-
 *Found a bug?*
-   Open an issue
+   Open an `issue <https://github.com/cisco-sas/kitty/issues/new>`_
 
 *Have a fix?*
-   Great! please submit a pull request
+   Great! please submit a `pull request <https://github.com/cisco-sas/kitty/compare>`_
 
 *Implemented an interesting controller/monitor/target?*
-   Please submit a pull request in the Katnip repository
+   Please submit a pull request in the `Katnip repository <https://github.com/cisco-sas/katnip>`_
 
 *Found an interesting bug using a Kitty-based fuzzer?*
    We'd love to hear about it! please drop us a line
 
+.. _Katnip: https://github.com/cisco-sas/katnip

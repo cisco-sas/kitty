@@ -42,7 +42,7 @@ The data model can also specify
 that the order in which messages are sent itself be fuzzed.
 
 The data model is constructed using the classes defined in the
-**model** source folder (link TBD).
+`model <https://github.com/cisco-sas/kitty/tree/master/kitty/model>`_ source folder.
 
 For more information, visit the data model :doc:`documentation </base_data_model_overview>`,
 :doc:`reference </kitty.model>` and :doc:`tutorials </tutorials>`.
@@ -68,7 +68,7 @@ victim. Its responsibilities are:
    exists.
 2. When fuzzing a client --- triggering a fuzzing session by causing the
    client to initiate a request to the server.
-   The server, with the help of the stack (see external dependencies TBD),
+   The server, with the help of the stack (see the :doc:`client fuzzing tutorial </tutorial_client_fuzzing>`),
    will send a fuzzed response to the client.
    Note that in this case
    the target itself is not involved the client-server-fuzzer communication!
@@ -84,7 +84,7 @@ want to test a server application that communicates over a serial UART
 connection, you will need to create a new class that inherits from
 ``ServerTarget`` and is able to send data over the UART. However, many times it will
 only require the implementation of the send/receive functions and not much more.
-Some targets are already available in the **Katnip** (link TBD) repository,
+Some targets are already available in the Katnip_ repository,
 so you don't need to implement them yourself: for example,
 ``TcpTarget`` may be used to test HTTP servers and ``SslTarget`` may be used to
 test HTTPS servers.
@@ -152,3 +152,5 @@ Interface
 Interface is a user interface, which allows the user to monitor and
 check the fuzzer as it goes. The web interface should suffice in most
 cases.
+
+.. _Katnip: https://github.com/cisco-sas/katnip
