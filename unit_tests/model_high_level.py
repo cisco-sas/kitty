@@ -65,9 +65,7 @@ class GraphModelTests(unittest.TestCase):
         self.logger.debug('TESTING METHOD: %s', self._testMethodName)
         self.model = GraphModel()
         self.templates = self.get_templates()
-        self.todo = [
-            'callbacks'
-        ]
+        self.todo = []
 
     def get_templates(self):
         res = []
@@ -238,9 +236,7 @@ class StagedSequenceModelTests(unittest.TestCase):
         self.logger.debug('TESTING METHOD: %s', self._testMethodName)
         self.stage_lengths = self.get_stage_map()
         self.stages = self.stage_lengths.keys()
-        self.todo = [
-            'empty stage'
-        ]
+        self.todo = []
 
     def get_stage_map(self):
         stages = {}
@@ -382,9 +378,7 @@ class StageTests(unittest.TestCase):
         self.logger = get_test_logger()
         self.logger.debug('TESTING METHOD: %s', self._testMethodName)
         self.templates = self.get_templates()
-        self.todo = [
-            'empty stage?'
-        ]
+        self.todo = []
 
     def get_templates(self):
         res = []
