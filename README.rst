@@ -122,10 +122,15 @@ Contribution FAQ
 *Found an interesting bug using a Kitty-based fuzzer?*
    We'd love to hear about it! please drop us a line
 
-|docs|
+|docs| |travis|
 
 
 .. |docs| image:: https://readthedocs.org/projects/kitty/badge/?version=latest
     :alt: Documentation Status
     :scale: 100%
     :target: https://kitty.readthedocs.org/en/latest/?badge=latest
+
+.. |travis| image:: https://travis-ci.org/cisco-sas/kitty.svg?branch=master
+    :alt: Build Status
+    :scale: 100%
+    :target: https://travis-ci.org/cisco-sas/kitty
