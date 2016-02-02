@@ -39,7 +39,7 @@ else:
         author_email=EMAIL,
         url=URL,
         packages=find_packages(),
-        install_requires=['docopt', 'bitstring', 'six', 'requests'],
+        install_requires=['docopt', 'bitstring', 'six', 'requests', 'pycrypto'],
         keywords='fuzz framework sulley kitty',
         entry_points={
             'console_scripts': [

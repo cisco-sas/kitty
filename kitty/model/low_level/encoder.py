@@ -23,6 +23,7 @@ the encoder's `encode` method is called.
 There are three families of encoders:
 
 :Bits Encoders: Used to encode fields/containers that their value is of type *Bits* (Container, ForEach etc.)
+
 :String Encoders: Used to encode fields that their value is of type *str* (String, Delimiter, RandomBytes etc.)
 
 :BitField Encoders:
@@ -30,6 +31,7 @@ There are three families of encoders:
     Those encoders are also refferred to as Int Encoders.
 '''
 from bitstring import Bits, BitArray
+from Crypto.Cipher import AES
 from kitty.core import kassert, KittyException
 
 
@@ -140,6 +142,161 @@ class StrNullTerminatedEncoder(StrEncoder):
         kassert.is_of_types(value, str)
         encoded = value + '\x00'
         return Bits(bytes=encoded)
+
+
+def _pad_zeros(data, block_size):
+    '''
+    pad a string to multiples of block_size
+
+    :param data: data to pad
+    :param block_size: size of block
+    :return: padded data
+    '''
+    pad = ''
+    remainder = len(data) % block_size
+    if remainder:
+        pad = '\x00' * (block_size - remainder)
+    return data + pad
+
+
+class AesEncryptEncoder(StrEncoder):
+    '''
+    Encrypt data with AES.
+    This encoder uses the Crypto library.
+    '''
+
+    def __init__(self, key=None, iv=None, mode=AES.MODE_CBC, key_size=16, key_provider=None, padder=None):
+        '''
+        :type key: str
+        :param key: encryption key (default: None)
+        :param iv: iv, if None - use zeros (default: None)
+        :param mode: encrytion mode (one of AES.MODE_*) (default: AES.MODE_CBC)
+        :param key_size: key size - 16, 24 or 32 (default: 16)
+        :type key_provider: function(key_size) -> str
+        :param key_provider: function that returns key (default: None)
+        :type padder: function(str, block_size) -> str
+        :param padder: function that pads the data, if None - will pad with zeros (default: None)
+
+        :examples:
+
+            ECB mode with static key and iv
+
+            ::
+
+                String(
+                    value='Encrypted String',
+                    encoder=AesEncryptEncoder(
+                        key='MySuperSecretKey',
+                        iv='MyCustomIvIYKWIM',
+                        mode=AES.MODE_ECB
+                    ))
+
+            Dynamic Key
+
+            ::
+
+                def get_key(key_size):
+                    return some_session_key
+
+                String(
+                    value='Encrypted String',
+                    encoder=AesEncryptEncoder(
+                        key_provider=get_key
+                    ))
+
+        '''
+        super(AesEncryptEncoder, self).__init__()
+        if key_provider:
+            if not (callable(key_provider) or isinstance(key_provider, str)):
+                raise KittyException('key_provider must be callable')
+        if (key and key_provider) or not (key or key_provider):
+            raise KittyException('You should provide either key or key_provider.')
+        if key_size not in [16, 24, 32]:
+            raise KittyException('Key size must be 16, 24 or 32 (passed: %s)' % key_size)
+        if iv is None:
+            iv = '\x00' * key_size
+        self.key = key
+        self.iv = iv
+        self.mode = mode
+        self.key_size = key_size
+        self.key_provider = key_provider
+        self.padder = padder if padder else _pad_zeros
+        if self.key:
+            self.current_key = self.key
+
+    def encode(self, data):
+        if self.key_provider:
+            self.current_key = self.key_provider(self.key_size)
+        aes = AES.new(key=self.current_key, mode=self.mode, IV=self.iv)
+        encrypted = aes.encrypt(self.padder(data, 16))
+        return Bits(bytes=encrypted)
+
+
+class AesDecryptEncoder(AesEncryptEncoder):
+    '''
+    Decrypt data with AES.
+    This encoder uses the Crypto library.
+
+    .. note:: This encoder will raise an exception if the data buffer is not aligned
+    '''
+
+    def __init__(self, key=None, iv=None, mode=AES.MODE_CBC, key_size=16, key_provider=None):
+        '''
+        :type key: str
+        :param key: decryption key (default: None)
+        :param iv: iv, if None - use zeros (default: None)
+        :param mode: decrytion mode (one of AES.MODE_*) (default: AES.MODE_CBC)
+        :param key_size: key size - 16, 24 or 32 (default: 16)
+        :type key_provider: function(key_size) -> str
+        :param key_provider: function that returns key (default: None)
+        '''
+        super(AesDecryptEncoder, self).__init__(key=key, iv=iv, mode=mode, key_size=key_size, key_provider=key_provider)
+
+    def encode(self, data):
+        '''
+        :type data: str
+        :param data: data to decrypt
+        :raises: :class:`~kitty.core.KittyException` if data is not 16-byte aligned.
+        '''
+        if self.key_provider:
+            self.current_key = self.key_provider(self.key_size)
+        aes = AES.new(key=self.current_key, mode=self.mode, IV=self.iv)
+        if len(data) % 16:
+            raise KittyException('Data to decrypt is not a multiple of 16!!')
+        decrypted = aes.decrypt(data)
+        return Bits(bytes=decrypted)
+
+
+def AesCbcEncryptEncoder(key=None, iv=None, key_size=16, key_provider=None, padder=None):
+    '''
+    AES CBC Encrypt encoder.
+    See :class:`~kitty.model.low_level.encoder.AesEncryptEncoder` for parameter description.
+    '''
+    return AesEncryptEncoder(key, iv, AES.MODE_CBC, key_size, key_provider, padder)
+
+
+def AesEcbEncryptEncoder(key=None, iv=None, key_size=16, key_provider=None, padder=None):
+    '''
+    AES EBC Encrypt encoder.
+    See :class:`~kitty.model.low_level.encoder.AesEncryptEncoder` for parameter description.
+    '''
+    return AesEncryptEncoder(key, iv, AES.MODE_EBC, key_size, key_provider, padder)
+
+
+def AesCbcDecryptEncoder(key=None, iv=None, key_size=16, key_provider=None):
+    '''
+    AES CBC Decrypt encoder.
+    See :class:`~kitty.model.low_level.encoder.AesDecryptEncoder` for parameter description.
+    '''
+    return AesDecryptEncoder(key, iv, AES.MODE_CBC, key_size, key_provider)
+
+
+def AesEcbDecryptEncoder(key=None, iv=None, key_size=16, key_provider=None):
+    '''
+    AES EBC Decrypt encoder.
+    See :class:`~kitty.model.low_level.encoder.AesDecryptEncoder` for parameter description.
+    '''
+    return AesDecryptEncoder(key, iv, AES.MODE_EBC, key_size, key_provider)
 
 
 ENC_STR_BASE64 = StrEncodeEncoder('base64')
