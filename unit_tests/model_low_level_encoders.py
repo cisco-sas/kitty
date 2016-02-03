@@ -18,10 +18,14 @@
 '''
 Tests for low level encoders:
 '''
-from Crypto.Cipher import AES
+from Crypto.Cipher import AES, DES, DES3
 from kitty.model.low_level.encoder import BitFieldMultiByteEncoder
 from kitty.model.low_level.encoder import ENC_STR_DEFAULT
 from kitty.model.low_level.encoder import AesEncryptEncoder, AesDecryptEncoder
+from kitty.model.low_level.encoder import AesCbcEncryptEncoder, AesEcbEncryptEncoder
+from kitty.model.low_level.encoder import AesCbcDecryptEncoder, AesEcbDecryptEncoder
+from kitty.model.low_level.encoder import DesEncryptEncoder, DesDecryptEncoder
+from kitty.model.low_level.encoder import Des3EncryptEncoder, Des3DecryptEncoder
 from kitty.model.low_level import BitField, RandomBytes
 from common import BaseTestCase, metaTest, get_test_logger
 from kitty.core import KittyException
@@ -102,78 +106,83 @@ class BitFieldMultiByteEncoderTests(BaseTestCase):
             )
 
 
+class CryptArgs(object):
+
+    def __init__(self, key, iv, block_size, key_sizes, mode, key_provider):
+        self.key = key
+        self.iv = iv
+        self.block_size = block_size
+        self.key_sizes = key_sizes
+        self.mode = mode
+        self.key_provider = key_provider
+
+
 class CryptorEncoderTestCase(BaseTestCase):
 
     __meta__ = True
 
-    def setUp(self):
+    def setUp(self, crypt=None):
         self.logger = get_test_logger()
         self.logger.debug('TESTING METHOD: %s', self._testMethodName)
-        self.key = '\x01' * 16
-        self.iv = '\x02' * 16
-        self.mode = AES.MODE_CBC
-        self.key_size = 16
-        self.key_provider = None
+        if crypt is not None:
+            self.crypto = crypt
+            self.crypto.key_size = self.crypto.key_sizes[0]
+
+    def get_default_field_with_encoder(self, encoder):
+        return RandomBytes('\x01' * self.crypto.block_size, self.crypto.block_size, self.crypto.block_size, encoder=encoder)
 
     def get_default_field(self, clear=True):
         encoder = ENC_STR_DEFAULT if clear else self.get_encoder()
-        return RandomBytes('\x01' * 16, 16, 16, encoder=encoder)
+        return self.get_default_field_with_encoder(encoder)
+
+    def dummy_provider(self, key_size):
+        self.i += 1
+        self.logger.debug('provider called. i=%#x' % self.i)
+        return chr(self.i % 256) * key_size
 
     @metaTest
     def test_vanilla_base(self):
-        self.logger.debug('get clear field')
         clear_field = self.get_default_field(True)
-        self.logger.debug('get encoded field')
         encoded_field = self.get_default_field(False)
-        self.logger.debug('get clear mutations')
         clear_mutations = [m.bytes for m in self.get_all_mutations(clear_field)]
-        self.logger.debug('get encoded mutations')
         encoded_mutations = [m.bytes for m in self.get_all_mutations(encoded_field)]
-        self.logger.debug('encoded clear mutations')
         expected_mutations = [self.encode(m) for m in clear_mutations]
         self.assertListEqual(encoded_mutations, expected_mutations)
 
     @metaTest
     def test_vanilla_CBC(self):
-        self.mode = AES.MODE_CBC
+        self.crypto.mode = AES.MODE_CBC
         self.test_vanilla_base()
 
     @metaTest
     def test_vanilla_ECB(self):
-        self.mode = AES.MODE_ECB
+        self.crypto.mode = AES.MODE_ECB
         self.test_vanilla_base()
 
     @metaTest
     def test_vanilla_128(self):
-        self.key_size = 16
+        self.crypto.key_size = 16
         self.test_vanilla_base()
 
     @metaTest
-    def test_vanilla_192(self):
-        self.key_size = 24
-        self.test_vanilla_base()
-
-    @metaTest
-    def test_vanilla_256(self):
-        self.key_size = 32
-        self.test_vanilla_base()
+    def test_different_key_sizes(self):
+        for size in self.crypto.key_sizes:
+            self.logger.info('testing key size %#x' % size)
+            self.crypto.key_size = size
+            self.crypto.key = ''.join(chr(x) for x in range(size))
+            self.test_vanilla_base()
 
     @metaTest
     def test_vanilla_iv_default_to_zeros(self):
-        self.iv = None
+        self.crypto.iv = None
         self.test_vanilla_base()
 
     def _test_key_provider_base(self, size):
         self.i = 0
 
-        def provider(key_size):
-            self.i += 1
-            self.logger.debug('provider called. i=%#x' % self.i)
-            return chr(self.i % 256) * key_size
-
-        self.key_size = size
-        self.key = None
-        self.key_provider = provider
+        self.crypto.key_size = size
+        self.crypto.key = None
+        self.crypto.key_provider = self.dummy_provider
 
         clear_field = self.get_default_field(True)
         encoded_field = self.get_default_field(False)
@@ -186,42 +195,46 @@ class CryptorEncoderTestCase(BaseTestCase):
         self.assertEqual(encoded_mutations, expected_mutations)
 
     @metaTest
-    def test_key_provider_128(self):
-        self._test_key_provider_base(16)
-
-    @metaTest
-    def test_key_provider_192(self):
-        self._test_key_provider_base(24)
-
-    @metaTest
-    def test_key_provider_256(self):
-        self._test_key_provider_base(32)
+    def test_key_provider(self):
+        for key_size in self.crypto.key_sizes:
+            self.logger.info('Testing key provider for key size %#x' % key_size)
+            self._test_key_provider_base(key_size)
 
     def _test_exception(self):
         with self.assertRaises(KittyException):
             self.get_default_field(False)
 
     @metaTest
-    def test_exception_no_key_no_provider(self):
-        self.key = '\x00' * 16
-        self.key_provider = lambda x: '\x00' * 16
+    def test_exception_key_and_provider(self):
+        self.crypto.key = '\x00' * self.crypto.key_size
+        self.crypto.key_provider = lambda x: '\x00' * 16
         self._test_exception()
 
     @metaTest
-    def test_exception_key_and_provider(self):
-        self.key = None
-        self.key_provider = None
+    def test_exception_no_key_no_provider(self):
+        self.crypto.key = None
+        self.crypto.key_provider = None
         self._test_exception()
 
     @metaTest
     def test_exception_bad_key_size_15(self):
-        self.key_size = 15
+        self.crypto.key_size = 15
+        self.crypto.key_provider = self.dummy_provider
         self._test_exception()
 
     @metaTest
     def test_exception_bad_key_size_20(self):
-        self.key_size = 20
+        self.crypto.key_size = 20
+        self.crypto.key_provider = self.dummy_provider
         self._test_exception()
+
+    def _test_generators_base(self, encoder):
+        clear_field = self.get_default_field(True)
+        encoded_field = self.get_default_field_with_encoder(encoder)
+        clear_mutations = [m.bytes for m in self.get_all_mutations(clear_field)]
+        encoded_mutations = [m.bytes for m in self.get_all_mutations(encoded_field)]
+        expected_mutations = [self.encode(m) for m in clear_mutations]
+        self.assertListEqual(encoded_mutations, expected_mutations)
 
 
 class AesEncryptEncoderTestCase(CryptorEncoderTestCase):
@@ -229,29 +242,30 @@ class AesEncryptEncoderTestCase(CryptorEncoderTestCase):
     __meta__ = False
 
     def setUp(self):
-        super(AesEncryptEncoderTestCase, self).setUp()
-        self.padder = None
+        crypt = CryptArgs('\x01' * 16, '\x00' * 16, 16, [16, 24, 32], AES.MODE_CBC, None)
+        super(AesEncryptEncoderTestCase, self).setUp(crypt)
+        self.crypto.padder = None
 
     def get_encoder(self):
         return AesEncryptEncoder(
-            key=self.key,
-            iv=self.iv,
-            mode=self.mode,
-            key_size=self.key_size,
-            key_provider=self.key_provider,
-            padder=self.padder
+            key=self.crypto.key,
+            iv=self.crypto.iv,
+            mode=self.crypto.mode,
+            key_size=self.crypto.key_size,
+            key_provider=self.crypto.key_provider,
+            padder=self.crypto.padder
         )
 
     def encode(self, data):
-        key = self.key
-        if self.key_provider:
-            key = self.key_provider(self.key_size)
-        iv = self.iv if self.iv else ('\x00' * 16)
-        aes = AES.new(key=key, IV=iv, mode=self.mode)
-        if self.padder:
-            data = self.padder(data, 16)
-        elif len(data) % 16:
-            data += '\x00' * (16 - ((data) % 16))
+        key = self.crypto.key
+        if self.crypto.key_provider:
+            key = self.crypto.key_provider(self.crypto.key_size)
+        iv = self.crypto.iv if self.crypto.iv else ('\x00' * 16)
+        aes = AES.new(key=key, IV=iv, mode=self.crypto.mode)
+        if self.crypto.padder:
+            data = self.crypto.padder(data, self.crypto.block_size)
+        elif len(data) % self.crypto.block_size:
+            data += '\x00' * (self.crypto.block_size - (len(data) % self.crypto.block_size))
         return aes.encrypt(data)
 
     def test_padder(self):
@@ -268,24 +282,229 @@ class AesEncryptEncoderTestCase(CryptorEncoderTestCase):
         self.get_default_field = unaligned_default_field
         self.test_vanilla_base()
 
+    def test_AesCbcEncryptEncoder(self):
+        '''
+        AesCbcEncryptEncoder(key=None, iv=None, key_size=16, key_provider=None, padder=None)
+        '''
+        self.crypto.mode = AES.MODE_CBC
+        self._test_generators_base(
+            AesCbcEncryptEncoder(
+                key=self.crypto.key,
+                iv=self.crypto.iv,
+                key_size=self.crypto.key_size,
+                key_provider=self.crypto.key_provider,
+                padder=self.crypto.padder
+            ))
+
+    def test_AesEcbEncryptEncoder(self):
+        '''
+        AesEcbEncryptEncoder(key=None, iv=None, key_size=16, key_provider=None, padder=None)
+        '''
+        self.crypto.mode = AES.MODE_ECB
+        self._test_generators_base(
+            AesEcbEncryptEncoder(
+                key=self.crypto.key,
+                iv=self.crypto.iv,
+                key_size=self.crypto.key_size,
+                key_provider=self.crypto.key_provider,
+                padder=self.crypto.padder
+            ))
+
 
 class AesDecryptEncoderTestCase(CryptorEncoderTestCase):
 
     __meta__ = False
 
+    def setUp(self):
+        crypto = CryptArgs('\x01' * 16, '\x00' * 16, 16, [16, 24, 32], AES.MODE_CBC, None)
+        super(AesDecryptEncoderTestCase, self).setUp(crypto)
+
     def get_encoder(self):
         return AesDecryptEncoder(
-            key=self.key,
-            iv=self.iv,
-            mode=self.mode,
-            key_size=self.key_size,
-            key_provider=self.key_provider,
+            key=self.crypto.key,
+            iv=self.crypto.iv,
+            mode=self.crypto.mode,
+            key_size=self.crypto.key_size,
+            key_provider=self.crypto.key_provider,
         )
 
     def encode(self, data):
-        key = self.key
-        if self.key_provider:
-            key = self.key_provider(self.key_size)
-        iv = self.iv if self.iv else ('\x00' * 16)
-        aes = AES.new(key=key, IV=iv, mode=self.mode)
-        return aes.decrypt(data)
+        key = self.crypto.key
+        if self.crypto.key_provider:
+            key = self.crypto.key_provider(self.crypto.key_size)
+        iv = self.crypto.iv if self.crypto.iv else ('\x00' * self.crypto.block_size)
+        aes = AES.new(key=key, IV=iv, mode=self.crypto.mode)
+        decrypted = aes.decrypt(data)
+        return decrypted
+
+    def test_AesCbcDecryptEncoder(self):
+        '''
+        AesCbcDecryptEncoder(key=None, iv=None, key_size=16, key_provider=None)
+        '''
+        self.crypto.mode = AES.MODE_CBC
+        self._test_generators_base(
+            AesCbcDecryptEncoder(
+                key=self.crypto.key,
+                iv=self.crypto.iv,
+                key_size=self.crypto.key_size,
+                key_provider=self.crypto.key_provider,
+            ))
+
+    def test_AesEcbDecryptEncoder(self):
+        '''
+        AesEcbDecryptEncoder(key=None, iv=None, key_size=16, key_provider=None)
+        '''
+        self.crypto.mode = AES.MODE_ECB
+        self._test_generators_base(
+            AesEcbDecryptEncoder(
+                key=self.crypto.key,
+                iv=self.crypto.iv,
+                key_size=self.crypto.key_size,
+                key_provider=self.crypto.key_provider,
+            ))
+
+
+class DesEncryptEncoderTestCase(CryptorEncoderTestCase):
+
+    __meta__ = False
+
+    def setUp(self):
+        crypt = CryptArgs('\x01' * 8, '\x00' * 8, 8, [8], DES.MODE_CBC, None)
+        super(DesEncryptEncoderTestCase, self).setUp(crypt)
+        self.crypto.padder = None
+
+    def get_encoder(self):
+        return DesEncryptEncoder(
+            key=self.crypto.key,
+            iv=self.crypto.iv,
+            mode=self.crypto.mode,
+            key_size=self.crypto.key_size,
+            key_provider=self.crypto.key_provider,
+            padder=self.crypto.padder
+        )
+
+    def encode(self, data):
+        key = self.crypto.key
+        if self.crypto.key_provider:
+            key = self.crypto.key_provider(self.crypto.key_size)
+        iv = self.crypto.iv if self.crypto.iv else ('\x00' * 8)
+        des = DES.new(key=key, IV=iv, mode=self.crypto.mode)
+        if self.crypto.padder:
+            data = self.crypto.padder(data, self.crypto.block_size)
+        elif len(data) % self.crypto.block_size:
+            data += '\x00' * (self.crypto.block_size - (len(data) % self.crypto.block_size))
+        return des.encrypt(data)
+
+    def test_padder(self):
+        def padder(data, block_size):
+            if len(data) % block_size:
+                data += '\x11' * (block_size - (len(data) % block_size))
+            return data
+        self.padder = padder
+
+        def unaligned_default_field(clear=True):
+            encoder = ENC_STR_DEFAULT if clear else self.get_encoder()
+            return RandomBytes('\x01' * 10, 10, 18, encoder=encoder)
+
+        self.get_default_field = unaligned_default_field
+        self.test_vanilla_base()
+
+
+class DesDecryptEncoderTestCase(CryptorEncoderTestCase):
+
+    __meta__ = False
+
+    def setUp(self):
+        crypt = CryptArgs('\x01' * 8, '\x00' * 8, 8, [8], DES.MODE_CBC, None)
+        super(DesDecryptEncoderTestCase, self).setUp(crypt)
+
+    def get_encoder(self):
+        return DesDecryptEncoder(
+            key=self.crypto.key,
+            iv=self.crypto.iv,
+            mode=self.crypto.mode,
+            key_size=self.crypto.key_size,
+            key_provider=self.crypto.key_provider,
+        )
+
+    def encode(self, data):
+        key = self.crypto.key
+        if self.crypto.key_provider:
+            key = self.crypto.key_provider(self.crypto.key_size)
+        iv = self.crypto.iv if self.crypto.iv else ('\x00' * self.crypto.block_size)
+        des = DES.new(key=key, IV=iv, mode=self.crypto.mode)
+        decrypted = des.decrypt(data)
+        return decrypted
+
+
+class Des3EncryptEncoderTestCase(CryptorEncoderTestCase):
+
+    __meta__ = False
+
+    def setUp(self):
+        crypt = CryptArgs('\x01' * 16, '\x00' * 8, 8, [16, 24], DES3.MODE_CBC, None)
+        super(Des3EncryptEncoderTestCase, self).setUp(crypt)
+        self.crypto.padder = None
+
+    def get_encoder(self):
+        return Des3EncryptEncoder(
+            key=self.crypto.key,
+            iv=self.crypto.iv,
+            mode=self.crypto.mode,
+            key_size=self.crypto.key_size,
+            key_provider=self.crypto.key_provider,
+            padder=self.crypto.padder
+        )
+
+    def encode(self, data):
+        key = self.crypto.key
+        if self.crypto.key_provider:
+            key = self.crypto.key_provider(self.crypto.key_size)
+        iv = self.crypto.iv if self.crypto.iv else ('\x00' * 8)
+        des3 = DES3.new(key=key, IV=iv, mode=self.crypto.mode)
+        if self.crypto.padder:
+            data = self.crypto.padder(data, self.crypto.block_size)
+        elif len(data) % self.crypto.block_size:
+            data += '\x00' * (self.crypto.block_size - (len(data) % self.crypto.block_size))
+        return des3.encrypt(data)
+
+    def test_padder(self):
+        def padder(data, block_size):
+            if len(data) % block_size:
+                data += '\x11' * (block_size - (len(data) % block_size))
+            return data
+        self.padder = padder
+
+        def unaligned_default_field(clear=True):
+            encoder = ENC_STR_DEFAULT if clear else self.get_encoder()
+            return RandomBytes('\x01' * 10, 10, 18, encoder=encoder)
+
+        self.get_default_field = unaligned_default_field
+        self.test_vanilla_base()
+
+
+class Des3DecryptEncoderTestCase(CryptorEncoderTestCase):
+
+    __meta__ = False
+
+    def setUp(self):
+        crypt = CryptArgs('\x01' * 16, '\x00' * 8, 8, [16, 24], DES3.MODE_CBC, None)
+        super(Des3DecryptEncoderTestCase, self).setUp(crypt)
+
+    def get_encoder(self):
+        return Des3DecryptEncoder(
+            key=self.crypto.key,
+            iv=self.crypto.iv,
+            mode=self.crypto.mode,
+            key_size=self.crypto.key_size,
+            key_provider=self.crypto.key_provider,
+        )
+
+    def encode(self, data):
+        key = self.crypto.key
+        if self.crypto.key_provider:
+            key = self.crypto.key_provider(self.crypto.key_size)
+        iv = self.crypto.iv if self.crypto.iv else ('\x00' * self.crypto.block_size)
+        des3 = DES3.new(key=key, IV=iv, mode=self.crypto.mode)
+        decrypted = des3.decrypt(data)
+        return decrypted
