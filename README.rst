@@ -99,9 +99,7 @@ What's Next?
 
     ::
 
-        git clone https://github.com/cisco-sas/kitty.git kitty
-        cd kitty
-        pip install -e .
+        pip install git+https://github.com/cisco-sas/kitty.git#egg=kitty
 
 - Read some of the documentation at `ReadTheDocs <https://kitty.readthedocs.org>`_.
 - Build your fuzzer :-)
