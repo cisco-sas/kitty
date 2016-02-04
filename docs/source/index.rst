@@ -13,7 +13,7 @@ Contents:
 
    base_introduction
    base_structure
-   tutorials
+   tutorials/index
    base_data_model_overview
    tools
    modules

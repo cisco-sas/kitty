@@ -6,7 +6,7 @@ Client targets are targets that we cannot fuzz by sending malformed
 requests, but by sending malformed responses.
 
 As explained in the
-:doc:`tutorial_server_vs_client`, this is a big difference, for two main reasons.
+:doc:`/tutorials/server_vs_client`, this is a big difference, for two main reasons.
 The first reason is that unlike server fuzzing, the communication is started
 by the target, and not by the fuzzer.
 The second reason is that in order to fuzz a client we usually need to hook
