@@ -7,7 +7,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
-VERSION = '0.6.0'
+VERSION = '0.6.1'
 AUTHOR = 'Cisco SAS team'
 EMAIL = 'kitty-fuzzer@googlegroups.com'
 URL = 'https://github.com/cisco-sas/kitty.git'
@@ -39,7 +39,7 @@ else:
         author_email=EMAIL,
         url=URL,
         packages=find_packages(),
-        install_requires=['docopt', 'bitstring', 'six', 'requests'],
+        install_requires=['docopt', 'bitstring', 'six', 'requests', 'pycrypto'],
         keywords='fuzz framework sulley kitty',
         entry_points={
             'console_scripts': [
