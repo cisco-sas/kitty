@@ -61,7 +61,9 @@ class BaseTestCase(unittest.TestCase):
     def get_all_mutations(self, field, reset=True):
         res = []
         while field.mutate():
-            res.append(field.render())
+            rendered = field.render()
+            res.append(rendered)
+            self.logger.debug(rendered.tobytes().encode('hex'))
         if reset:
             field.reset()
         return res
