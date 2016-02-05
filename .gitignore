@@ -2,3 +2,6 @@
 .idea/
 .ropeproject/
 unit_tests/logs/
+kitty.egg-info/
+docs/build/
+*/kittylogs/
