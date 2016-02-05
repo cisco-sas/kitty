@@ -95,7 +95,7 @@ What's Next?
 
 - Go over Kitty's :doc:`structure </base_structure>`
 - Take a look at, and run, some examples (requires Katnip)
-- Go over the :doc:`tutorials </tutorials>`
+- Go over the :doc:`tutorials </tutorials/index>`
 - Go fuzz something new :)
 
 Contribution FAQ

@@ -45,7 +45,7 @@ The data model is constructed using the classes defined in the
 `model <https://github.com/cisco-sas/kitty/tree/master/kitty/model>`_ source folder.
 
 For more information, visit the data model :doc:`documentation </base_data_model_overview>`,
-:doc:`reference </kitty.model>` and :doc:`tutorials </tutorials>`.
+:doc:`reference </kitty.model>` and :doc:`tutorials </tutorials/index>`.
 
 Target
 ~~~~~~
@@ -68,7 +68,7 @@ victim. Its responsibilities are:
    exists.
 2. When fuzzing a client --- triggering a fuzzing session by causing the
    client to initiate a request to the server.
-   The server, with the help of the stack (see the :doc:`client fuzzing tutorial </tutorial_client_fuzzing>`),
+   The server, with the help of the stack (see the :doc:`client fuzzing tutorial </tutorials/client_fuzzing>`),
    will send a fuzzed response to the client.
    Note that in this case
    the target itself is not involved the client-server-fuzzer communication!
