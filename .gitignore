@@ -2,6 +2,7 @@
 .idea/
 .ropeproject/
 unit_tests/logs/
-kitty.egg-info/
+*.egg-info/
 docs/build/
-*/kittylogs/
+*kittylogs*
+*/.coverage
