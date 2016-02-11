@@ -22,43 +22,31 @@ from kitty.data.report import Report
 
 class TargetMock(ServerTarget):
 
-    def __init__(self, config=None):
-        super(TargetMock, self).__init__('MockTarget')
-        self.config = Config('target', config).get_config_dict()
+    def __init__(self, config=None, logger=None):
+        super(TargetMock, self).__init__('MockTarget', logger=logger)
+        self.config = Config('target', config)
 
     def _restart(self):
         pass
 
-    def get_key_for_test(self, test_number, key):
-        #self.logger.debug('get_key_for_test. our dictionary: %s', self.config)
-        res = None
-        test_number = str(test_number)
-        if test_number in self.config:
-            if key in self.config[test_number]:
-                res = self.config[test_number][key]
-        elif 'always' in self.config:
-            if key in self.config['always']:
-                res = self.config['always'][key]
-        return res
-
     def _send_to_target(self, data):
-        config_send = self.get_key_for_test(self.test_number, 'send')
-        if config_send:
-            if 'raise exception' in config_send:
-                raise Exception('Mock exception from send')
+        self.config.set_func('send')
+        if self.config.get_val('raise exception') is True:
+            raise Exception('Mock exception from send')
 
     def _receive_from_target(self):
         res = ''
-        config_send = self.get_key_for_test(self.test_number, 'receive')
-        if config_send:
-            if 'raise exception' in config_send:
-                raise Exception('Mock exception from receive')
+        self.config.set_func('receive')
+        if self.config.get_val('raise exception') is True:
+            raise Exception('Mock exception from receive')
+        if self.config.get_val('response') != self.config.INVALID:
+            res = self.config.get_val('response')
         return res
 
     def get_report(self):
-        self.logger.debug('TargetMock.get_report called for test %d' % self.test_number)
+        self.config.set_func('report')
         report = self.report
-        config_report = self.get_key_for_test(self.test_number, 'report')
+        config_report = self.config.get_vals()
         if config_report:
             self.logger.debug('found matching config: %s', repr(config_report))
             for k, v in config_report.iteritems():
@@ -66,18 +54,20 @@ class TargetMock(ServerTarget):
         return report
 
     def setup(self):
-        self.logger.debug('target.setup called')
+        self.config.set_func('setup')
 
     def teardown(self):
-        self.logger.debug('target.teardown called')
+        self.config.set_func('teardown')
 
     def pre_test(self, test_num):
-        self.logger.debug('target.post_test called')
+        self.config.set_func('pre_test')
+        self.config.set_test(test_num)
         self.test_number = test_num
         self.report = Report(self.name)
 
     def post_test(self, test_num):
-        self.logger.debug('target.post_test called')
+        self.config.set_func('post_test')
 
     def failure_detected(self):
+        self.config.set_func('failure_detected')
         return False

@@ -31,13 +31,13 @@ class BaseInterface(KittyObject):
         super(BaseInterface, self).__init__(name, logger)
         self._continue_event = None
         ## the data provider
-        self.data = None
+        self.dataman = None
 
     def set_data_provider(self, data):
         '''
         :param data: the data provider
         '''
-        self.data = data
+        self.dataman = data
 
     def failure_detected(self):
         '''
@@ -88,7 +88,7 @@ class BaseInterface(KittyObject):
         '''
         start the monitor
         '''
-        assert(self.data)
+        assert(self.dataman)
         self._start()
 
     def _start(self):

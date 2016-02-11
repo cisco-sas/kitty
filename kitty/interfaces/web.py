@@ -44,7 +44,7 @@ class _WebInterfaceServer(BaseHTTPServer.HTTPServer):
         # kitty.interfaces... interface object
         self.interface = interface
         self.RequestHandlerClass.logger = interface.logger
-        self.RequestHandlerClass.data = interface.data
+        self.RequestHandlerClass.dataman = interface.dataman
 
     def log_message(self, fmt, *args):
         '''
@@ -67,7 +67,7 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         '''
         BaseHTTPServer.BaseHTTPRequestHandler.__init__(
             self, request, client_address, server)
-        self.data = None
+        self.dataman = None
 
     def log_message(self, fmt, *args):
         '''
@@ -158,34 +158,16 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             eta = average_test_time * tests_left
             return str(datetime.timedelta(seconds=int(eta)))
 
-    def _get_test_info(self):
-        def get_test_info_task(dataman):
-            return dataman.get_test_info()
-        test_info = self.data.submit_task(DataManagerTask(get_test_info_task)).get_results()
-        return test_info
-
-    def _get_report_list(self):
-        def task(dataman):
-            manager = dataman.get_reports_manager()
-            return manager.get_report_test_ids()
-        return self.data.submit_task(DataManagerTask(task)).get_results()
-
-    def _get_session_stats(self):
-        def task(dataman):
-            sessman = dataman.get_session_info_manager()
-            return sessman.get_session_info()
-        return self.data.submit_task(DataManagerTask(task)).get_results()
-
     def _get_stats(self):
         is_paused = self.server.interface.is_paused()
-        session_info = self._get_session_stats()
+        session_info = self.dataman.get_session_info()
         eta_s = self._get_eta(session_info)
         resp_dict = {
             'paused': is_paused,
             'eta': eta_s,
             'stats': session_info.as_dict(),
-            'current_test': self._get_test_info(),
-            'reports': self._get_report_list()
+            'current_test': self.dataman.get_test_info(),
+            'reports': self.dataman.get_report_test_ids()
         }
         return json.dumps(resp_dict)
 
@@ -231,12 +213,15 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     return manager.get(key)
                 except Exception:
                     return None
-            report = self.data.submit_task(DataManagerTask(task)).get_results()
-            if report:
-                response = {
-                    'encoding': encoding,
-                    'report': report.to_dict(encoding)
-                }
+            try:
+                report = self.dataman.get_report_by_id(key)
+                if report:
+                    response = {
+                        'encoding': encoding,
+                        'report': report.to_dict(encoding)
+                    }
+            except:
+                pass
         return json.dumps(response)
 
     def _my_handle(self):

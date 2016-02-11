@@ -21,6 +21,7 @@ import json
 class Config(object):
 
     def __init__(self, config_name, config):
+        self.INVALID = object()
         if config is not None:
             self.config = config
         else:
@@ -34,6 +35,28 @@ class Config(object):
             if config_name in full_config:
                 for k, v in full_config[config_name].iteritems():
                     self.config[k] = v
+        self.func = None
 
     def get_config_dict(self):
         return self.config
+
+    def set_test(self, test_num):
+        self.test_conf = {}
+        if 'always' in self.config:
+            self.test_conf.update(self.config['always'])
+        if str(test_num) in self.config:
+            self.test_conf.update(self.config[str(test_num)])
+
+    def set_func(self, func):
+        self.func = func
+
+    def get_val(self, key):
+        if self.func in self.test_conf:
+            if key in self.test_conf[self.func]:
+                return self.test_conf[self.func][key]
+        return self.INVALID
+
+    def get_vals(self):
+        if self.func in self.test_conf:
+            return self.test_conf[self.func]
+        return None

@@ -33,7 +33,7 @@ class DataManagerTask(object):
     context
     '''
 
-    def __init__(self, task):
+    def __init__(self, task, *args):
         '''
         :type task: function(:class:`~kitty.data.data_manager.DataManager`) -> object
         :param task: task to be performed
@@ -41,6 +41,7 @@ class DataManagerTask(object):
         self._event = Event()
         self._result = None
         self._task = task
+        self._args = args
 
     def execute(self, dataman):
         '''
@@ -50,7 +51,7 @@ class DataManagerTask(object):
         :param dataman: the executing data manager
         '''
         self._event.clear()
-        self._result = self._task(dataman)
+        self._result = self._task(dataman, *self._args)
         self._event.set()
 
     def get_results(self):
@@ -59,6 +60,14 @@ class DataManagerTask(object):
         '''
         self._event.wait()
         return self._result
+
+
+def synced(func):
+    def wrapper(self, *args):
+        task = DataManagerTask(func, *args)
+        self.submit_task(task)
+        return task.get_results()
+    return wrapper
 
 
 class DataManager(Thread):
@@ -129,6 +138,7 @@ class DataManager(Thread):
         '''
         self._connection.close()
 
+    @synced
     def get_session_info_manager(self):
         '''
         :rtype: :class:`~kitty.data.data_manager.SessionInfoTable`
@@ -136,6 +146,22 @@ class DataManager(Thread):
         '''
         return self._session_info
 
+    @synced
+    def get_session_info(self):
+        '''
+        :return: current session info
+        '''
+        return self._session_info.get_session_info()
+
+    @synced
+    def set_session_info(self, info):
+        '''
+        :type info: :class:`~kitty.data.data_manager.SessionInfo`
+        :param info: info to set
+        '''
+        self._session_info.set_session_info(info)
+
+    @synced
     def get_reports_manager(self):
         '''
         :rtype: :class:`~kitty.data.data_manager.ReportsTable`
@@ -143,12 +169,39 @@ class DataManager(Thread):
         '''
         return self._reports
 
+    @synced
+    def get_report_test_ids(self):
+        '''
+        :return: list of report ids
+        '''
+        return self._reports.get_report_test_ids()
+
+    @synced
+    def get_report_by_id(self, report_id):
+        '''
+        :param report_id: if of report to get
+        :rtype: :class:`~kitty.data.report.Report`
+        :return: report object
+        '''
+        return self._reports.get(report_id)
+
+    @synced
+    def store_report(self, report, test_id):
+        '''
+        :param report: the report to store
+        :param test_id: the id of the test reported
+        :return: report id
+        '''
+        self._reports.store(report, test_id)
+
+    @synced
     def get_test_info(self):
         '''
         :return: test info
         '''
         return self._test_info
 
+    @synced
     def set_test_info(self, test_info):
         '''
         set the test info

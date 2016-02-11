@@ -241,12 +241,7 @@ class BaseFuzzer(KittyObject):
 
     def _update_test_info(self):
         test_info = self.model.get_test_info()
-
-        def update_test_info(dataman):
-            dataman.set_test_info(test_info)
-
-        task = DataManagerTask(update_test_info)
-        self.dataman.submit_task(task)
+        self.dataman.set_test_info(test_info)
 
     def _pre_test(self):
         self.session_info.current_index = self.model.current_index()
@@ -367,36 +362,22 @@ class BaseFuzzer(KittyObject):
         else:
             report.add('payload', None)
 
-        def store_report_task(dataman):
-            reportman = dataman.get_reports_manager()
-            reportman.store(report, self.model.current_index())
-            return reportman.get(self.model.current_index())
-        self.dataman.submit_task(DataManagerTask(store_report_task)).get_results()
+        self.dataman.store_report(report, self.model.current_index())
+        self.dataman.get_report_by_id(self.model.current_index())
 
     def _store_session(self):
         self._set_session_info()
 
     def _get_session_info(self):
-        def get_session_info_task(dataman):
-            session_manager = dataman.get_session_info_manager()
-            return session_manager.get_session_info()
-        task = DataManagerTask(get_session_info_task)
-        info = self.dataman.submit_task(task).get_results()
+        info = self.dataman.get_session_info()
         return info
 
     def _get_test_info(self):
-        def get_test_info_task(dataman):
-            return dataman.get_test_info()
-        task = DataManagerTask(get_test_info_task)
-        info = self.dataman.submit_task(task).get_results()
+        info = self.dataman.get_test_info()
         return info
 
     def _set_session_info(self):
-        def set_session_info_task(dataman):
-            session_manager = dataman.get_session_info_manager()
-            session_manager.set_session_info(self.session_info)
-        task = DataManagerTask(set_session_info_task)
-        self.dataman.submit_task(task)
+        self.dataman.set_session_info(self.session_info)
 
     def _load_session(self):
         if not self.config.session_file_name:
