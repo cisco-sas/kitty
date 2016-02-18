@@ -122,6 +122,8 @@ class Report(object):
         '''
         res = {}
         for k, v in self._data_fields.items():
+            if isinstance(v, unicode):
+                v = v.encode('utf-8')
             if type(v) == str:
                 v = v.encode(encoding)[:-1]
             res[k] = v
