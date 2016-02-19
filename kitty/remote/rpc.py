@@ -185,7 +185,7 @@ class RpcHttpServer(HTTPServer):
         self.impl = impl
         self.meta = meta
 
-    def _log_message(self, fmt, *args):
+    def log_message(self, fmt, *args):
         '''
         Override default log and do nothing
         '''
@@ -194,7 +194,7 @@ class RpcHttpServer(HTTPServer):
 
 class RpcHandler(BaseHTTPRequestHandler):
 
-    def _log_message(self, fmt, *args):
+    def log_message(self, fmt, *args):
         '''
         Override default log and do nothing
         '''
