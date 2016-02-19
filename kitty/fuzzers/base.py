@@ -22,7 +22,7 @@ import shlex
 import docopt
 from threading import Event
 from kitty.core import KittyException, KittyObject
-from kitty.data.data_manager import DataManager, SessionInfo, DataManagerTask
+from kitty.data.data_manager import DataManager, SessionInfo
 from kitty.data.report import Report
 from pkg_resources import get_distribution
 
