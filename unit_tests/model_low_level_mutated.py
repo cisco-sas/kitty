@@ -2,17 +2,18 @@
 Tests for mutation based fields
 '''
 
-from common import BaseTestCase
+from common import BaseTestCase, metaTest
 from kitty.core import KittyException
 from kitty.model.low_level.mutated_field import BitFlip, ByteFlip
 from kitty.model.low_level.mutated_field import BitFlips, ByteFlips
+from kitty.model.low_level.mutated_field import BlockRemove, BlockDuplicate, BlockSet
 from struct import pack
 
 
 class BitFlipTests(BaseTestCase):
 
     def setUp(self):
-        super(BitFlipTests, self).setUp(None)
+        super(BitFlipTests, self).setUp(BitFlip)
 
     def _testBase(self, value, num_bits_to_flip, expected_mutations):
         len_in_bits = len(value) * 8
@@ -69,7 +70,7 @@ class BitFlipTests(BaseTestCase):
 class BitFlipsTests(BaseTestCase):
 
     def setUp(self):
-        super(BitFlipsTests, self).setUp(None)
+        super(BitFlipsTests, self).setUp(BitFlips)
 
     def _generate_mutations(self, num_bytes, num_bits_itr):
         formats = {1: '>B', 2: '>H', 4: '>I'}
@@ -146,7 +147,7 @@ class BitFlipsTests(BaseTestCase):
 class ByteFlipTests(BaseTestCase):
 
     def setUp(self):
-        super(ByteFlipTests, self).setUp(None)
+        super(ByteFlipTests, self).setUp(ByteFlip)
 
     def _testFlipBytes(self, bytes_to_flip, value_len):
         value = '\x00' * value_len
@@ -192,7 +193,7 @@ class ByteFlipTests(BaseTestCase):
 class ByteFlipsTests(BaseTestCase):
 
     def setUp(self):
-        super(ByteFlipsTests, self).setUp(None)
+        super(ByteFlipsTests, self).setUp(ByteFlips)
 
     def _generate_single(self, value_len, bytes_to_flip):
         nf_count = value_len - bytes_to_flip
@@ -257,3 +258,126 @@ class ByteFlipsTests(BaseTestCase):
     def testExceptionIfUnorderedRangeOverflowsMultipleBytes(self):
         with self.assertRaises(KittyException):
             ByteFlips('\x00' * 10, bytes_range=[3, 11, 7])
+
+
+class BlockOperationTests(BaseTestCase):
+
+    __meta__ = True
+
+    def setUp(self, cls=None):
+        super(BlockOperationTests, self).setUp(cls)
+
+    def _default_value(self, data_size):
+        return ''.join(map(lambda x: chr(x % 0x100), range(data_size)))
+
+    def _generate_mutations(self, data_size, block_size):
+        raise NotImplementedError('should be implemented by subclasses')
+
+    def _get_field(self, data_size, block_size):
+        raise NotImplementedError('should be implemented by subclasses')
+
+    def _testBase(self, data_size, block_size):
+        uut = self._get_field(data_size, block_size)
+        expected_mutations = self._generate_mutations(data_size, block_size)
+        mutations = map(lambda x: x.tobytes(), self.get_all_mutations(uut))
+        self.assertGreaterEqual(len(mutations), len(expected_mutations))
+        for em in expected_mutations:
+            self.assertIn(em, mutations)
+
+    @metaTest
+    def test1ByteOp1(self):
+        self._testBase(1, 1)
+
+    @metaTest
+    def test2BytesOp1(self):
+        self._testBase(2, 1)
+
+    @metaTest
+    def test2BytesOp2(self):
+        self._testBase(2, 2)
+
+    @metaTest
+    def testMultipleBytesOp1(self):
+        self._testBase(1000, 1)
+
+    @metaTest
+    def testMultipleBytesOpMultiple(self):
+        self._testBase(1000, 550)
+
+    @metaTest
+    def testExceptionForOverflowInSingleByte(self):
+        with self.assertRaises(KittyException):
+            self._get_field(1, 2)
+
+    @metaTest
+    def testExceptionForOverflowInMultipleBytes(self):
+        with self.assertRaises(KittyException):
+            self._get_field(50, 51)
+
+    @metaTest
+    def testExceptionForZeroInSingleByte(self):
+        with self.assertRaises(KittyException):
+            self._get_field(1, 0)
+
+    @metaTest
+    def testExceptionForNegativeInSingleByte(self):
+        with self.assertRaises(KittyException):
+            self._get_field(1, -1)
+
+    @metaTest
+    def testExceptionForZeroInMultipleBytes(self):
+        with self.assertRaises(KittyException):
+            self._get_field(50, 0)
+
+    @metaTest
+    def testExceptionForNegativeInMultipleBytes(self):
+        with self.assertRaises(KittyException):
+            self._get_field(50, -1)
+
+
+class BlockRemoveTests(BlockOperationTests):
+
+    __meta__ = False
+
+    def setUp(self):
+        super(BlockRemoveTests, self).setUp(BlockRemove)
+
+    def _generate_mutations(self, data_size, block_size):
+        full_data = self._default_value(data_size)
+        return map(lambda x: full_data[:x] + full_data[x + block_size:], range(data_size - block_size + 1))
+
+    def _get_field(self, data_size, block_size):
+        return BlockRemove(self._default_value(data_size), block_size)
+
+
+class BlockSetTests(BlockOperationTests):
+
+    __meta__ = False
+
+    def setUp(self):
+        super(BlockSetTests, self).setUp(BlockSet)
+        self._set_chr = '\xff'
+
+    def _generate_mutations(self, data_size, block_size):
+        to_set = self._set_chr * block_size
+        full_data = self._default_value(data_size)
+        return map(lambda x: full_data[:x] + to_set + full_data[x + block_size:], range(data_size - block_size + 1))
+
+    def _get_field(self, data_size, block_size):
+        return BlockSet(self._default_value(data_size), block_size, set_chr=self._set_chr)
+
+
+class BlockDuplicateTests(BlockOperationTests):
+
+    __meta__ = False
+
+    def setUp(self):
+        super(BlockDuplicateTests, self).setUp(BlockDuplicate)
+        self._num_dups = 2
+
+    def _generate_mutations(self, data_size, block_size):
+        full_data = self._default_value(data_size)
+        return map(lambda x: full_data[:x] + full_data[x:x + block_size] * self._num_dups + full_data[x + block_size:], range(data_size - block_size + 1))
+
+    def _get_field(self, data_size, block_size):
+        return BlockDuplicate(self._default_value(data_size), block_size, self._num_dups)

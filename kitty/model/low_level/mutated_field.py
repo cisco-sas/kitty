@@ -168,6 +168,10 @@ class BlockOperation(BaseField):
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
         '''
+        if block_size > len(value):
+            raise KittyException('block_size (%#x) > length of value (%#x)' % (block_size, len(value)))
+        if block_size <= 0:
+            raise KittyException('block_size (%#x) <= 0' % (block_size))
         super(BlockOperation, self).__init__(value=value, encoder=ENC_STR_DEFAULT, fuzzable=fuzzable, name=name)
         self._block_size = block_size
         self._num_mutations = len(value) - (self._block_size - 1)
