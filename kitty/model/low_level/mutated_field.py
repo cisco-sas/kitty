@@ -58,8 +58,8 @@ class BitFlip(BaseField):
         :param name: name of the object (default: None)
         '''
         kassert.is_of_types(value, types.StringTypes)
-        if len(value) * 8 <= num_bits:
-            raise KittyException('len of value in bits(%d) <= num_bits(%d)', (len(value) * 8, num_bits))
+        if len(value) * 8 < num_bits:
+            raise KittyException('len of value in bits(%d) < num_bits(%d)' % (len(value) * 8, num_bits))
         if num_bits <= 0:
             raise KittyException('num_bits(%d) <= 0' % (num_bits))
         super(BitFlip, self).__init__(value=Bits(bytes=value), encoder=ENC_BITS_DEFAULT, fuzzable=fuzzable, name=name)
