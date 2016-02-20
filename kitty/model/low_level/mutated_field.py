@@ -302,7 +302,7 @@ class ByteFlips(OneOf):
         '''
         field_name = (name + '_%d') if name else 'byteflip_%d'
 
-        fields = [ByteFlip(value, i, fuzzable, field_name % i) for i in bytes_range if i <= len(value)]
+        fields = [ByteFlip(value, i, fuzzable, field_name % i) for i in bytes_range]
         super(ByteFlips, self).__init__(fields=fields, fuzzable=fuzzable, name=name)
 
 

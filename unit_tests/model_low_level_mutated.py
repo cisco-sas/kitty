@@ -5,7 +5,7 @@ Tests for mutation based fields
 from common import BaseTestCase
 from kitty.core import KittyException
 from kitty.model.low_level.mutated_field import BitFlip, ByteFlip
-from kitty.model.low_level.mutated_field import BitFlips
+from kitty.model.low_level.mutated_field import BitFlips, ByteFlips
 from struct import pack
 
 
@@ -187,3 +187,73 @@ class ByteFlipTests(BaseTestCase):
         uut = ByteFlip('\x00\x00\x00\x00',  num_bytes=2, fuzzable=False)
         self.assertEqual(uut.num_mutations(), 0)
         self.assertEqual(self.get_all_mutations(uut), [])
+
+
+class ByteFlipsTests(BaseTestCase):
+
+    def setUp(self):
+        super(ByteFlipsTests, self).setUp(None)
+
+    def _generate_single(self, value_len, bytes_to_flip):
+        nf_count = value_len - bytes_to_flip
+        expected_mutations = map(lambda i: '\x00' * (nf_count - i) + '\xff' * bytes_to_flip + '\x00' * (i), range(nf_count + 1))
+        return expected_mutations
+
+    def _generate_mutations(self, value_len, num_bytes_itr):
+        generated = []
+        for num_bytes in num_bytes_itr:
+            generated.extend(self._generate_single(value_len, num_bytes))
+        return generated
+
+    def _testBase(self, num_bytes, itr, uut=None):
+        if uut is None:
+            uut = ByteFlips('\x00' * num_bytes, itr)
+        expected_mutations = self._generate_mutations(num_bytes, itr)
+        mutations = map(lambda x: x.tobytes(), self.get_all_mutations(uut))
+        self.assertGreaterEqual(len(mutations), len(expected_mutations))
+        for em in expected_mutations:
+            self.assertIn(em, mutations)
+
+    def testFourByteDefaultRangeIs124(self):
+        uut = ByteFlips('\x00\x00\x00\x00')
+        expected_mutations = self._generate_mutations(4, [1, 2, 4])
+        mutations = map(lambda x: x.tobytes(), self.get_all_mutations(uut))
+        self.assertGreaterEqual(len(mutations), len(expected_mutations))
+        for em in expected_mutations:
+            self.assertIn(em, mutations)
+
+    def testTenBytesDefaultRangeIs124(self):
+        uut = ByteFlips('\x00' * 10)
+        expected_mutations = self._generate_mutations(10, [1, 2, 4])
+        mutations = map(lambda x: x.tobytes(), self.get_all_mutations(uut))
+        self.assertGreaterEqual(len(mutations), len(expected_mutations))
+        for em in expected_mutations:
+            self.assertIn(em, mutations)
+
+    def testSingleByteSingleRange(self):
+        self._testBase(1, [1])
+
+    def testMultipleBytesSingleRange(self):
+        self._testBase(4, [1])
+
+    def testMultipleBytesMaximumRange(self):
+        self._testBase(4, range(1, 5))
+
+    def testMultipleBytesArbitraryRange(self):
+        self._testBase(20, [7, 12, 9, 3, 19])
+
+    def testExceptionIfRangeOverflowsSingleByte(self):
+        with self.assertRaises(KittyException):
+            ByteFlips('\x00', bytes_range=[2])
+
+    def testExceptionIfUnorderedRangeOverflowsSingleByte(self):
+        with self.assertRaises(KittyException):
+            ByteFlips('\x00', bytes_range=[2, 1])
+
+    def testExceptionIfRangeOverflowsMultipleBytes(self):
+        with self.assertRaises(KittyException):
+            ByteFlips('\x00' * 10, bytes_range=[11])
+
+    def testExceptionIfUnorderedRangeOverflowsMultipleBytes(self):
+        with self.assertRaises(KittyException):
+            ByteFlips('\x00' * 10, bytes_range=[3, 11, 7])
