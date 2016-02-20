@@ -56,6 +56,9 @@ class BitFlip(BaseField):
         :param num_bits: number of consequtive bits to flip (invert)
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
+
+        :raises: ``KittyException`` if num_bits is bigger than the value length in bits
+        :raises: ``KittyException`` if num_bits is not positive
         '''
         kassert.is_of_types(value, types.StringTypes)
         if len(value) * 8 < num_bits:
@@ -115,6 +118,9 @@ class ByteFlip(BaseField):
         :param num_bytes: number of consequtive bytes to flip (invert)
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
+
+        :raises: ``KittyException`` if num_bytes is bigger than the value length
+        :raises: ``KittyException`` if num_bytes is not positive
         '''
         kassert.is_of_types(value, types.StringTypes)
         if len(value) < num_bytes:
@@ -167,11 +173,14 @@ class BlockOperation(BaseField):
         :param block_size: number of consequtive bytes to operate on
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
+
+        :raises: ``KittyException`` if block_size is bigger than the value length in bytes
+        :raises: ``KittyException`` if block_size is not positive
         '''
         if block_size > len(value):
-            raise KittyException('block_size (%#x) > length of value (%#x)' % (block_size, len(value)))
+            raise KittyException('block_size (%d) > length of value (%d)' % (block_size, len(value)))
         if block_size <= 0:
-            raise KittyException('block_size (%#x) <= 0' % (block_size))
+            raise KittyException('block_size (%d) <= 0' % (block_size))
         super(BlockOperation, self).__init__(value=value, encoder=ENC_STR_DEFAULT, fuzzable=fuzzable, name=name)
         self._block_size = block_size
         self._num_mutations = len(value) - (self._block_size - 1)
@@ -199,6 +208,9 @@ class BlockRemove(BlockOperation):
         :param block_size: number of consequtive bytes to remove
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
+
+        :raises: ``KittyException`` if block_size is bigger than the value length in bytes
+        :raises: ``KittyException`` if block_size is not positive
         '''
         super(BlockRemove, self).__init__(value, block_size, fuzzable, name)
 
@@ -220,7 +232,12 @@ class BlockDuplicate(BlockOperation):
         :param num_dups: number of times to duplicate the block (default: 1)
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
+
+        :raises: ``KittyException`` if block_size is bigger than the value length in bytes
+        :raises: ``KittyException`` if block_size is not positive
         '''
+        if num_dups <= 0:
+            raise KittyException('num_dups(%d) <= 0' % (num_dups))
         super(BlockDuplicate, self).__init__(value, block_size, fuzzable, name)
         self._num_dups = num_dups
 
@@ -246,6 +263,9 @@ class BlockSet(BlockOperation):
         :param set_chr: char to set in the blocks
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
+
+        :raises: ``KittyException`` if block_size is bigger than the value length in bytes
+        :raises: ``KittyException`` if block_size is not positive
         '''
         super(BlockSet, self).__init__(value, block_size, fuzzable, name)
         self._set_chr = set_chr
@@ -335,19 +355,20 @@ class MutableField(OneOf):
         :param name: (unique) name of the template (default: None)
         '''
         fields = []
-        fields.append(ByteFlips(value, fuzzable=fuzzable, name='byteflips'))
+        max_len_bytes = len(value)
+        fields.append(ByteFlips(value, bytes_range=filter(lambda x: x <= max_len_bytes, [1, 2, 4]), fuzzable=fuzzable, name='byteflips'))
         fields.append(BitFlips(value, fuzzable=fuzzable, name='bitflips'))
-        if len(value) > 4:
+        if max_len_bytes > 4:
             size = 4
             fields.append(BlockRemove(value, block_size=size, fuzzable=fuzzable, name='remove_%d' % size))
-            fields.append(BlockDuplicates(value, block_size=size, fuzzable=fuzzable, name='duplicate_%d' % size))
+            fields.append(BlockDuplicate(value, block_size=size, fuzzable=fuzzable, name='duplicate_%d' % size))
             fields.append(BlockSet(value, block_size=size, set_chr='\x00', fuzzable=fuzzable, name='set_%d' % size))
-        if len(value) > 8:
+        if max_len_bytes > 8:
             size = 8
             fields.append(BlockRemove(value, block_size=size, fuzzable=fuzzable, name='remove_%d' % size))
             fields.append(BlockDuplicates(value, block_size=size, fuzzable=fuzzable, name='duplicate_%d' % size))
             fields.append(BlockSet(value, block_size=size, set_chr='\x00', fuzzable=fuzzable, name='set_%d' % size))
-        if len(value) > 16:
+        if max_len_bytes > 16:
             size = 16
             fields.append(BlockRemove(value, block_size=size, fuzzable=fuzzable, name='remove_%d' % size))
             fields.append(BlockDuplicates(value, block_size=size, fuzzable=fuzzable, name='duplicate_%d' % size))

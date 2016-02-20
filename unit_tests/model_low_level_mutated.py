@@ -1,5 +1,7 @@
 '''
 Tests for mutation based fields
+
+.. todo:: BlockDuplicates, MutableField
 '''
 
 from common import BaseTestCase, metaTest
@@ -381,3 +383,15 @@ class BlockDuplicateTests(BlockOperationTests):
 
     def _get_field(self, data_size, block_size):
         return BlockDuplicate(self._default_value(data_size), block_size, self._num_dups)
+
+    def testNumDups5(self):
+        self._num_dups = 5
+        self._testBase(5, 3)
+
+    def testNumDups10(self):
+        self._num_dups = 10
+        self._testBase = 10
+
+    def testExceptionIfNumDupsNotPositive(self):
+        with self.assertRaises(KittyException):
+            BlockDuplicate('\x00\x00\x00', 2, num_dups=-1)
