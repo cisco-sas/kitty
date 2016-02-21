@@ -191,6 +191,16 @@ class Container(BaseField):
             if isinstance(field, Container):
                 self.pop()
 
+    def get_rendered_fields(self):
+        '''
+        :return: ordered list of the fields that will be rendered
+        '''
+        result = []
+        for f in self._fields:
+            if len(f.render()):
+                result.append(f)
+        return result
+
     def get_info(self):
         '''
         Get info regarding the current fuzzed enclosed node
@@ -398,6 +408,14 @@ class If(Container):
             self.set_current_value(empty_bits)
         return self._current_rendered
 
+    def get_rendered_fields(self):
+        '''
+        :return: ordered list of the fields that will be rendered
+        '''
+        if self._condition.applies(self):
+            return super(If, self).get_rendered_fields()
+        return []
+
     def copy(self):
         '''
         Copy the container, put an invalidated copy of the condition in the new container
@@ -453,6 +471,14 @@ class IfNot(Container):
             self.set_current_value(empty_bits)
         return self._current_rendered
 
+    def get_rendered_fields(self):
+        '''
+        :return: ordered list of the fields that will be rendered
+        '''
+        if not self._condition.applies(self):
+            return super(IfNot, self).get_rendered_fields()
+        return []
+
     def copy(self):
         '''
         Copy the container, put an invalidated copy of the condition in the new container
@@ -490,6 +516,12 @@ class Meta(Container):
         '''
         self._current_rendered = empty_bits
         return self._current_rendered
+
+    def get_rendered_fields(self):
+        '''
+        :return: ordered list of the fields that will be rendered
+        '''
+        return []
 
 
 class Pad(Container):
@@ -583,6 +615,15 @@ class Repeat(Container):
         self.set_current_value(rendered * times)
         return self._current_rendered
 
+    def get_rendered_fields(self):
+        '''
+        :return: ordered list of the fields that will be rendered
+        '''
+        times = self._min_times
+        if self._mutating and (self._current_index < self._repeats):
+            times += (self._current_index) * self._step
+        return super(Repeat, self).get_rendered_fields() * times
+
     def hash(self):
         hashed = super(Repeat, self).hash()
         return khash(hashed, self._min_times, self._max_times, self._step, self._repeats)
@@ -600,6 +641,13 @@ class OneOf(Container):
         rendered = self._fields[self._field_idx].render()
         self.set_current_value(rendered)
         return self._current_rendered
+
+    def get_rendered_fields(self):
+        '''
+        :return: ordered list of the fields that will be rendered
+        '''
+        current = self._fields[self._field_idx]
+        return current.get_rendered_fields()
 
     def _calculate_mutations(self, num):
         '''
