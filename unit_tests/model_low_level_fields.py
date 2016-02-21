@@ -21,11 +21,10 @@ Tests for low level fields:
 from common import metaTest, BaseTestCase
 from bitstring import Bits
 import hashlib
-import zlib
 import types
 from kitty.model import String, Delimiter, RandomBytes, Dynamic, Static, Group
 from kitty.model import BitField, UInt8, UInt16, UInt32, UInt64, SInt8, SInt16, SInt32, SInt64
-from kitty.model import Clone, Size, SizeInBytes, Checksum, Md5, Sha1, Sha224, Sha256, Sha384, Sha512
+from kitty.model import Clone, Size, SizeInBytes, Checksum, Md5, Sha1, Sha224, Sha256, Sha384, Sha512, ElementCount
 from kitty.model import Container
 from kitty.core import KittyException
 
@@ -38,9 +37,9 @@ class CalculatedTestCase(BaseTestCase):
         self.depends_on_name = 'depends on'
         self.depends_on_value = 'the value'
 
-    def calculate(self, value):
+    def calculate(self, field):
         '''
-        :param value: value to base calculation on
+        :param field: field to base calculation on
         :return: calculated value
         '''
         raise NotImplemented
@@ -56,13 +55,11 @@ class CalculatedTestCase(BaseTestCase):
         original_field = self.get_original_field()
         calculated_field = self.get_default_field()
         container = Container([original_field, calculated_field])
-        original_rendered = original_field.render()
-        expected = self.calculate(original_rendered)
+        expected = self.calculate(original_field)
         actual = calculated_field.render()
         self.assertEqual(expected, actual)
         while container.mutate():
-            original_rendered = original_field.render()
-            expected = self.calculate(original_rendered)
+            expected = self.calculate(original_field)
             actual = calculated_field.render()
             self.assertEqual(expected, actual)
 
@@ -71,13 +68,11 @@ class CalculatedTestCase(BaseTestCase):
         original_field = self.get_original_field()
         calculated_field = self.get_default_field()
         container = Container([calculated_field, original_field])
-        original_rendered = original_field.render()
-        expected = self.calculate(original_rendered)
+        expected = self.calculate(original_field)
         actual = calculated_field.render()
         self.assertEqual(expected, actual)
         while container.mutate():
-            original_rendered = original_field.render()
-            expected = self.calculate(original_rendered)
+            expected = self.calculate(original_field)
             actual = calculated_field.render()
             self.assertEqual(expected, actual)
 
@@ -88,8 +83,62 @@ class CloneTests(CalculatedTestCase):
     def setUp(self, cls=Clone):
         super(CloneTests, self).setUp(cls)
 
-    def calculate(self, value):
-        return value
+    def calculate(self, field):
+        return field.render()
+
+
+class ElementCountTests(CalculatedTestCase):
+
+    __meta__ = False
+
+    def setUp(self, cls=ElementCount):
+        super(ElementCountTests, self).setUp(cls)
+        self.length = 32
+        self.bit_field = BitField(value=0, length=self.length)
+
+    def get_default_field(self, fuzzable=False):
+        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable)
+
+    def calculate(self, field):
+        self.bit_field.set_current_value(len(field.get_rendered_fields()))
+        return self.bit_field.render()
+
+    def testContainerWithInternalContainer(self):
+        container = Container(
+            name=self.depends_on_name,
+            fields=[
+                String('abc'),
+                String('def'),
+                Container(
+                    name='counts_as_one',
+                    fields=[
+                        String('ghi'),
+                        String('jkl'),
+                    ])
+            ])
+        field = self.get_default_field()
+        full = Container([container, field])
+        self.assertEqual(field.render(), self.calculate(container))
+        del full
+
+    def testInternalContainer(self):
+        internal_container = Container(
+            name=self.depends_on_name,
+            fields=[
+                String('ghi'),
+                String('jkl'),
+            ])
+        container = Container(
+            name='this_doesnt_count',
+            fields=[
+                String('abc'),
+                String('def'),
+                internal_container
+            ])
+        field = self.get_default_field()
+        full = Container([container, field])
+        self.assertEqual(field.render(), self.calculate(internal_container))
+        del full
 
 
 class SizeTests(CalculatedTestCase):
@@ -108,7 +157,8 @@ class SizeTests(CalculatedTestCase):
         else:
             return self.cls(self.depends_on_name, length=length, calc_func=calc_func, fuzzable=fuzzable)
 
-    def calculate(self, value, calc_func=None):
+    def calculate(self, field, calc_func=None):
+        value = field.render()
         if calc_func:
             val = calc_func(value)
         else:
@@ -117,31 +167,18 @@ class SizeTests(CalculatedTestCase):
         return self.bit_field.render()
 
     def test_custom_func_valid(self):
-        func = lambda x: len(x)
+        def func(x):
+            return len(x)
         original_field = self.get_original_field()
         calculated_field = self.get_default_field(calc_func=func)
         container = Container([original_field, calculated_field])
-        original_rendered = original_field.render()
-        expected = self.calculate(original_rendered, calc_func=func)
+        expected = self.calculate(original_field, calc_func=func)
         actual = calculated_field.render()
         self.assertEqual(expected, actual)
         while container.mutate():
-            original_rendered = original_field.render()
-            expected = self.calculate(original_rendered, calc_func=func)
+            expected = self.calculate(original_field, calc_func=func)
             actual = calculated_field.render()
             self.assertEqual(expected, actual)
-
-    def test_custom_func_invalid_arguments(self):
-        with self.assertRaises(KittyException):
-            self.cls(self.depends_on_name, length=8, calc_func=lambda x, y: 1)
-
-    def test_custom_func_invalid_return_type_str(self):
-        with self.assertRaises(KittyException):
-            self.cls(self.depends_on_name, length=8, calc_func=lambda x: '')
-
-    def test_custom_func_invalid_return_type_bits(self):
-        with self.assertRaises(KittyException):
-            self.cls(self.depends_on_name, length=8, calc_func=lambda x: Bits())
 
     def test_invalid_length_0(self):
         with self.assertRaises(KittyException):
@@ -163,7 +200,8 @@ class SizeInBytesTest(CalculatedTestCase):
     def get_default_field(self, fuzzable=False):
         return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable)
 
-    def calculate(self, value):
+    def calculate(self, field):
+        value = field.render()
         self.bit_field.set_current_value(len(value.bytes))
         return self.bit_field.render()
 
@@ -175,7 +213,8 @@ class HashTests(CalculatedTestCase):
         super(HashTests, self).setUp(cls)
         self.hasher = hasher
 
-    def calculate(self, value):
+    def calculate(self, field):
+        value = field.render()
         digest = self.hasher(value.bytes).digest()
         return Bits(bytes=digest)
 
@@ -442,6 +481,16 @@ class ValueTestCase(BaseTestCase):
             hash_after_render_all = field.hash()
             self.assertEqual(hash_after_creation, hash_after_render_all)
 
+    @metaTest
+    def testGetRenderedFields(self):
+        field = self.get_default_field()
+        field_list = [field]
+        self.assertEqual(field.get_rendered_fields(), field_list)
+        while field.mutate():
+            if len(field.render()):
+                self.assertEqual(field.get_rendered_fields(), field_list)
+            else:
+                self.assertEqual(field.get_rendered_fields(), [])
 
     def _check_skip(self, field, to_skip, expected_skipped, expected_mutated):
         skipped = field.skip(to_skip)

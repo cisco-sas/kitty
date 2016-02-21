@@ -237,6 +237,14 @@ class BaseField(KittyObject):
         else:
             return None
 
+    def get_rendered_fields(self):
+        '''
+        :return: ordered list of the fields that will be rendered
+        '''
+        if len(self.render()):
+            return [self]
+        return []
+
     def __str__(self):
         data = []
         # data.append(hex(id(self)))
@@ -1044,18 +1052,13 @@ class CalculatedInt(Calculated):
         '''
         :param depends_on: (name of) field we depend on
         :param bit_field: a BitField to be used for holding the value
-        :param calc_func: function to calculate the value of the field. func(bits) -> int
-        :type encoder: :class:`~kitty.model.low_levele.encoder.BitsEncoder`
+        :type calc_func: func(bits) -> int
+        :param calc_func: function to calculate the value of the field
+        :type encoder: :class:`~kitty.model.low_level.encoder.BitsEncoder`
         :param encoder: encoder for the field (default: ENC_BITS_DEFAULT)
         :param fuzzable: is container fuzzable
         :param name: (unique) name of the container
         '''
-        kassert.is_of_types(bit_field, BitField)
-        try:
-            res = calc_func(empty_bits)
-            kassert.is_of_types(res, (types.IntType, types.LongType))
-        except:
-            raise KittyException('algorithm should be a func(str)->int')
         super(CalculatedInt, self).__init__(depends_on=depends_on, encoder=encoder, fuzzable=fuzzable, name=name)
         self._bit_field = bit_field
         self._calc_func = calc_func
@@ -1075,8 +1078,11 @@ class CalculatedInt(Calculated):
         super(CalculatedInt, self).reset()
         self._first_render = False
 
+    def _calculate_value(self):
+        return self._calc_func(self._rendered_field)
+
     def _render(self):
-        calculated_value = self._calc_func(self._rendered_field)
+        calculated_value = self._calculate_value()
         # This code meant for handling overflow...
         calculated_value = min(calculated_value, self._bit_field._max_value)
         calculated_value = max(calculated_value, self._bit_field._min_value)
@@ -1098,6 +1104,38 @@ class CalculatedInt(Calculated):
         :return: a zeroed version of the field, good for some checksums and inclusive lengths
         '''
         return Bits(len(self._bit_field.render()))
+
+
+def _num_subelements(field):
+    return len(field.get_rendered_fields())
+
+
+class ElementCount(CalculatedInt):
+    '''
+    Number of elements inside another field
+    value depends on the number of fields in the field it depends on
+    '''
+    def __init__(self, depends_on, length, calc_func=None, encoder=ENC_INT_DEFAULT, fuzzable=False, name=None):
+        '''
+        :param depends_on: (name of) field we depend on
+        :param length: length of the ElementCount field (in bits)
+        :type calc_func: func(field) -> int
+        :param calc_func:
+            function to calculate the value of the field.
+            default function will return the number of fields that are directly in the container,
+            and 1 for a non-container field
+        :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
+        :param encoder: encoder for the field (default: ENC_INT_DEFAULT)
+        :param fuzzable: is container fuzzable
+        :param name: (unique) name of the container (default: None)
+        '''
+        if calc_func is None:
+            calc_func = _num_subelements
+        bit_field = BitField(value=0, length=length, encoder=encoder)
+        super(ElementCount, self).__init__(depends_on=depends_on, bit_field=bit_field, calc_func=calc_func, fuzzable=fuzzable, name=name)
+
+    def _calculate_value(self):
+        return self._calc_func(self._field)
 
 
 class Checksum(CalculatedInt):

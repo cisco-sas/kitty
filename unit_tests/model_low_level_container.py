@@ -213,29 +213,6 @@ class ContainerTest(BaseTestCase):
 
     @metaTest
     def test_hash_the_same_for_two_similar_objects(self):
-        field1 = self.get_default_field()
-        field2 = self.get_default_field()
-        self.assertEqual(field1.hash(), field2.hash())
-
-    @metaTest
-    def test_hash_the_same_after_reset(self):
-        field = self.get_default_field()
-        hash_after_creation = field.hash()
-        field.mutate()
-        hash_after_mutate = field.hash()
-        self.assertEqual(hash_after_creation, hash_after_mutate)
-        field.reset()
-        hash_after_reset = field.hash()
-        self.assertEqual(hash_after_creation, hash_after_reset)
-        while field.mutate():
-            hash_after_mutate_all = field.hash()
-            self.assertEqual(hash_after_creation, hash_after_mutate_all)
-            field.render()
-            hash_after_render_all = field.hash()
-            self.assertEqual(hash_after_creation, hash_after_render_all)
-
-    @metaTest
-    def test_hash_the_same_for_two_similar_objects(self):
         container1 = self.get_default_container(fields=[String('test_string')])
         container2 = self.get_default_container(fields=[String('test_string')])
         self.assertEqual(container1.hash(), container2.hash())
@@ -256,6 +233,27 @@ class ContainerTest(BaseTestCase):
             container.render()
             hash_after_render_all = container.hash()
             self.assertEqual(hash_after_creation, hash_after_render_all)
+
+    @metaTest
+    def testGetRenderedFieldsCorrect(self):
+        fields = [
+            String('test_string'),
+            If(Equal('test_group', 'A'), String('if')),
+            IfNot(Equal('test_group', 'A'), String('ifnot')),
+            Group(name='test_group', values=['A', 'B', 'C'])
+        ]
+        container = self.get_default_container(fields)
+        expected_list = filter(lambda x: len(x.render()), fields)
+        if len(container.render()):
+            self.assertListEqual(container.get_rendered_fields(), expected_list)
+        else:
+            self.assertListEqual(container.get_rendered_fields(), [])
+        while container.mutate():
+            expected_list = filter(lambda x: len(x.render()), fields)
+            if len(container.render()):
+                self.assertEqual(container.get_rendered_fields(), expected_list)
+            else:
+                self.assertEqual(container.get_rendered_fields(), [])
 
 
 class ConditionTest(ContainerTest):
