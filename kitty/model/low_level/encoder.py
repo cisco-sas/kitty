@@ -272,10 +272,13 @@ class BitFieldMultiByteEncoder(BitFieldEncoder):
             raise KittyException('Signed MultiBytes not supported yet, sorry')
 
         # split to septets
-        bytes_arr = []
-        while value:
-            bytes_arr.append((value & 0x7f) | 0x80)
-            value >>= 7
+        if value:
+            bytes_arr = []
+            while value:
+                bytes_arr.append((value & 0x7f) | 0x80)
+                value >>= 7
+        else:
+            bytes_arr = [0]
 
         # reverse if little endian
         if self._mode == 'le':
