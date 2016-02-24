@@ -64,6 +64,7 @@ class BaseField(KittyObject):
         self._current_index = -1
         self._enclosing = None
         self._mutating = False
+        self._offset = None
 
     def set_current_value(self, value):
         '''
@@ -127,12 +128,34 @@ class BaseField(KittyObject):
         :return: True if field the mutated
         '''
         self._get_ready()
+        self.state_changed()
         if self._exhausted():
             return False
         self._mutating = True
         self._current_index += 1
         self._mutate()
         return True
+
+    def set_offset(self, offset):
+        '''
+        Set the offset of the field
+
+        :param offset: offset of the field
+        '''
+        self._offset = offset
+
+    def get_offset(self):
+        '''
+        Get the offset of the field.
+
+        :return: offset of the field, None if offset is unknown at the moment
+        '''
+        if self._offset is None:
+            if self._enclosing is None:
+                self.set_offset(0)
+            else:
+                self._enclosing.render()
+        return self._offset
 
     def _get_ready(self):
         pass
@@ -152,10 +175,18 @@ class BaseField(KittyObject):
         '''
         Reset the field to its default state
         '''
+        self._offset = None
         self._current_index = -1
         self._current_value = self._default_value
         self._current_rendered = self._default_rendered
         self._mutating = False
+
+    def state_changed(self):
+        '''
+        Notify the field that the state was changed,
+        so some data may be inconsistent at the moment
+        '''
+        self._offset = None
 
     def _mutate(self):
         '''
@@ -163,17 +194,21 @@ class BaseField(KittyObject):
         '''
         pass
 
+    def _get_enclosing_list(self):
+        '''
+        :return: list of fields from the top of the path to current field
+        '''
+        alist = [self]
+        if self._enclosing:
+            alist = self._enclosing._get_enclosing_list() + alist
+        return alist
+
     def _get_enclosing_path(self):
         '''
         :return: ordered name list of enclosing fields
         '''
-        name = self.get_name()
-        if name is None:
-            name = '<no name>'
-        if not self._enclosing:
-            return [name]
-        else:
-            return self._enclosing._get_enclosing_path() + [name]
+        alist = self._get_enclosing_list()
+        return [x.get_name() or '<no name>' for x in alist]
 
     def get_info(self):
         '''

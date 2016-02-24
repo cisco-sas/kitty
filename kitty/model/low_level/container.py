@@ -97,12 +97,18 @@ class Container(BaseField):
         '''
         :return: rendered value of the container
         '''
+        current_offset = self.get_offset()
+        if current_offset is None:
+            if self._enclosing is None:
+                self.set_offset()
         rendered = BitArray()
         for field in self._fields:
+            field.set_offset(current_offset)
             frendered = field.render()
             if not isinstance(frendered, Bits):
                 raise KittyException('the field %s:%s was rendered to type %s, you should probably wrap it with appropriate encoder' % (
                     field.get_name(), type(field), type(frendered)))
+            current_offset += len(frendered)
             rendered.append(frendered)
         self.set_current_value(rendered)
         return self._current_rendered
@@ -156,6 +162,16 @@ class Container(BaseField):
             for field in self._fields:
                 if isinstance(field, (Container, Dynamic)):
                     field.set_session_data(session_data)
+
+    def state_changed(self):
+        '''
+        Notify the field that the state was changed,
+        so some data may be inconsistent at the moment
+        '''
+        if self.get_offset() is not None:
+            for field in self._fields:
+                field.state_changed()
+        super(Container, self).state_changed()
 
     def _get_ready(self):
         '''
@@ -638,6 +654,7 @@ class OneOf(Container):
         '''
         Render only the mutated field (or the first one if not in mutation)
         '''
+        self._fields[self._field_idx].set_offset(self.get_offset())
         rendered = self._fields[self._field_idx].render()
         self.set_current_value(rendered)
         return self._current_rendered

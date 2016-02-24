@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Cisco Systems, Inc. and/or its affiliates. All rights reserved.
 #
 # This file is part of Kitty.
@@ -53,7 +54,7 @@ class CalculatedTestCase(BaseTestCase):
         return String(self.depends_on_value, name=self.depends_on_name)
 
     @metaTest
-    def test_calculated_after_field(self):
+    def testCalculatedAfterField(self):
         original_field = self.get_original_field()
         calculated_field = self.get_default_field()
         container = Container([original_field, calculated_field])
@@ -66,7 +67,7 @@ class CalculatedTestCase(BaseTestCase):
             self.assertEqual(expected, actual)
 
     @metaTest
-    def test_calculated_before_field(self):
+    def testCalculatedBeforeField(self):
         original_field = self.get_original_field()
         calculated_field = self.get_default_field()
         container = Container([calculated_field, original_field])
@@ -209,7 +210,6 @@ class IndexOfTestCase(CalculatedTestCase):
         del t
 
 
-
 class SizeTests(CalculatedTestCase):
     __meta__ = False
 
@@ -235,7 +235,7 @@ class SizeTests(CalculatedTestCase):
         self.bit_field.set_current_value(val)
         return self.bit_field.render()
 
-    def test_custom_func_valid(self):
+    def testCustomFuncValid(self):
         def func(x):
             return len(x)
         original_field = self.get_original_field()
@@ -249,11 +249,11 @@ class SizeTests(CalculatedTestCase):
             actual = calculated_field.render()
             self.assertEqual(expected, actual)
 
-    def test_invalid_length_0(self):
+    def testInvalidLength0(self):
         with self.assertRaises(KittyException):
             self.cls(self.depends_on_name, length=0)
 
-    def test_invalid_length_negative(self):
+    def testInvalidLengthNegative(self):
         with self.assertRaises(KittyException):
             self.cls(self.depends_on_name, length=-3)
 
@@ -372,11 +372,11 @@ class ValueTestCase(BaseTestCase):
         self.assertEqual(len(mutations), len(set(mutations)))
 
     @metaTest
-    def test_dummy_to_do(self):
+    def testDummyToDo(self):
         self.assertEqual(len(self.todo), 0)
 
     @metaTest
-    def test_default_value(self):
+    def testDefaultValue(self):
         field = self.get_default_field()
         res = field.render()
         self.assertEqual(self.default_value_rendered, res)
@@ -386,13 +386,13 @@ class ValueTestCase(BaseTestCase):
         self.assertEqual(self.default_value_rendered, res)
 
     @metaTest
-    def test_mutate_all_different(self):
+    def testMutateAllDifferent(self):
         field = self.get_default_field()
         mutations = self._get_all_mutations(field)
         self.assertEqual(len(set(mutations)), len(mutations))
 
     @metaTest
-    def test_not_fuzzable(self):
+    def testNotFuzzable(self):
         field = self.get_default_field(fuzzable=False)
         num_mutations = field.num_mutations()
         self.assertEqual(num_mutations, 0)
@@ -412,13 +412,13 @@ class ValueTestCase(BaseTestCase):
         self.assertEqual(as_val, self.default_value)
 
     @metaTest
-    def test_num_mutations(self):
+    def testNumMutations(self):
         field = self.get_default_field()
         num_mutations = field.num_mutations()
         self._check_mutation_count(field, num_mutations)
 
     @metaTest
-    def test_same_result_when_same_params(self):
+    def testSameResultWhenSameParams(self):
         field1 = self.get_default_field()
         field2 = self.get_default_field()
         res1 = self._get_all_mutations(field1)
@@ -426,14 +426,14 @@ class ValueTestCase(BaseTestCase):
         self.assertListEqual(res1, res2)
 
     @metaTest
-    def test_same_result_after_reset(self):
+    def testSameResultAfterReset(self):
         field = self.get_default_field()
         res1 = self._get_all_mutations(field)
         res2 = self._get_all_mutations(field)
         self.assertListEqual(res1, res2)
 
     @metaTest
-    def test_skip_zero(self):
+    def testSkipZero(self):
         field = self.get_default_field(fuzzable=True)
         num_mutations = field.num_mutations()
         to_skip = 0
@@ -442,7 +442,7 @@ class ValueTestCase(BaseTestCase):
         self._check_skip(field, to_skip, expected_skipped, expected_mutated)
 
     @metaTest
-    def test_skip_one(self):
+    def testSkipOne(self):
         field = self.get_default_field(fuzzable=True)
         num_mutations = field.num_mutations()
         to_skip = 1
@@ -451,7 +451,7 @@ class ValueTestCase(BaseTestCase):
         self._check_skip(field, to_skip, expected_skipped, expected_mutated)
 
     @metaTest
-    def test_skip_half(self):
+    def testSkipHalf(self):
         field = self.get_default_field(fuzzable=True)
         num_mutations = field.num_mutations()
         to_skip = num_mutations / 2
@@ -460,7 +460,7 @@ class ValueTestCase(BaseTestCase):
         self._check_skip(field, to_skip, expected_skipped, expected_mutated)
 
     @metaTest
-    def test_skip_exact(self):
+    def testSkipExact(self):
         field = self.get_default_field(fuzzable=True)
         num_mutations = field.num_mutations()
         to_skip = num_mutations
@@ -469,7 +469,7 @@ class ValueTestCase(BaseTestCase):
         self._check_skip(field, to_skip, expected_skipped, expected_mutated)
 
     @metaTest
-    def test_skip_too_much(self):
+    def testSkipTooMuch(self):
         field = self.get_default_field(fuzzable=True)
         num_mutations = field.num_mutations()
         to_skip = num_mutations + 1
@@ -478,7 +478,7 @@ class ValueTestCase(BaseTestCase):
         self._check_skip(field, to_skip, expected_skipped, expected_mutated)
 
     @metaTest
-    def test_return_type_render_fuzzable(self):
+    def testReturnTypeRenderFuzzable(self):
         field = self.get_default_field(fuzzable=True)
         self.assertIsInstance(field.render(), self.rendered_type)
         field.mutate()
@@ -487,7 +487,7 @@ class ValueTestCase(BaseTestCase):
         self.assertIsInstance(field.render(), self.rendered_type)
 
     @metaTest
-    def test_return_type_get_rendered_fuzzable(self):
+    def testReturnTypeGetRenderedFuzzable(self):
         field = self.get_default_field(fuzzable=True)
         self.assertIsInstance(field.render(), self.rendered_type)
         field.mutate()
@@ -496,14 +496,14 @@ class ValueTestCase(BaseTestCase):
         self.assertIsInstance(field.render(), self.rendered_type)
 
     @metaTest
-    def test_return_type_mutate_fuzzable(self):
+    def testReturnTypeMutateFuzzable(self):
         field = self.get_default_field(fuzzable=True)
         self.assertIsInstance(field.mutate(), types.BooleanType)
         field.reset()
         self.assertIsInstance(field.mutate(), types.BooleanType)
 
     @metaTest
-    def test_return_type_render_not_fuzzable(self):
+    def testReturnTypeRenderNotFuzzable(self):
         field = self.get_default_field(fuzzable=False)
         self.assertIsInstance(field.render(), self.rendered_type)
         field.mutate()
@@ -512,7 +512,7 @@ class ValueTestCase(BaseTestCase):
         self.assertIsInstance(field.render(), self.rendered_type)
 
     @metaTest
-    def test_return_type_get_rendered_not_fuzzable(self):
+    def testReturnTypeGetRenderedNotFuzzable(self):
         field = self.get_default_field(fuzzable=False)
         self.assertIsInstance(field.render(), self.rendered_type)
         field.mutate()
@@ -521,20 +521,20 @@ class ValueTestCase(BaseTestCase):
         self.assertIsInstance(field.render(), self.rendered_type)
 
     @metaTest
-    def test_return_type_mutate_not_fuzzable(self):
+    def testReturnTypeMutateNotFuzzable(self):
         field = self.get_default_field(fuzzable=False)
         self.assertIsInstance(field.mutate(), types.BooleanType)
         field.reset()
         self.assertIsInstance(field.mutate(), types.BooleanType)
 
     @metaTest
-    def test_hash_the_same_for_two_similar_objects(self):
+    def testHashTheSameForTwoSimilarObjects(self):
         field1 = self.get_default_field()
         field2 = self.get_default_field()
         self.assertEqual(field1.hash(), field2.hash())
 
     @metaTest
-    def test_hash_the_same_after_reset(self):
+    def testHashTheSameAfterReset(self):
         field = self.get_default_field()
         hash_after_creation = field.hash()
         field.mutate()
@@ -560,6 +560,48 @@ class ValueTestCase(BaseTestCase):
                 self.assertEqual(field.get_rendered_fields(), field_list)
             else:
                 self.assertEqual(field.get_rendered_fields(), [])
+
+    @metaTest
+    def testCorrectOffsetIsSetFirstFieldSingleLevel(self):
+        uut = self.get_default_field()
+        con = Container(name='container', fields=[uut, String('abcd')])
+        con.render()
+        self.assertEqual(uut.get_offset(), 0)
+        while con.mutate():
+            con.render()
+            self.assertEqual(uut.get_offset(), 0)
+
+    @metaTest
+    def testCorrectOffsetIsSetMiddleFieldSingleLevel(self):
+        uut = self.get_default_field()
+        first_field = String('Reykjavik')
+        con = Container(name='container', fields=[first_field, uut])
+        con.render()
+        self.assertEqual(uut.get_offset(), len(first_field.render()))
+        while con.mutate():
+            con.render()
+            self.assertEqual(uut.get_offset(), len(first_field.render()))
+
+    @metaTest
+    def testCorrectOffsetIsSetMiddleFieldMultiLevel(self):
+        uut = self.get_default_field()
+        first_field = String('Reykjavik')
+        second_field = String('Kópavogur')
+        con = Container(
+            name='container',
+            fields=[
+                first_field,
+                Container(
+                    fields=[
+                        second_field,
+                        uut
+                    ]),
+            ])
+        con.render()
+        self.assertEqual(uut.get_offset(), len(first_field.render() + second_field.render()))
+        while con.mutate():
+            con.render()
+            self.assertEqual(uut.get_offset(), len(first_field.render() + second_field.render()))
 
     def _check_skip(self, field, to_skip, expected_skipped, expected_mutated):
         skipped = field.skip(to_skip)
@@ -594,7 +636,7 @@ class StringTests(ValueTestCase):
     def setUp(self, cls=String):
         super(StringTests, self).setUp(cls)
 
-    def test_max_size_num_mutations(self):
+    def testMaxSizeNumMutations(self):
         max_size = 35
         nm_field = self.cls(value=self.default_value)
         excepted_mutation_count = 0
@@ -607,7 +649,7 @@ class StringTests(ValueTestCase):
         self.assertEqual(excepted_mutation_count, num_mutations)
         self._check_mutation_count(field, excepted_mutation_count)
 
-    def test_max_size_mutations(self):
+    def testMaxSizeMutations(self):
         max_size = 35
         max_size_in_bits = max_size * 8
         nm_field = self.cls(value=self.default_value)
@@ -649,14 +691,14 @@ class DynamicTests(ValueTestCase):
     def get_default_field(self, fuzzable=True):
         return self.cls(key='my_key', default_value=self.default_value, length=len(self.default_value), fuzzable=fuzzable)
 
-    def test_session_data_not_fuzzable(self):
+    def testSessionDataNotFuzzable(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
         self.assertEqual(Bits(bytes=self.value_exists), field.render())
         self.assertEqual(Bits(bytes=self.value_exists), field.render())
 
-    def test_session_data_not_fuzzable_after_reset(self):
+    def testSessionDataNotFuzzableAfterReset(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
@@ -664,7 +706,7 @@ class DynamicTests(ValueTestCase):
         field.reset()
         self.assertEqual(self.default_value_rendered, field.render())
 
-    def test_session_data_not_fuzzable_data_change_key_exists(self):
+    def testSessionDataNotFuzzableDataChangeKeyExists(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
@@ -673,7 +715,7 @@ class DynamicTests(ValueTestCase):
         field.set_session_data({self.key_exists: new_val})
         self.assertEqual(Bits(bytes=new_val), field.render())
 
-    def test_session_data_not_fuzzable_data_change_key_not_exist(self):
+    def testSessionDataNotFuzzableDataChangeKeyNotExist(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
@@ -682,7 +724,7 @@ class DynamicTests(ValueTestCase):
         field.set_session_data({self.key_not_exist: new_val})
         self.assertEqual(Bits(bytes=self.value_exists), field.render())
 
-    def test_session_data_fuzzable_after_reset(self):
+    def testSessionDataFuzzableAfterReset(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value, length=len(self.default_value), fuzzable=True)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
@@ -690,7 +732,7 @@ class DynamicTests(ValueTestCase):
         field.reset()
         self.assertEqual(self.default_value_rendered, field.render())
 
-    def test_session_data_fuzzable_data_change_key_exists(self):
+    def testSessionDataFuzzableDataChangeKeyExists(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value, length=len(self.default_value), fuzzable=True)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
@@ -699,7 +741,7 @@ class DynamicTests(ValueTestCase):
         field.set_session_data({self.key_exists: new_val})
         self.assertEqual(Bits(bytes=new_val), field.render())
 
-    def test_session_data_fuzzable_data_change_key_not_exist(self):
+    def testSessionDataFuzzableDataChangeKeyNotExist(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value, length=len(self.default_value), fuzzable=True)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
@@ -722,7 +764,7 @@ class RandomBitsTests(ValueTestCase):
     def get_default_field(self, fuzzable=True):
         return self.cls(value=self.default_value, min_length=5, max_length=10, unused_bits=self.default_unused_bits, fuzzable=fuzzable)
 
-    def test_not_fuzzable(self):
+    def testNotFuzzable(self):
         field = self.get_default_field(fuzzable=False)
         num_mutations = field.num_mutations()
         self.assertEqual(num_mutations, 0)
@@ -738,14 +780,14 @@ class RandomBitsTests(ValueTestCase):
         rendered = field.render()
         self.assertEqual(rendered, self.default_value_rendered)
 
-    def test_no_step_num_mutations(self):
+    def testNoStepNumMutations(self):
         param_num_mutations = 100
         field = self.cls(value=self.default_value, min_length=10, max_length=20, unused_bits=3, num_mutations=param_num_mutations)
         self._check_mutation_count(field, param_num_mutations)
         field.reset()
         self._check_mutation_count(field, param_num_mutations)
 
-    def test_no_step_sizes(self):
+    def testNoStepSizes(self):
         min_length = 10
         max_length = 100
         field = self.cls(value=self.default_value, min_length=min_length, max_length=max_length, unused_bits=self.default_unused_bits)
@@ -754,30 +796,30 @@ class RandomBitsTests(ValueTestCase):
             self.assertGreaterEqual(len(rendered), min_length)
             self.assertLessEqual(len(rendered), max_length)
 
-    def test_no_step_min_negative(self):
+    def testNoStepMinNegative(self):
         with self.assertRaises(KittyException):
             self.cls(value=self.default_value, min_length=-1, max_length=4)
 
-    def test_no_step_max_negative(self):
+    def testNoStepMaxNegative(self):
         with self.assertRaises(KittyException):
             self.cls(value=self.default_value, min_length=-2, max_length=-1)
 
-    def test_no_step_max_is_0(self):
+    def testNoStepMaxIs0(self):
         with self.assertRaises(KittyException):
             self.cls(value=self.default_value, min_length=0, max_length=0)
 
-    def test_no_step_min_bigger_than_max(self):
+    def testNoStepMinBiggerThanMax(self):
         with self.assertRaises(KittyException):
             self.cls(value=self.default_value, min_length=5, max_length=4)
 
-    def test_no_step_randomness(self):
+    def testNoStepRandomness(self):
         min_length = 10
         max_length = 100
         field = self.cls(value=self.default_value, min_length=min_length, max_length=max_length, unused_bits=self.default_unused_bits)
         mutations = self._get_all_mutations(field)
         self.assertNotEqual(len(set(mutations)), 1)
 
-    def test_seed_not_the_same(self):
+    def testSeedNotTheSame(self):
         min_length = 10
         max_length = 100
         field1 = self.cls(value=self.default_value, seed=11111, min_length=min_length, max_length=max_length, unused_bits=self.default_unused_bits)
@@ -786,7 +828,7 @@ class RandomBitsTests(ValueTestCase):
         res2 = self._get_all_mutations(field2)
         self.assertNotEqual(res1, res2)
 
-    def test_step_num_mutations(self):
+    def testStepNumMutations(self):
         min_length = 10
         max_length = 100
         step = 3
@@ -796,7 +838,7 @@ class RandomBitsTests(ValueTestCase):
         field.reset()
         self._check_mutation_count(field, excepted_num_mutations)
 
-    def test_step_sizes(self):
+    def testStepSizes(self):
         min_length = 10
         max_length = 100
         step = 3
@@ -807,27 +849,27 @@ class RandomBitsTests(ValueTestCase):
             self.assertEqual(len(rendered), expected_length)
             expected_length += step
 
-    def test_step_min_negative(self):
+    def testStepMinNegative(self):
         with self.assertRaises(KittyException):
             self.cls(value=self.default_value, min_length=-1, max_length=4, step=1)
 
-    def test_step_max_negative(self):
+    def testStepMaxNegative(self):
         with self.assertRaises(KittyException):
             self.cls(value=self.default_value, min_length=-2, max_length=-1, step=1)
 
-    def test_step_max_is_0(self):
+    def testStepMaxIs0(self):
         with self.assertRaises(KittyException):
             self.cls(value=self.default_value, min_length=0, max_length=0, step=1)
 
-    def test_step_min_bigger_than_max(self):
+    def testStepMinBiggerThanMax(self):
         with self.assertRaises(KittyException):
             self.cls(value=self.default_value, min_length=5, max_length=4, step=1)
 
-    def test_step_negative(self):
+    def testStepNegative(self):
         with self.assertRaises(KittyException):
             self.cls(value=self.default_value, min_length=1, max_length=5, step=-1)
 
-    def test_step_randomness(self):
+    def testStepRandomness(self):
         min_length = 10
         max_length = 100
         step = 5
@@ -848,14 +890,14 @@ class RandomBytesTests(ValueTestCase):
     def get_default_field(self, fuzzable=True):
         return self.cls(value=self.default_value, min_length=5, max_length=10, fuzzable=fuzzable)
 
-    def test_no_step_num_mutations(self):
+    def testNoStepNumMutations(self):
         param_num_mutations = 100
         field = RandomBytes(value=self.default_value, min_length=10, max_length=20, num_mutations=param_num_mutations)
         self._check_mutation_count(field, param_num_mutations)
         field.reset()
         self._check_mutation_count(field, param_num_mutations)
 
-    def test_no_step_sizes(self):
+    def testNoStepSizes(self):
         min_length = 10
         max_length = 100
         field = RandomBytes(value=self.default_value, min_length=min_length, max_length=max_length)
@@ -864,30 +906,30 @@ class RandomBytesTests(ValueTestCase):
             self.assertGreaterEqual(len(rendered), min_length)
             self.assertLessEqual(len(rendered), max_length)
 
-    def test_no_step_min_negative(self):
+    def testNoStepMinNegative(self):
         with self.assertRaises(KittyException):
             RandomBytes(value=self.default_value, min_length=-1, max_length=4)
 
-    def test_no_step_max_negative(self):
+    def testNoStepMaxNegative(self):
         with self.assertRaises(KittyException):
             RandomBytes(value=self.default_value, min_length=-2, max_length=-1)
 
-    def test_no_step_max_is_0(self):
+    def testNoStepMaxIs0(self):
         with self.assertRaises(KittyException):
             RandomBytes(value=self.default_value, min_length=0, max_length=0)
 
-    def test_no_step_min_bigger_than_max(self):
+    def testNoStepMinBiggerThanMax(self):
         with self.assertRaises(KittyException):
             RandomBytes(value=self.default_value, min_length=5, max_length=4)
 
-    def test_no_step_randomness(self):
+    def testNoStepRandomness(self):
         min_length = 10
         max_length = 100
         field = RandomBytes(value=self.default_value, min_length=min_length, max_length=max_length)
         mutations = self._get_all_mutations(field)
         self.assertNotEqual(len(set(mutations)), 1)
 
-    def test_seed_not_the_same(self):
+    def testSeedNotTheSame(self):
         min_length = 10
         max_length = 100
         field1 = RandomBytes(value=self.default_value, seed=11111, min_length=min_length, max_length=max_length)
@@ -896,7 +938,7 @@ class RandomBytesTests(ValueTestCase):
         res2 = self._get_all_mutations(field2)
         self.assertNotEqual(res1, res2)
 
-    def test_step_num_mutations(self):
+    def testStepNumMutations(self):
         min_length = 10
         max_length = 100
         step = 3
@@ -906,7 +948,7 @@ class RandomBytesTests(ValueTestCase):
         field.reset()
         self._check_mutation_count(field, excepted_num_mutations)
 
-    def test_step_sizes(self):
+    def testStepSizes(self):
         min_length = 10
         max_length = 100
         step = 3
@@ -917,27 +959,27 @@ class RandomBytesTests(ValueTestCase):
             self.assertEqual(len(rendered), expected_length)
             expected_length += step
 
-    def test_step_min_negative(self):
+    def testStepMinNegative(self):
         with self.assertRaises(KittyException):
             RandomBytes(value=self.default_value, min_length=-1, max_length=4, step=1)
 
-    def test_step_max_negative(self):
+    def testStepMaxNegative(self):
         with self.assertRaises(KittyException):
             RandomBytes(value=self.default_value, min_length=-2, max_length=-1, step=1)
 
-    def test_step_max_is_0(self):
+    def testStepMaxIs0(self):
         with self.assertRaises(KittyException):
             RandomBytes(value=self.default_value, min_length=0, max_length=0, step=1)
 
-    def test_step_min_bigger_than_max(self):
+    def testStepMinBiggerThanMax(self):
         with self.assertRaises(KittyException):
             RandomBytes(value=self.default_value, min_length=5, max_length=4, step=1)
 
-    def test_step_negative(self):
+    def testStepNegative(self):
         with self.assertRaises(KittyException):
             RandomBytes(value=self.default_value, min_length=1, max_length=5, step=-1)
 
-    def test_step_randomness(self):
+    def testStepRandomness(self):
         min_length = 10
         max_length = 100
         step = 5
@@ -955,7 +997,7 @@ class StaticTests(ValueTestCase):
     def setUp(self, cls=Static):
         super(StaticTests, self).setUp(cls)
 
-    def test_num_mutations_0(self):
+    def testNumMutations0(self):
         field = Static(value=self.default_value)
         num_mutations = field.num_mutations()
         self.assertEqual(num_mutations, 0)
@@ -981,7 +1023,7 @@ class GroupTests(ValueTestCase):
     def get_default_field(self, fuzzable=True):
         return self.cls(values=self.default_values, fuzzable=fuzzable)
 
-    def test_mutations(self):
+    def testMutations(self):
         field = self.get_default_field()
         mutations = self._get_all_mutations(field)
         self.assertListEqual([Bits(bytes=x) for x in self.default_values], mutations)
@@ -1012,34 +1054,34 @@ class BitFieldTests(ValueTestCase):
         '''
         return bits.uint
 
-    def test_length_negative(self):
+    def testLengthNegative(self):
         with self.assertRaises(KittyException):
             BitField(value=self.default_value, length=-1)
 
-    def test_length_zero(self):
+    def testLengthZero(self):
         with self.assertRaises(KittyException):
             BitField(value=self.default_value, length=0)
 
-    def test_length_very_small(self):
+    def testLengthVerySmall(self):
         self._base_check(BitField(value=1, length=1))
 
-    def test_length_too_small_for_value_signed(self):
+    def testLengthTooSmallForValueSigned(self):
         with self.assertRaises(KittyException):
             BitField(value=64, length=7, signed=True)
 
-    def test_length_too_small_for_value_unsigned(self):
+    def testLengthTooSmallForValueUnsigned(self):
         with self.assertRaises(KittyException):
             BitField(value=64, length=6, signed=False)
 
-    def test_length_too_small_for_max_value(self):
+    def testLengthTooSmallForMaxValue(self):
         with self.assertRaises(KittyException):
             BitField(value=10, length=5, signed=True, max_value=17)
 
-    def test_length_very_large(self):
+    def testLengthVeryLarge(self):
         field = BitField(value=1, length=1)
         self._base_check(field)
 
-    def test_length_non_byte_aligned_unsigned(self):
+    def testLengthNonByteAlignedUnsigned(self):
         signed = False
         self._base_check(BitField(value=10, length=7, signed=signed))
         self._base_check(BitField(value=10, length=14, signed=signed))
@@ -1048,7 +1090,7 @@ class BitFieldTests(ValueTestCase):
         self._base_check(BitField(value=10, length=58, signed=signed))
         self._base_check(BitField(value=10, length=111, signed=signed))
 
-    def test_length_non_byte_aligned_signed(self):
+    def testLengthNonByteAlignedSigned(self):
         signed = True
         self._base_check(BitField(value=10, length=7, signed=signed))
         self._base_check(BitField(value=10, length=14, signed=signed))
@@ -1057,7 +1099,7 @@ class BitFieldTests(ValueTestCase):
         self._base_check(BitField(value=10, length=58, signed=signed))
         self._base_check(BitField(value=10, length=111, signed=signed))
 
-    def test_value_negative(self):
+    def testValueNegative(self):
         self._base_check(BitField(value=-50, length=7, signed=True))
 
 
@@ -1084,7 +1126,7 @@ class AlignedBitTests(ValueTestCase):
         return bits.uint
 
     @metaTest
-    def test_max_value(self):
+    def testMaxValue(self):
         max_value = self.default_value + 10
         field = self.cls(value=self.default_value, max_value=max_value)
         mutations = self._get_all_mutations(field)
@@ -1092,7 +1134,7 @@ class AlignedBitTests(ValueTestCase):
             self.assertGreaterEqual(max_value, self.bits_to_value(mutation))
 
     @metaTest
-    def test_min_value(self):
+    def testMinValue(self):
         min_value = self.default_value - 10
         field = self.cls(value=self.default_value, min_value=min_value)
         mutations = self._get_all_mutations(field)
@@ -1100,7 +1142,7 @@ class AlignedBitTests(ValueTestCase):
             self.assertLessEqual(min_value, self.bits_to_value(mutation))
 
     @metaTest
-    def test_min_max_value(self):
+    def testMinMaxValue(self):
         min_value = self.default_value - 10
         max_value = self.default_value + 10
         field = self.cls(value=self.default_value, min_value=min_value, max_value=max_value)
