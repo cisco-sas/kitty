@@ -1186,36 +1186,77 @@ class CalculatedInt(Calculated):
         return Bits(len(self._bit_field.render()))
 
 
-def _num_subelements(field):
-    return len(field.get_rendered_fields())
-
-
-class ElementCount(CalculatedInt):
+class FieldIntProperty(CalculatedInt):
     '''
-    Number of elements inside another field
-    value depends on the number of fields in the field it depends on
+    Calculate an int value based on some field property.
+    The main difference from :class:`~kitty.model.low_level.field.CalculatedInt`
+    is that it provides the field itself to the calculation function,
+    not its rendered value.
     '''
-    def __init__(self, depends_on, length, calc_func=None, encoder=ENC_INT_DEFAULT, fuzzable=False, name=None):
+    def __init__(self, depends_on, length, correction=None, encoder=ENC_INT_DEFAULT, fuzzable=False, name=None):
         '''
         :param depends_on: (name of) field we depend on
-        :param length: length of the ElementCount field (in bits)
+        :param length: length of the FieldIntProperty field (in bits)
+        :type corrention: int or func(int) -> int
+        :param correction: correction function, or value for the index
         :type calc_func: func(field) -> int
-        :param calc_func:
-            function to calculate the value of the field.
-            default function will return the number of fields that are directly in the container,
-            and 1 for a non-container field
+        :param calc_func: function to calculate the value of the field.
         :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
         :param encoder: encoder for the field (default: ENC_INT_DEFAULT)
         :param fuzzable: is container fuzzable
         :param name: (unique) name of the container (default: None)
         '''
-        if calc_func is None:
-            calc_func = _num_subelements
+        if correction:
+            if not isinstance(correction, types.FunctionType):
+                if not isinstance(correction, types.IntType):
+                    raise KittyException('correction must be int, function or None!')
+        self._correction = correction
         bit_field = BitField(value=0, length=length, encoder=encoder)
-        super(ElementCount, self).__init__(depends_on=depends_on, bit_field=bit_field, calc_func=calc_func, fuzzable=fuzzable, name=name)
+        super(FieldIntProperty, self).__init__(depends_on=depends_on, bit_field=bit_field, calc_func=None, fuzzable=fuzzable, name=name)
 
     def _calculate_value(self):
-        return self._calc_func(self._field)
+        calculated = self._calculate(self._field)
+        if isinstance(self._correction, types.FunctionType):
+            calculated = self._correction(calculated)
+        elif isinstance(self._correction, types.IntType):
+            calculated += self._correction
+        return calculated
+
+
+class ElementCount(FieldIntProperty):
+    '''
+    Number of elements inside another field.
+    The value depends on the number of fields in the field it depends on.
+    '''
+    def _calculate(self, field):
+        return len(field.get_rendered_fields())
+
+
+class IndexOf(FieldIntProperty):
+    '''
+    Index of a field in its container.
+
+    Edge case behavior:
+
+        - If field has no encloser - return 0
+        - If field is not rendered - return len(rendered element list) as index/
+    '''
+
+    def _calculate(self, field):
+        '''
+        We want to avoid trouble, so if the field is not enclosed by any other field,
+        we just return 0.
+        '''
+        encloser = field._enclosing
+        if encloser:
+            rendered = encloser.get_rendered_fields()
+            if field not in rendered:
+                value = len(rendered)
+            else:
+                value = rendered.index(field)
+        else:
+            value = 0
+        return value
 
 
 class Checksum(CalculatedInt):

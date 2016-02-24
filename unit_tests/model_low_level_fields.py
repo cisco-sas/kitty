@@ -22,9 +22,11 @@ from common import metaTest, BaseTestCase
 from bitstring import Bits
 import hashlib
 import types
+from struct import unpack
 from kitty.model import String, Delimiter, RandomBits, RandomBytes, Dynamic, Static, Group
 from kitty.model import BitField, UInt8, UInt16, UInt32, UInt64, SInt8, SInt16, SInt32, SInt64
-from kitty.model import Clone, Size, SizeInBytes, Checksum, Md5, Sha1, Sha224, Sha256, Sha384, Sha512, ElementCount
+from kitty.model import Clone, Size, SizeInBytes, Md5, Sha1, Sha224, Sha256, Sha384, Sha512
+from kitty.model import ElementCount, IndexOf
 from kitty.model import Container
 from kitty.core import KittyException
 
@@ -34,8 +36,8 @@ class CalculatedTestCase(BaseTestCase):
 
     def setUp(self, cls=None):
         super(CalculatedTestCase, self).setUp(cls)
-        self.depends_on_name = 'depends on'
-        self.depends_on_value = 'the value'
+        self.depends_on_name = 'depends_on'
+        self.depends_on_value = 'the_value'
 
     def calculate(self, field):
         '''
@@ -139,6 +141,73 @@ class ElementCountTests(CalculatedTestCase):
         full = Container([container, field])
         self.assertEqual(field.render(), self.calculate(internal_container))
         del full
+
+
+class IndexOfTestCase(CalculatedTestCase):
+
+    __meta__ = False
+
+    def setUp(self, cls=IndexOf):
+        super(IndexOfTestCase, self).setUp(cls)
+        self.length = 32
+        self.bit_field = BitField(value=0, length=self.length)
+
+    def get_default_field(self, fuzzable=False):
+        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable)
+
+    def calculate(self, field):
+        rendered = field._enclosing.get_rendered_fields()
+        if field in rendered:
+            value = rendered.index(field)
+        else:
+            value = len(rendered)
+        self.bit_field.set_current_value(value)
+        return self.bit_field.render()
+
+    def _testCorrectIndex(self, expected_index):
+        field_list = [String('%d' % i) for i in range(20)]
+        field_list[expected_index] = self.get_original_field()
+        uut = self.get_default_field()
+        t = Container(name='level1', fields=[uut, Container(name='level2', fields=field_list)])
+        rendered = uut.render().tobytes()
+        result = unpack('>I', rendered)[0]
+        self.assertEqual(result, expected_index)
+        del t
+
+    def testCorrectIndexFirst(self):
+        self._testCorrectIndex(0)
+
+    def testCorrectIndexMiddle(self):
+        self._testCorrectIndex(10)
+
+    def testCorrectIndexLast(self):
+        self._testCorrectIndex(19)
+
+    def testFieldNotRenderedAlone(self):
+        expected_index = 0
+        uut = self.get_default_field()
+        the_field = Static(name=self.depends_on_name, value='')
+        t = Container(name='level1', fields=[uut, Container(name='level2', fields=the_field)])
+        rendered = uut.render().tobytes()
+        result = unpack('>I', rendered)[0]
+        self.assertEqual(result, expected_index)
+        del t
+
+    def testFieldNotRenderedWithOtherFields(self):
+        expected_index = 3
+        uut = self.get_default_field()
+        fields = [
+            Static(name=self.depends_on_name, value=''),
+            Static('field1'),
+            Static('field2'),
+            Static('field3'),
+        ]
+        t = Container(name='level1', fields=[uut, Container(name='level2', fields=fields)])
+        rendered = uut.render().tobytes()
+        result = unpack('>I', rendered)[0]
+        self.assertEqual(result, expected_index)
+        del t
+
 
 
 class SizeTests(CalculatedTestCase):
