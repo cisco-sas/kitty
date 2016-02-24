@@ -22,7 +22,7 @@ from common import metaTest, BaseTestCase
 from bitstring import Bits
 import hashlib
 import types
-from kitty.model import String, Delimiter, RandomBytes, Dynamic, Static, Group
+from kitty.model import String, Delimiter, RandomBits, RandomBytes, Dynamic, Static, Group
 from kitty.model import BitField, UInt8, UInt16, UInt32, UInt64, SInt8, SInt16, SInt32, SInt64
 from kitty.model import Clone, Size, SizeInBytes, Checksum, Md5, Sha1, Sha224, Sha256, Sha384, Sha512, ElementCount
 from kitty.model import Container
@@ -638,6 +638,133 @@ class DynamicTests(ValueTestCase):
         new_val = 'new value'
         field.set_session_data({self.key_not_exist: new_val})
         self.assertEqual(Bits(bytes=self.value_exists), field.render())
+
+
+class RandomBitsTests(ValueTestCase):
+
+    __meta__ = False
+    default_value = 'kitty'
+    default_unused_bits = 3
+    default_value_rendered = Bits(bytes=default_value)[:-3]
+
+    def setUp(self, cls=RandomBits):
+        super(RandomBitsTests, self).setUp(cls)
+
+    def get_default_field(self, fuzzable=True):
+        return self.cls(value=self.default_value, min_length=5, max_length=10, unused_bits=self.default_unused_bits, fuzzable=fuzzable)
+
+    def test_not_fuzzable(self):
+        field = self.get_default_field(fuzzable=False)
+        num_mutations = field.num_mutations()
+        self.assertEqual(num_mutations, 0)
+        rendered = field.render()
+        self.assertEqual(rendered, self.default_value_rendered)
+        mutated = field.mutate()
+        self.assertFalse(mutated)
+        rendered = field.render()
+        self.assertEqual(rendered, self.default_value_rendered)
+        field.reset()
+        mutated = field.mutate()
+        self.assertFalse(mutated)
+        rendered = field.render()
+        self.assertEqual(rendered, self.default_value_rendered)
+
+    def test_no_step_num_mutations(self):
+        param_num_mutations = 100
+        field = self.cls(value=self.default_value, min_length=10, max_length=20, unused_bits=3, num_mutations=param_num_mutations)
+        self._check_mutation_count(field, param_num_mutations)
+        field.reset()
+        self._check_mutation_count(field, param_num_mutations)
+
+    def test_no_step_sizes(self):
+        min_length = 10
+        max_length = 100
+        field = self.cls(value=self.default_value, min_length=min_length, max_length=max_length, unused_bits=self.default_unused_bits)
+        while field.mutate():
+            rendered = field.render()
+            self.assertGreaterEqual(len(rendered), min_length)
+            self.assertLessEqual(len(rendered), max_length)
+
+    def test_no_step_min_negative(self):
+        with self.assertRaises(KittyException):
+            self.cls(value=self.default_value, min_length=-1, max_length=4)
+
+    def test_no_step_max_negative(self):
+        with self.assertRaises(KittyException):
+            self.cls(value=self.default_value, min_length=-2, max_length=-1)
+
+    def test_no_step_max_is_0(self):
+        with self.assertRaises(KittyException):
+            self.cls(value=self.default_value, min_length=0, max_length=0)
+
+    def test_no_step_min_bigger_than_max(self):
+        with self.assertRaises(KittyException):
+            self.cls(value=self.default_value, min_length=5, max_length=4)
+
+    def test_no_step_randomness(self):
+        min_length = 10
+        max_length = 100
+        field = self.cls(value=self.default_value, min_length=min_length, max_length=max_length, unused_bits=self.default_unused_bits)
+        mutations = self._get_all_mutations(field)
+        self.assertNotEqual(len(set(mutations)), 1)
+
+    def test_seed_not_the_same(self):
+        min_length = 10
+        max_length = 100
+        field1 = self.cls(value=self.default_value, seed=11111, min_length=min_length, max_length=max_length, unused_bits=self.default_unused_bits)
+        field2 = self.cls(value=self.default_value, seed=22222, min_length=min_length, max_length=max_length, unused_bits=self.default_unused_bits)
+        res1 = self._get_all_mutations(field1)
+        res2 = self._get_all_mutations(field2)
+        self.assertNotEqual(res1, res2)
+
+    def test_step_num_mutations(self):
+        min_length = 10
+        max_length = 100
+        step = 3
+        excepted_num_mutations = (max_length - min_length) / step
+        field = self.cls(value=self.default_value, min_length=min_length, max_length=max_length, unused_bits=7, step=step)
+        self._check_mutation_count(field, excepted_num_mutations)
+        field.reset()
+        self._check_mutation_count(field, excepted_num_mutations)
+
+    def test_step_sizes(self):
+        min_length = 10
+        max_length = 100
+        step = 3
+        field = self.cls(value=self.default_value, min_length=min_length, max_length=max_length, unused_bits=self.default_unused_bits, step=step)
+        expected_length = min_length
+        while field.mutate():
+            rendered = field.render()
+            self.assertEqual(len(rendered), expected_length)
+            expected_length += step
+
+    def test_step_min_negative(self):
+        with self.assertRaises(KittyException):
+            self.cls(value=self.default_value, min_length=-1, max_length=4, step=1)
+
+    def test_step_max_negative(self):
+        with self.assertRaises(KittyException):
+            self.cls(value=self.default_value, min_length=-2, max_length=-1, step=1)
+
+    def test_step_max_is_0(self):
+        with self.assertRaises(KittyException):
+            self.cls(value=self.default_value, min_length=0, max_length=0, step=1)
+
+    def test_step_min_bigger_than_max(self):
+        with self.assertRaises(KittyException):
+            self.cls(value=self.default_value, min_length=5, max_length=4, step=1)
+
+    def test_step_negative(self):
+        with self.assertRaises(KittyException):
+            self.cls(value=self.default_value, min_length=1, max_length=5, step=-1)
+
+    def test_step_randomness(self):
+        min_length = 10
+        max_length = 100
+        step = 5
+        field = self.cls(value=self.default_value, min_length=min_length, max_length=max_length, unused_bits=self.default_unused_bits, step=step)
+        mutations = self._get_all_mutations(field)
+        self.assertNotEqual(len(set(mutations)), 1)
 
 
 class RandomBytesTests(ValueTestCase):

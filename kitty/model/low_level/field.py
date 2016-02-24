@@ -773,6 +773,86 @@ class Dynamic(BaseField):
         return khash(hashed, self._key, self._length)
 
 
+class RandomBits(BaseField):
+    '''
+    A random sequence of bits.
+    The length of the sequence is between *min_length* and *max_length*,
+    and decided either randomally (if *step* is *None*)
+    or starts from *min_length* and inreased by *step* bits (if *step* has a value).
+    '''
+    _encoder_type_ = BitsEncoder
+
+    def __init__(self, value, min_length, max_length, unused_bits=0, seed=1235, num_mutations=25, step=None, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
+        '''
+        :type value: str
+        :param value: default value, the last *unsused_bits* will be removed from the value
+        :param min_length: minimal length of the field (in bits)
+        :param max_length: maximal length of the field (in bits)
+        :param unused_bits: how many bits from the value are not used (default: 0)
+        :param seed: seed for the random number generator, to allow consistency between runs (default: 1235)
+        :param num_mutations: number of mutations to perform (if step is None) (default:25)
+        :type step: int
+        :param step: step between lengths of each mutation (default: None)
+        :type encoder: :class:`~kitty.model.low_levele.encoder.BitsEncoder`
+        :param encoder: encoder for the field (default: ENC_BITS_DEFAULT)
+        :param fuzzable: is field fuzzable (default: True)
+        :param name: name of the object (default: None)
+
+        :examples:
+
+            ::
+
+                RandomBits(value='1234', min_length=0, max_length=75, unused_bits=0, step=15)
+                RandomBits(value='1234', min_length=0, max_length=75, unused_bits=3, num_mutations=80)
+        '''
+        if unused_bits not in range(8):
+            raise KittyException('unused bits (%d) is not between 0-7' % unused_bits)
+        value = Bits(bytes=value)
+        if unused_bits:
+            value = value[:-unused_bits]
+        super(RandomBits, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
+        self._validate_lengths(min_length, max_length)
+        self._min_length = min_length
+        self._max_length = max_length
+        self._num_mutations = num_mutations
+        self._step = step
+        self._random = Random()
+        self._seed = seed
+        self._random.seed(self._seed)
+        if self._step:
+            if self._step < 0:
+                raise KittyException('step (%d) < 0' % (step))
+            self._num_mutations = (self._max_length - self._min_length) / self._step
+
+    def _validate_lengths(self, min_length, max_length):
+        kassert.is_int(min_length)
+        kassert.is_int(max_length)
+        if min_length > max_length:
+            raise KittyException('min_length(%d) > max_length(%d)' % (min_length, max_length))
+        elif min_length < 0:
+            raise KittyException('min_length(%d) < 0' % (min_length))
+        elif max_length <= 0:
+            raise KittyException('max_length(%d) < 0' % (max_length))
+
+    def reset(self):
+        super(RandomBits, self).reset()
+        self._random.seed(self._seed)
+
+    def _mutate(self):
+        if self._step:
+            length = self._min_length + self._step * self._current_index
+        else:
+            length = self._random.randint(self._min_length, self._max_length)
+        current_bytes = ''
+        for i in range(length / 8 + 1):
+            current_bytes += chr(self._random.randint(0, 255))
+        self._current_value = Bits(bytes=current_bytes)[:length]
+
+    def hash(self):
+        hashed = super(RandomBits, self).hash()
+        return khash(hashed, self._min_length, self._max_length, self._num_mutations, self._step, self._seed)
+
+
 class RandomBytes(BaseField):
     '''
     A random sequence of bytes The length of the sequence is between *min_length* and *max_length*,
