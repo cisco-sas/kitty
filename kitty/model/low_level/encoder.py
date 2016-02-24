@@ -280,8 +280,8 @@ class BitFieldMultiByteEncoder(BitFieldEncoder):
         else:
             bytes_arr = [0]
 
-        # reverse if little endian
-        if self._mode == 'le':
+        # reverse if big endian endian
+        if self._mode == 'be':
             bytes_arr.reverse()
 
         # remove msb from last byte
