@@ -355,7 +355,7 @@ class ByteAlignedBitsEncoder(BitsEncoder):
         kassert.is_of_types(value, Bits)
         remainder = len(value) % 8
         if remainder:
-            value += Bits(remainder)
+            value += Bits(bin='0' * (8-remainder))
         return value
 
 
