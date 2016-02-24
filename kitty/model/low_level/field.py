@@ -782,7 +782,11 @@ class RandomBits(BaseField):
     '''
     _encoder_type_ = BitsEncoder
 
-    def __init__(self, value, min_length, max_length, unused_bits=0, seed=1235, num_mutations=25, step=None, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
+    def __init__(
+        self, value, min_length, max_length, unused_bits=0,
+        seed=1235, num_mutations=25, step=None, encoder=ENC_BITS_DEFAULT,
+        fuzzable=True, name=None
+    ):
         '''
         :type value: str
         :param value: default value, the last *unsused_bits* will be removed from the value
