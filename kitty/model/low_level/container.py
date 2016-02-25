@@ -100,7 +100,7 @@ class Container(BaseField):
         current_offset = self.get_offset()
         if current_offset is None:
             if self._enclosing is None:
-                self.set_offset()
+                self.set_offset(0)
         rendered = BitArray()
         for field in self._fields:
             field.set_offset(current_offset)
@@ -168,7 +168,7 @@ class Container(BaseField):
         Notify the field that the state was changed,
         so some data may be inconsistent at the moment
         '''
-        if self.get_offset() is not None:
+        if self._offset is not None:
             for field in self._fields:
                 field.state_changed()
         super(Container, self).state_changed()
