@@ -413,16 +413,25 @@ class If(Container):
         '''
         super(If, self).__init__(fields=fields, encoder=encoder, fuzzable=fuzzable, name=name)
         self._condition = condition
+        self._in_render = False
 
     def render(self):
         '''
         Only render if condition applies
         '''
-        if self._condition.applies(self):
-            super(If, self).render()
+        if self._in_render:
+            self._current_rendered = self._in_render_value()
         else:
-            self.set_current_value(empty_bits)
+            self._in_render = True
+            if self._condition.applies(self):
+                super(If, self).render()
+            else:
+                self.set_current_value(empty_bits)
+            self._in_render = False
         return self._current_rendered
+
+    def _in_render_value(self):
+        return empty_bits
 
     def get_rendered_fields(self):
         '''
@@ -476,16 +485,25 @@ class IfNot(Container):
         '''
         super(IfNot, self).__init__(fields=fields, encoder=encoder, fuzzable=fuzzable, name=name)
         self._condition = condition
+        self._in_render = False
 
     def render(self):
         '''
         Only render if condition applies
         '''
-        if not self._condition.applies(self):
-            super(IfNot, self).render()
+        if self._in_render:
+            self._current_rendered = self._in_render_value()
         else:
-            self.set_current_value(empty_bits)
+            self._in_render = True
+            if self._condition.applies(self):
+                self.set_current_value(empty_bits)
+            else:
+                super(IfNot, self).render()
+            self._in_render = False
         return self._current_rendered
+
+    def _in_render_value(self):
+        return empty_bits
 
     def get_rendered_fields(self):
         '''
