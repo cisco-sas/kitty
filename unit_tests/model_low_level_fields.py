@@ -30,6 +30,7 @@ from kitty.model import Clone, Size, SizeInBytes, Md5, Sha1, Sha224, Sha256, Sha
 from kitty.model import ElementCount, IndexOf
 from kitty.model import Container
 from kitty.core import KittyException
+import os
 
 
 class CalculatedTestCase(BaseTestCase):
@@ -676,6 +677,26 @@ class StringTests(ValueTestCase):
             else:
                 self.assertIn(mutation, mutations)
 
+    def testStringsFromFile(self):
+        values = [
+            'It was the summer of 95 (so what!)',
+            'In the backyard, shaving the old plies',
+            'Feeling so strong (strong!), something went wrong (wrong!)',
+            'Straight into my finger, what a stinger, it was so long',
+            'I still remember that day, like the day that I said that I swear',
+            '"I\'ll never hurt myself again", but it seems that I\'m deemed to be wrong',
+            'To be wrong, to be wrong',
+            'Gotta keep holding on...they always played a slow song.',
+        ]
+        filename = './kitty_strings.txt'
+        with open(filename, 'wb') as f:
+            f.write('\n'.join(values))
+        uut = String(name='uut', value='streetlight')
+        all_mutations = self.get_all_mutations(uut)
+        for value in values:
+            self.assertIn(Bits(bytes=value), all_mutations)
+        os.remove(filename)
+
 
 class DelimiterTests(StringTests):
 
@@ -1115,6 +1136,21 @@ class BitFieldTests(ValueTestCase):
 
     def testValueNegative(self):
         self._base_check(BitField(value=-50, length=7, signed=True))
+
+    def testIntsFromFile(self):
+        values = [
+            '0xffffffff',
+            '-345345',
+            '123',
+            '0',
+            '333',
+            '56'
+        ]
+        filename = './kitty_integers.txt'
+        with open(filename, 'wb') as f:
+            f.write('\n'.join(values))
+        self._base_check(BitField(name='uut', value=1, length=12))
+        os.remove(filename)
 
 
 class AlignedBitTests(ValueTestCase):
