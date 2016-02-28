@@ -677,7 +677,7 @@ class StringTests(ValueTestCase):
             else:
                 self.assertIn(mutation, mutations)
 
-    def testStringsFromFile(self):
+    def _testStringsFromFile(self):
         values = [
             'It was the summer of 95 (so what!)',
             'In the backyard, shaving the old plies',
@@ -1137,7 +1137,7 @@ class BitFieldTests(ValueTestCase):
     def testValueNegative(self):
         self._base_check(BitField(value=-50, length=7, signed=True))
 
-    def testIntsFromFile(self):
+    def _testIntsFromFile(self):
         values = [
             '0xffffffff',
             '-345345',
