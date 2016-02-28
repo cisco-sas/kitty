@@ -35,6 +35,7 @@ import sys
 import types
 import docopt
 import traceback
+from pkg_resources import get_distribution
 from kitty.model import Template
 
 
@@ -68,15 +69,11 @@ class TemplateTester(TemplateProcessor):
             while t.mutate():
                 count += 1
                 t.render()
-                # if count % 50000 == 0:
-                #     verbose(count)
             t.reset()
             count = 0
             while t.mutate():
                 count += 1
                 t.render()
-                # if count % 50000 == 0:
-                #     verbose(count)
             t.reset()
 
 
@@ -151,6 +148,7 @@ def process_file(f, processor):
 
 
 def _main():
+    print('kitty version: %s' % get_distribution('kitty').version)
     opts = docopt.docopt(__doc__)
     files = opts['<FILE>']
     fast = opts['--fast']
