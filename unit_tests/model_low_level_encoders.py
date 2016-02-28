@@ -19,15 +19,18 @@
 Tests for low level encoders:
 '''
 from kitty.model.low_level.encoder import BitFieldMultiByteEncoder
+from kitty.model.low_level.encoder import StrFuncEncoder, StrEncodeEncoder
+from kitty.model.low_level.encoder import StrBase64NoNewLineEncoder, StrNullTerminatedEncoder
 from kitty.model.low_level import BitField
-from common import BaseTestCase
 from kitty.core import KittyException
+from bitstring import Bits
+from common import BaseTestCase
 
 
-class BitFieldMultiByteEncoderTests(BaseTestCase):
+class BitFieldMultiByteEncoderTest(BaseTestCase):
 
     def setUp(self, cls=None):
-        super(BitFieldMultiByteEncoderTests, self).setUp(cls)
+        super(BitFieldMultiByteEncoderTest, self).setUp(cls)
 
     def _multibyte_len(self, num):
         num_bits = len(bin(num)) - 2
@@ -97,3 +100,87 @@ class BitFieldMultiByteEncoderTests(BaseTestCase):
                 max_value=127,
                 encoder=BitFieldMultiByteEncoder()
             )
+
+
+class StrFuncEncoderTest(BaseTestCase):
+
+    def setUp(self, cls=StrFuncEncoder):
+        super(StrFuncEncoderTest, self).setUp(cls)
+
+    def _encode_func(self, s):
+        return s.encode('hex')
+
+    def get_default_encoder(self):
+        return self.cls(self._encode_func)
+
+    def testReturnValueIsBits(self):
+        uut = self.get_default_encoder()
+        encoded = uut.encode('abc')
+        self.assertIsInstance(encoded, Bits)
+
+    def testExceptionIfInputIsInt(self):
+        uut = self.get_default_encoder()
+        with self.assertRaises(KittyException):
+            uut.encode(1)
+
+    def testExceptionIfInputIsList(self):
+        uut = self.get_default_encoder()
+        with self.assertRaises(KittyException):
+            uut.encode([])
+
+    def testExceptionIfInputIsStringList(self):
+        uut = self.get_default_encoder()
+        with self.assertRaises(KittyException):
+            uut.encode(['a', 'b', 'c'])
+
+    def testCorrectValueEncoded(self):
+        value = 'abcd'
+        expected_encoded = self._encode_func(value)
+        uut = self.get_default_encoder()
+        encoded = uut.encode(value).tobytes()
+        self.assertEqual(encoded, expected_encoded)
+
+    def testEmptyValueEncoded(self):
+        value = ''
+        expected_encoded = self._encode_func(value)
+        uut = self.get_default_encoder()
+        encoded = uut.encode(value).tobytes()
+        self.assertEqual(encoded, expected_encoded)
+
+
+class StrEncodeEncoderTest(StrFuncEncoderTest):
+
+    def setUp(self, cls=StrEncodeEncoder):
+        super(StrEncodeEncoderTest, self).setUp(cls)
+        self.encoding = 'hex'
+
+    def _encode_func(self, s):
+        return s.encode('hex')
+
+    def get_default_encoder(self):
+        return self.cls(self.encoding)
+
+
+class StrBase64NoNewLineEncoderTest(StrFuncEncoderTest):
+
+    def setUp(self, cls=StrBase64NoNewLineEncoder):
+        super(StrBase64NoNewLineEncoderTest, self).setUp(cls)
+
+    def _encode_func(self, s):
+        return s.encode('base64')[:-1]
+
+    def get_default_encoder(self):
+        return self.cls()
+
+
+class StrNullTerminatedEncoderTest(StrFuncEncoderTest):
+
+    def setUp(self, cls=StrNullTerminatedEncoder):
+        super(StrNullTerminatedEncoderTest, self).setUp(cls)
+
+    def _encode_func(self, s):
+        return s + '\x00'
+
+    def get_default_encoder(self):
+        return self.cls()
+
