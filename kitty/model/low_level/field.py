@@ -314,6 +314,10 @@ class BaseField(KittyObject):
         hashed = khash(type(self).__name__, self._default_value, self._fuzzable)
         return hashed
 
+    def _initialize_default_buffer(self):
+        self.set_current_value(self._default_value)
+        return self._default_rendered
+
 
 class _MultiListAccessor(object):
     '''

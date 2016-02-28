@@ -228,8 +228,9 @@ class Container(BaseField):
         if self.is_default():
             rendered = Bits()
             for field in self._fields:
-                rendered += field._default_rendered
+                rendered += field._initialize_default_buffer()
             self._default_rendered = rendered
+        return self._default_rendered
 
     def _mutate(self):
         '''
@@ -762,8 +763,8 @@ class OneOf(Container):
         return res
 
     def _initialize_default_buffer(self):
-        if self.is_default():
-            self._default_rendered = self._fields[self._field_idx].render()
+        self._default_rendered = self._fields[self._field_idx]._initialize_default_buffer()
+        return self._default_rendered
 
     def get_length(self, ctx):
         return self._fields[self._field_idx].get_length(ctx)
@@ -872,20 +873,6 @@ class TakeFrom(OneOf):
         '''
         super(TakeFrom, self).reset()
         self.random.seed(self.seed * self.max_elements + self.min_elements)
-
-    def render(self, ctx=None):
-        '''
-        :param ctx: rendering context in which the method was called
-        :rtype: `Bits`
-        :return: rendered value of the taken fields from the container
-        '''
-        if ctx is None:
-            ctx = RenderContext()
-        ctx.push(self)
-        self._initialize()
-        res = self._fields[self._field_idx].render(ctx)
-        ctx.pop()
-        return res
 
     def hash(self):
         '''
