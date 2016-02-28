@@ -773,6 +773,16 @@ class OneOf(Container):
         :param offset: offset to set
         :param ctx: rendering context in which the method was called
         '''
+        if ctx is None:
+            ctx = RenderContext()
+        if offset is None:
+            if self._enclosing is None:
+                offset = 0
+            else:
+                self._enclosing.set_offset(offset, ctx)
+                offset = self._offset
+        self._offset = offset
+        ctx.push(self)
         return self._fields[self._field_idx].set_offset(offset, ctx)
 
     def _calculate_mutations(self, num):
