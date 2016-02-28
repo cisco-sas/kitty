@@ -136,6 +136,7 @@ class Container(BaseField):
         self.set_offset(self._offset, ctx)
         if self.is_default():
             self._current_rendered = self._default_rendered
+            ctx.pop()
             return self._default_rendered
         rendered = BitArray()
         offset = 0
@@ -784,7 +785,9 @@ class OneOf(Container):
                 offset = self._offset
         self._offset = offset
         ctx.push(self)
-        return self._fields[self._field_idx].set_offset(offset, ctx)
+        res = self._fields[self._field_idx].set_offset(offset, ctx)
+        ctx.pop()
+        return res
 
     def _calculate_mutations(self, num):
         '''
