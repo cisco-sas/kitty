@@ -135,6 +135,7 @@ class Container(BaseField):
         ctx.push(self)
         self.set_offset(self._offset, ctx)
         if self.is_default():
+            self._current_rendered = self._default_rendered
             return self._default_rendered
         rendered = BitArray()
         offset = 0
