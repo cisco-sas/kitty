@@ -34,7 +34,6 @@ from kitty.model.low_level.encoder import ENC_INT_DEFAULT, BitFieldEncoder
 from kitty.model.low_level.encoder import ENC_BITS_DEFAULT, BitsEncoder
 from kitty.model.low_level.ll_utils import RenderContext
 
-
 empty_bits = Bits()
 
 
@@ -1094,7 +1093,7 @@ class Calculated(BaseField):
         :rtype: Bits
         :return: a dummy rendered value
         '''
-        raise NotImplementedError('_in_render_value should be implemented in subclass')
+        raise NotImplementedError('_in_render_value should be implemented in subclass (%s)' % type(self).__name__)
 
     def hash(self):
         '''
@@ -1190,12 +1189,12 @@ class Hash(CalculatedStr):
         Take a look at :mod:`~kitty.model.low_level.aliases`.
     '''
     _algos = {
-        'md5': hashlib.md5,
-        'sha1': hashlib.sha1,
-        'sha224': hashlib.sha224,
-        'sha256': hashlib.sha256,
-        'sha384': hashlib.sha384,
-        'sha512': hashlib.sha512,
+        'md5': (hashlib.md5, 128),
+        'sha1': (hashlib.sha1, 160),
+        'sha224': (hashlib.sha224, 224),
+        'sha256': (hashlib.sha256, 256),
+        'sha384': (hashlib.sha384, 384),
+        'sha512': (hashlib.sha512, 512),
     }
 
     def __init__(self, depends_on, algorithm, encoder=ENC_STR_DEFAULT, fuzzable=False, name=None):
@@ -1208,20 +1207,25 @@ class Hash(CalculatedStr):
         :param name: (unique) name of the field (default: None)
         '''
         if algorithm in Hash._algos:
-            algo = Hash._algos[algorithm]
+            algo = Hash._algos[algorithm][0]
 
             def algo_func(x):
                 return algo(x).digest()
 
             func = algo_func
+            self._hash_length = Hash._algos[algorithm][1]
         else:
             try:
                 res = algorithm('')
                 kassert.is_of_types(res, types.StringTypes)
                 func = algorithm
+                self._hash_length = len(res) * 8
             except:
                 raise KittyException('algorithm should be a func(str)->str or one of the strings %s' % (Hash._algos.keys(),))
         super(Hash, self).__init__(depends_on=depends_on, func=func, encoder=encoder, fuzzable=fuzzable, name=name)
+
+    def _in_render_value(self):
+        return Bits(self._hash_length)
 
 
 class CalculatedInt(Calculated):
