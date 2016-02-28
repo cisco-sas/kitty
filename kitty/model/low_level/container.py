@@ -759,6 +759,10 @@ class OneOf(Container):
         ctx.pop()
         return res
 
+    def _initialize_default_buffer(self):
+        if self.is_default():
+            self._default_rendered = self._fields[self._field_idx].render()
+
     def get_length(self, ctx):
         return self._fields[self._field_idx].get_length(ctx)
 
