@@ -231,6 +231,18 @@ class ContainerTest(BaseTestCase):
             else:
                 self.assertEqual(container.get_rendered_fields(), [])
 
+    @metaTest
+    def testSetOffsetPersist(self):
+        offset = 1000
+        uut = Container(name='uut', fields=[String('abc'), String('def')])
+        uut.set_offset(offset)
+        self.assertEqual(uut.get_offset(), offset)
+
+
+class RealContainerTest(ContainerTest):
+
+    __meta__ = False
+
 
 class ConditionTest(ContainerTest):
 
