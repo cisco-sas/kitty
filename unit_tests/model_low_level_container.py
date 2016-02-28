@@ -22,6 +22,7 @@ from common import metaTest, BaseTestCase
 from bitstring import Bits
 from kitty.model.low_level.field import String, Static, Group
 from kitty.model.low_level.container import Container, ForEach, If, IfNot, Repeat
+from kitty.model.low_level.container import Meta, Pad
 from kitty.model.low_level.condition import Condition
 from kitty.model.low_level.aliases import Equal, NotEqual
 
@@ -485,3 +486,78 @@ class RepeatTest(ContainerTest):
         ]
         repeater = Repeat(fields=fields, max_times=max_times)
         self._test_mutations(repeater, fields, max_times=max_times)
+
+
+class MetaTest(BaseTestCase):
+
+    def setUp(self):
+        super(MetaTest, self).setUp(Meta)
+
+    def testIsFuzzable(self):
+        field = String('abc')
+        uut = Meta(name='uut', fields=[field], fuzzable=True)
+        num_mutations = uut.num_mutations()
+        self.assertGreater(num_mutations, 0)
+        self.assertGreaterEqual(num_mutations, field.num_mutations())
+        actual_num_mutations = 0
+        while uut.mutate():
+            actual_num_mutations += 1
+        self.assertEqual(actual_num_mutations, num_mutations)
+
+    def testIsNotRenderedWhenFuzzable(self):
+        field = String('abc')
+        uut = Meta(name='uut', fields=[field], fuzzable=True)
+        while uut.mutate():
+            self.assertEqual(len(uut.render()), 0)
+
+    def testIsNotFuzzable(self):
+        field = String('abc')
+        uut = Meta(name='uut', fields=[field], fuzzable=False)
+        self.assertEqual(uut.num_mutations(), 0)
+        self.assertFalse(uut.mutate())
+
+    def testIsNotRenderedWhenNotFuzzable(self):
+        field = String('abc')
+        uut = Meta(name='uut', fields=[field], fuzzable=False)
+        self.assertEqual(len(uut.render()), 0)
+
+
+class PadTest(BaseTestCase):
+
+    __meta__ = False
+
+    def setUp(self, cls=Pad):
+        super(PadTest, self).setUp(cls)
+        self.pad_length = 10 * 8
+
+    def _testValuePadded(self, field, uut, pad_length, pad_data):
+        fdata = field.render()
+        udata = uut.render()
+        actual_pad_len = max(0, pad_length - len(fdata))
+        expected_padding = Bits(bytes=pad_data * (actual_pad_len / 8 + 1))[:actual_pad_len]
+        self.assertEqual(fdata, udata[:len(fdata)])
+        self.assertEqual(expected_padding, udata[len(fdata):])
+
+    def testPadWhenFuzzable(self):
+        field = String(name='padded', value='abc')
+        uut = Pad(self.pad_length, fields=field, name='uut')
+        self._testValuePadded(field, uut, self.pad_length, '\x00')
+        while uut.mutate():
+            self._testValuePadded(field, uut, self.pad_length, '\x00')
+
+    def testPadWhenNotFuzzable(self):
+        field = String(name='padded', value='abc')
+        uut = Pad(self.pad_length, fields=field, name='uut', fuzzable=False)
+        self._testValuePadded(field, uut, self.pad_length, '\x00')
+
+    def testNumMutations(self):
+        field = String(name='padded', value='abc')
+        uut = Pad(self.pad_length, fields=field, name='uut')
+        field_num_mutations = field.num_mutations()
+        uut_num_mutations = uut.num_mutations()
+        self.assertEqual(uut_num_mutations, field_num_mutations)
+        self.assertGreater(uut_num_mutations, 0)
+        actual_num_mutations = 0
+        while uut.mutate():
+            actual_num_mutations += 1
+        self.assertEqual(actual_num_mutations, uut_num_mutations)
