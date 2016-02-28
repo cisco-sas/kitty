@@ -42,7 +42,7 @@ class BitFieldMultiByteEncoderTests(BaseTestCase):
         rendered = bitfield.render()
         self.assertEquals(expected_len, len(rendered))
 
-    def test_unsigned_length_8(self):
+    def testUnsignedLength8(self):
         bitfield = BitField(
             0xaa,
             length=8,
@@ -52,7 +52,7 @@ class BitFieldMultiByteEncoderTests(BaseTestCase):
         )
         self._test(bitfield)
 
-    def test_unsigned_length_16(self):
+    def testUnsignedLength16(self):
         bitfield = BitField(
             1234,
             length=16,
@@ -61,7 +61,7 @@ class BitFieldMultiByteEncoderTests(BaseTestCase):
         )
         self._test(bitfield)
 
-    def test_unsigned_length_32(self):
+    def testUnsignedLength32(self):
         bitfield = BitField(
             1234,
             length=32,
@@ -70,7 +70,7 @@ class BitFieldMultiByteEncoderTests(BaseTestCase):
         )
         self._test(bitfield)
 
-    def test_unsigned_length_64(self):
+    def testUnsignedLength64(self):
         bitfield = BitField(
             78945,
             length=64,
@@ -79,7 +79,7 @@ class BitFieldMultiByteEncoderTests(BaseTestCase):
         )
         self._test(bitfield)
 
-    def test_unsigned_length_11(self):
+    def testUnsignedLength11(self):
         bitfield = BitField(
             14,
             length=11,
@@ -88,7 +88,7 @@ class BitFieldMultiByteEncoderTests(BaseTestCase):
         )
         self._test(bitfield)
 
-    def test_BitFieldMultiByteEncoder_signed__unsupported(self):
+    def testBitFieldMultiByteEncoderSignedUnsupported(self):
         with self.assertRaises(KittyException):
             BitField(
                 -12,

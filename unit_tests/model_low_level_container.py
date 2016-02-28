@@ -34,7 +34,7 @@ class ContainerTest(BaseTestCase):
         super(ContainerTest, self).setUp(cls)
 
     def get_default_container(self, fields=[], fuzzable=True):
-        return self.cls(fields=fields, fuzzable=fuzzable)
+        return self.cls(fields=fields, fuzzable=fuzzable, name='uut')
 
     def _test_fields(self, init_fields=[], push_fields=[]):
         all_fields = init_fields + push_fields
@@ -66,47 +66,37 @@ class ContainerTest(BaseTestCase):
         self.assertListEqual(fields_mutations, container_mutations)
 
     @metaTest
-    def test_primitives_init_1(self):
+    def testPrimitivesInit1(self):
         fields = [String('test_%d' % d) for d in range(1)]
         self._test_fields(init_fields=fields)
 
     @metaTest
-    def test_primitives_init_2(self):
+    def testPrimitivesInit2(self):
         fields = [String('test_%d' % d) for d in range(2)]
         self._test_fields(init_fields=fields)
 
     @metaTest
-    def test_primitives_init_5(self):
+    def testPrimitivesInit5(self):
         fields = [String('test_%d' % d) for d in range(5)]
         self._test_fields(init_fields=fields)
 
     @metaTest
-    def test_primitives_init_10(self):
-        fields = [String('test_%d' % d) for d in range(10)]
-        self._test_fields(init_fields=fields)
-
-    @metaTest
-    def test_primitives_push_1(self):
+    def testPrimitivesPush1(self):
         fields = [String('test_%d' % d) for d in range(1)]
         self._test_fields(push_fields=fields)
 
     @metaTest
-    def test_primitives_push_2(self):
+    def testPrimitivesPush2(self):
         fields = [String('test_%d' % d) for d in range(2)]
         self._test_fields(push_fields=fields)
 
     @metaTest
-    def test_primitives_push_5(self):
+    def testPrimitivesPush5(self):
         fields = [String('test_%d' % d) for d in range(5)]
         self._test_fields(push_fields=fields)
 
     @metaTest
-    def test_primitives_push_10(self):
-        fields = [String('test_%d' % d) for d in range(10)]
-        self._test_fields(push_fields=fields)
-
-    @metaTest
-    def test_primitives_init_1_push_1(self):
+    def testPrimitivesInit1Push1(self):
         init_fields = [
             String('test1'),
         ]
@@ -116,7 +106,7 @@ class ContainerTest(BaseTestCase):
         self._test_fields(init_fields=init_fields, push_fields=push_fields)
 
     @metaTest
-    def test_primitives_init_2_push_2(self):
+    def testPrimitivesInit2Push2(self):
         init_fields = [
             String('test11'),
             String('test12'),
@@ -128,53 +118,43 @@ class ContainerTest(BaseTestCase):
         self._test_fields(init_fields=init_fields, push_fields=push_fields)
 
     @metaTest
-    def test_containers_init_1(self):
+    def testContainersInit1(self):
         containers = [Container(fields=[String('test_%d' % d)]) for d in range(1)]
         self._test_fields(init_fields=containers)
 
     @metaTest
-    def test_containers_init_2(self):
+    def testContainersInit2(self):
         containers = [Container(fields=[String('test_%d' % d)]) for d in range(2)]
         self._test_fields(init_fields=containers)
 
     @metaTest
-    def test_containers_init_5(self):
+    def testContainersInit5(self):
         containers = [Container(fields=[String('test_%d' % d)]) for d in range(5)]
         self._test_fields(init_fields=containers)
 
     @metaTest
-    def test_containers_init_10(self):
-        containers = [Container(fields=[String('test_%d' % d)]) for d in range(10)]
-        self._test_fields(init_fields=containers)
-
-    @metaTest
-    def test_containers_push_1(self):
+    def testContainersPush1(self):
         containers = [Container(fields=[String('test_%d' % d)]) for d in range(1)]
         self._test_fields(push_fields=containers)
 
     @metaTest
-    def test_containers_push_2(self):
+    def testContainersPush2(self):
         containers = [Container(fields=[String('test_%d' % d)]) for d in range(2)]
         self._test_fields(push_fields=containers)
 
     @metaTest
-    def test_containers_push_5(self):
+    def testContainersPush5(self):
         containers = [Container(fields=[String('test_%d' % d)]) for d in range(5)]
         self._test_fields(push_fields=containers)
 
     @metaTest
-    def test_containers_push_10(self):
-        containers = [Container(fields=[String('test_%d' % d)]) for d in range(10)]
-        self._test_fields(push_fields=containers)
-
-    @metaTest
-    def test_containers_init_1_push_1(self):
+    def testContainersInit1Push1(self):
         init_containers = [Container(fields=[String('test_init_%d' % d)]) for d in range(1)]
         push_containers = [Container(fields=[String('test_push_%d' % d)]) for d in range(1)]
         self._test_fields(init_fields=init_containers, push_fields=push_containers)
 
     @metaTest
-    def test_containers_init_2_push_2(self):
+    def testContainersInit2Push2(self):
         init_containers = [Container(fields=[String('test_init_%d' % d)]) for d in range(2)]
         push_containers = [Container(fields=[String('test_push_%d' % d)]) for d in range(2)]
         self._test_fields(init_fields=init_containers, push_fields=push_containers)
@@ -192,33 +172,28 @@ class ContainerTest(BaseTestCase):
             self.assertEquals(container.render(), rendered)
 
     @metaTest
-    def test_not_fuzzable_1(self):
+    def testNotFuzzable1(self):
         fields = [String('test_%d' % d) for d in range(1)]
         self._test_not_fuzzable(fields)
 
     @metaTest
-    def test_not_fuzzable_2(self):
+    def testNotFuzzable2(self):
         fields = [String('test_%d' % d) for d in range(2)]
         self._test_not_fuzzable(fields)
 
     @metaTest
-    def test_not_fuzzable_5(self):
+    def testNotFuzzable5(self):
         fields = [String('test_%d' % d) for d in range(5)]
         self._test_not_fuzzable(fields)
 
     @metaTest
-    def test_not_fuzzable_10(self):
-        fields = [String('test_%d' % d) for d in range(10)]
-        self._test_not_fuzzable(fields)
-
-    @metaTest
-    def test_hash_the_same_for_two_similar_objects(self):
+    def testHashTheSameForTwoSimilarObjects(self):
         container1 = self.get_default_container(fields=[String('test_string')])
         container2 = self.get_default_container(fields=[String('test_string')])
         self.assertEqual(container1.hash(), container2.hash())
 
     @metaTest
-    def test_hash_the_same_after_reset(self):
+    def testHashTheSameAfterReset(self):
         container = self.get_default_container(fields=[String('test_string')])
         hash_after_creation = container.hash()
         container.mutate()
@@ -237,10 +212,10 @@ class ContainerTest(BaseTestCase):
     @metaTest
     def testGetRenderedFieldsCorrect(self):
         fields = [
-            String('test_string'),
-            If(Equal('test_group', 'A'), String('if')),
-            IfNot(Equal('test_group', 'A'), String('ifnot')),
-            Group(name='test_group', values=['A', 'B', 'C'])
+            String('test_string', name='field1'),
+            If(Equal('test_group_5', 'A'), String('if', name='if_field3'), name='if2'),
+            IfNot(Equal('test_group_5', 'A'), String('ifnot', name='ifnot_field5'), name='ifnot4'),
+            Group(name='test_group_5', values=['A', 'B', 'C'])
         ]
         container = self.get_default_container(fields)
         expected_list = filter(lambda x: len(x.render()), fields)
@@ -267,15 +242,15 @@ class ConditionTest(ContainerTest):
         super(ConditionTest, self).setUp(cls)
 
     class AlwaysTrue(Condition):
-        def applies(self, container):
+        def applies(self, container, ctx=None):
             return True
 
     class AlwaysFalse(Condition):
-        def applies(self, container):
+        def applies(self, container, ctx=None):
             return False
 
     def get_default_container(self, fields=[], fuzzable=True):
-        return self.cls(condition=self.get_applies_always_condition(), fields=fields, fuzzable=fuzzable)
+        return self.cls(condition=self.get_applies_always_condition(), fields=fields, fuzzable=fuzzable, name='uut')
 
     def get_applies_first_condition(self):
         return None
@@ -293,7 +268,7 @@ class ConditionTest(ContainerTest):
         return String(name=ConditionTest.condition_field_name, value=ConditionTest.condition_field_value)
 
     @metaTest
-    def test_condition_not_applies_always(self):
+    def testlways(self):
         field = self.get_condition_field()
         condition = self.get_not_applies_always_condition()
         condition_container = self.cls(condition=condition, fields=[String(ConditionTest.inner_field_value)], fuzzable=True)
@@ -306,7 +281,7 @@ class ConditionTest(ContainerTest):
             self.assertEqual(rendered, Bits())
 
     @metaTest
-    def test_condition_applies_first(self):
+    def testConditionAppliesFirst(self):
         field = self.get_condition_field()
         condition = self.get_applies_first_condition()
         inner_field = String(ConditionTest.inner_field_value)
@@ -324,7 +299,7 @@ class ConditionTest(ContainerTest):
             self.assertEqual(condition_container.render(), Bits())
 
     @metaTest
-    def test_condition_not_applies_first(self):
+    def testConditionNotAppliesFirst(self):
         field = self.get_condition_field()
         condition = self.get_not_applies_first_condition()
         inner_field = String(ConditionTest.inner_field_value)
@@ -392,7 +367,7 @@ class ForEachTests(ContainerTest):
     def get_default_container(self, fields=[], fuzzable=True, mutated_field=None):
         if mutated_field is None:
             mutated_field = Static('static field')
-        return ForEach(mutated_field=mutated_field, fields=fields, fuzzable=fuzzable)
+        return ForEach(mutated_field=mutated_field, fields=fields, fuzzable=fuzzable, name='uut')
 
     def _test_basic(self, mutated, field):
         container = ForEach(mutated_field=mutated, fields=[field])
@@ -420,43 +395,43 @@ class ForEachTests(ContainerTest):
         container_mutations = self.get_all_mutations(container)
         self.assertListEqual(container_mutations, expected_mutations)
 
-    def test_group_group(self):
+    def testGroupGroup(self):
         mutated = Group(values=['1', '2', '3'])
         field = Group(values=['a', 'b', 'c'])
         self._test_basic(mutated, field)
 
-    def test_group_group_mutating_mutated_field(self):
+    def testGroupGroupMutatingMutatedField(self):
         mutated = Group(values=['1', '2', '3'])
         field = Group(values=['a', 'b', 'c'])
         self._test_mutating_mutated(mutated, field)
 
-    def test_group_string(self):
+    def testGroupString(self):
         mutated = Group(values=['1', '2', '3'])
-        field = String('best')
+        field = String('best', max_size=10)
         self._test_basic(mutated, field)
 
-    def test_group_string_mutating_mutated_field(self):
+    def testGroupStringMutatingMutatedField(self):
         mutated = Group(values=['1', '2', '3'])
         field = String('best')
         self._test_mutating_mutated(mutated, field)
 
-    def test_string_string(self):
-        mutated = String('test')
-        field = String('best')
+    def testStringString(self):
+        mutated = String('test', max_size=10)
+        field = String('best', max_size=10)
         self._test_basic(mutated, field)
 
-    def test_string_string_mutating_mutated_field(self):
-        mutated = String('test')
-        field = String('best')
+    def testStringStringMutatingMutatedField(self):
+        mutated = String('test', max_size=10)
+        field = String('best', max_size=10)
         self._test_mutating_mutated(mutated, field)
 
-    def test_string_group(self):
-        mutated = String('test')
+    def testStringGroup(self):
+        mutated = String('test', max_size=10)
         field = Group(values=['a', 'b', 'c'])
         self._test_basic(mutated, field)
 
-    def test_string_group_mutating_mutated_field(self):
-        mutated = String('test')
+    def testStringGroupMutatingMutatedField(self):
+        mutated = String('test', max_size=10)
         field = Group(values=['a', 'b', 'c'])
         self._test_mutating_mutated(mutated, field)
 
@@ -469,7 +444,7 @@ class RepeatTest(ContainerTest):
         super(RepeatTest, self).setUp(cls)
 
     def get_default_container(self, fields=[], fuzzable=True):
-        return Repeat(fields=fields, fuzzable=fuzzable)
+        return Repeat(fields=fields, fuzzable=fuzzable, name='uut')
 
     def _test_mutations(self, repeater, fields, min_times=1, max_times=1, step=1):
         repeats = max_times - min_times / step
@@ -495,7 +470,7 @@ class RepeatTest(ContainerTest):
         repeater_mutations = self.get_all_mutations(repeater)
         self.assertListEqual(fields_mutations, repeater_mutations)
 
-    def test_repeat_single_max_times_1(self):
+    def testRepeatSingleMaxTimes1(self):
         max_times = 1
         fields = [
             String('field1')
@@ -503,7 +478,7 @@ class RepeatTest(ContainerTest):
         repeater = Repeat(fields=fields, max_times=max_times)
         self._test_mutations(repeater, fields, max_times=max_times)
 
-    def test_repeat_single_max_times_5(self):
+    def testRepeatSingleMaxTimes5(self):
         max_times = 5
         fields = [
             String('field1')

@@ -48,7 +48,7 @@ class CalculatedTestCase(BaseTestCase):
         raise NotImplemented
 
     def get_default_field(self, fuzzable=False):
-        return self.cls(self.depends_on_name, fuzzable=fuzzable)
+        return self.cls(self.depends_on_name, fuzzable=fuzzable, name='uut')
 
     def get_original_field(self):
         return String(self.depends_on_value, name=self.depends_on_name)
@@ -100,7 +100,7 @@ class ElementCountTests(CalculatedTestCase):
         self.bit_field = BitField(value=0, length=self.length)
 
     def get_default_field(self, fuzzable=False):
-        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable)
+        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable, name='uut')
 
     def calculate(self, field):
         self.bit_field.set_current_value(len(field.get_rendered_fields()))
@@ -119,28 +119,30 @@ class ElementCountTests(CalculatedTestCase):
                         String('jkl'),
                     ])
             ])
-        field = self.get_default_field()
-        full = Container([container, field])
-        self.assertEqual(field.render(), self.calculate(container))
+        uut = self.get_default_field()
+        full = Container([container, uut])
+        full.render()
+        self.assertEqual(uut.render(), self.calculate(container))
         del full
 
     def testInternalContainer(self):
         internal_container = Container(
             name=self.depends_on_name,
             fields=[
-                String('ghi'),
-                String('jkl'),
+                String('ghi', name='field3'),
+                String('jkl', name='field4'),
             ])
         container = Container(
             name='this_doesnt_count',
             fields=[
-                String('abc'),
-                String('def'),
+                String('abc', name='field1'),
+                String('def', name='field2'),
                 internal_container
             ])
-        field = self.get_default_field()
-        full = Container([container, field])
-        self.assertEqual(field.render(), self.calculate(internal_container))
+        uut = self.get_default_field()
+        full = Container([container, uut])
+        full.render()
+        self.assertEqual(uut.render(), self.calculate(internal_container))
         del full
 
 
@@ -154,7 +156,7 @@ class IndexOfTestCase(CalculatedTestCase):
         self.bit_field = BitField(value=0, length=self.length)
 
     def get_default_field(self, fuzzable=False):
-        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable)
+        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable, name='uut')
 
     def calculate(self, field):
         rendered = field._enclosing.get_rendered_fields()
@@ -222,9 +224,9 @@ class SizeTests(CalculatedTestCase):
         if length is None:
             length = self.length
         if calc_func is None:
-            return self.cls(self.depends_on_name, length=length, fuzzable=fuzzable)
+            return self.cls(self.depends_on_name, length=length, fuzzable=fuzzable, name='uut')
         else:
-            return self.cls(self.depends_on_name, length=length, calc_func=calc_func, fuzzable=fuzzable)
+            return self.cls(self.depends_on_name, length=length, calc_func=calc_func, fuzzable=fuzzable, name='uut')
 
     def calculate(self, field, calc_func=None):
         value = field.render()
@@ -257,6 +259,17 @@ class SizeTests(CalculatedTestCase):
         with self.assertRaises(KittyException):
             self.cls(self.depends_on_name, length=-3)
 
+    def testSizeInclusiveAlone(self):
+        self.length = 32
+        container = Container(
+            name=self.depends_on_name,
+            fields=[
+                self.get_default_field()
+            ])
+        rendered = container.render()
+        self.assertEqual(len(rendered), self.length)
+        self.assertEquals(unpack('>I', rendered.tobytes())[0], self.length / 8)
+
 
 class SizeInBytesTest(CalculatedTestCase):
     __meta__ = False
@@ -267,7 +280,7 @@ class SizeInBytesTest(CalculatedTestCase):
         self.length = length
 
     def get_default_field(self, fuzzable=False):
-        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable)
+        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable, name='uut')
 
     def calculate(self, field):
         value = field.render()
@@ -346,7 +359,7 @@ class ValueTestCase(BaseTestCase):
         return Bits
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(value=self.default_value, fuzzable=fuzzable)
+        return self.cls(value=self.default_value, fuzzable=fuzzable, name='uut')
 
     def bits_to_value(self, bits):
         '''
@@ -574,7 +587,7 @@ class ValueTestCase(BaseTestCase):
     @metaTest
     def testCorrectOffsetIsSetMiddleFieldSingleLevel(self):
         uut = self.get_default_field()
-        first_field = String('Reykjavik')
+        first_field = String('Reykjavik', name='first_field')
         con = Container(name='container', fields=[first_field, uut])
         con.render()
         self.assertEqual(uut.get_offset(), len(first_field.render()))
@@ -585,8 +598,8 @@ class ValueTestCase(BaseTestCase):
     @metaTest
     def testCorrectOffsetIsSetMiddleFieldMultiLevel(self):
         uut = self.get_default_field()
-        first_field = String('Reykjavik')
-        second_field = String('Kópavogur')
+        first_field = String('Reykjavik', name='first_field')
+        second_field = String('Kópavogur', name='second_field')
         con = Container(
             name='container',
             fields=[
@@ -604,6 +617,7 @@ class ValueTestCase(BaseTestCase):
             self.assertEqual(uut.get_offset(), len(first_field.render() + second_field.render()))
 
     def _check_skip(self, field, to_skip, expected_skipped, expected_mutated):
+        # print('_check_skip(%s, %s, %s, %s)' % (field, to_skip, expected_skipped, expected_mutated))
         skipped = field.skip(to_skip)
         self.assertEqual(expected_skipped, skipped)
         mutated = 0
@@ -689,7 +703,7 @@ class DynamicTests(ValueTestCase):
         }
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(key='my_key', default_value=self.default_value, length=len(self.default_value), fuzzable=fuzzable)
+        return self.cls(key='my_key', default_value=self.default_value, length=len(self.default_value), fuzzable=fuzzable, name='uut')
 
     def testSessionDataNotFuzzable(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
@@ -762,7 +776,7 @@ class RandomBitsTests(ValueTestCase):
         super(RandomBitsTests, self).setUp(cls)
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(value=self.default_value, min_length=5, max_length=10, unused_bits=self.default_unused_bits, fuzzable=fuzzable)
+        return self.cls(value=self.default_value, min_length=5, max_length=10, unused_bits=self.default_unused_bits, fuzzable=fuzzable, name='uut')
 
     def testNotFuzzable(self):
         field = self.get_default_field(fuzzable=False)
@@ -888,7 +902,7 @@ class RandomBytesTests(ValueTestCase):
         super(RandomBytesTests, self).setUp(cls)
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(value=self.default_value, min_length=5, max_length=10, fuzzable=fuzzable)
+        return self.cls(value=self.default_value, min_length=5, max_length=10, fuzzable=fuzzable, name='uut')
 
     def testNoStepNumMutations(self):
         param_num_mutations = 100
@@ -1006,7 +1020,7 @@ class StaticTests(ValueTestCase):
         self._check_mutation_count(field, num_mutations)
 
     def get_default_field(self, fuzzable=True):
-        return Static(value=self.default_value)
+        return Static(value=self.default_value, name='uut')
 
 
 class GroupTests(ValueTestCase):
@@ -1021,7 +1035,7 @@ class GroupTests(ValueTestCase):
         self.default_values = self.__class__.default_values
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(values=self.default_values, fuzzable=fuzzable)
+        return self.cls(values=self.default_values, fuzzable=fuzzable, name='uut')
 
     def testMutations(self):
         field = self.get_default_field()
@@ -1046,7 +1060,7 @@ class BitFieldTests(ValueTestCase):
         return Bits
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(value=self.default_value, length=self.default_length, fuzzable=fuzzable)
+        return self.cls(value=self.default_value, length=self.default_length, fuzzable=fuzzable, name='uut')
 
     def bits_to_value(self, bits):
         '''
@@ -1120,7 +1134,7 @@ class AlignedBitTests(ValueTestCase):
         return Bits
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(value=self.default_value, fuzzable=fuzzable)
+        return self.cls(value=self.default_value, fuzzable=fuzzable, name='uut')
 
     def bits_to_value(self, bits):
         return bits.uint

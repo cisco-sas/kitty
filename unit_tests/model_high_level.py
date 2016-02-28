@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Kitty.  If not, see <http://www.gnu.org/licenses/>.
 
-#!/usr/bin/env python
 '''
 Tests for High-Level models:
 GraphModel
@@ -33,10 +32,10 @@ from kitty.core import KittyException
 
 
 def not_absolute(func):
-    def test_not_absolute(self):
+    def testNotAbsolute(self):
         self.logger.warning('This test is not absolute')
         func(self)
-    return test_not_absolute
+    return testNotAbsolute
 
 
 test_logger = None
@@ -95,13 +94,13 @@ class GraphModelTests(unittest.TestCase):
             last_num_mutations = last.num_mutations()
             self.assertEqual(count, last_num_mutations)
 
-    def test_sequence_single_template(self):
+    def testSequenceSingleTemplate(self):
         t = self.templates[0]
         self.model.connect(t)
         expected_sequences = [[t]]
         self._check_sequences(expected_sequences)
 
-    def test_sequence_direct_path(self):
+    def testSequenceDirectPath(self):
         '''
         root -> t1
         '''
@@ -111,7 +110,7 @@ class GraphModelTests(unittest.TestCase):
         expected_sequences = list(self.templates[:i + 1] for i in range(len(self.templates)))
         self._check_sequences(expected_sequences)
 
-    def test_sequence_complex_path(self):
+    def testSequenceComplexPath(self):
         '''
         root -> t1
         root -> t1 -> t2
@@ -130,7 +129,7 @@ class GraphModelTests(unittest.TestCase):
         ]
         self._check_sequences(expected_sequences)
 
-    def test_multi_head_path(self):
+    def testMultiHeadPath(self):
         '''
         root -> t1
         root -> t2
@@ -150,7 +149,7 @@ class GraphModelTests(unittest.TestCase):
             mutated += 1
         self.assertEqual(expected_mutated, mutated)
 
-    def test_skip_zero_single_template(self):
+    def testSkipZeroSingleTemplate(self):
         self.model.connect(self.templates[0])
         m_num_mutations = self.model.num_mutations()
         to_skip = 0
@@ -158,7 +157,7 @@ class GraphModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations
         self._check_skip(to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_half_single_template(self):
+    def testSkipHalfSingleTemplate(self):
         self.model.connect(self.templates[0])
         m_num_mutations = self.model.num_mutations()
         to_skip = m_num_mutations / 2
@@ -166,7 +165,7 @@ class GraphModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_exact_single_template(self):
+    def testSkipExactSingleTemplate(self):
         self.model.connect(self.templates[0])
         m_num_mutations = self.model.num_mutations()
         to_skip = m_num_mutations
@@ -174,7 +173,7 @@ class GraphModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_too_much_single_template(self):
+    def testSkipTooMuchSingleTemplate(self):
         self.model.connect(self.templates[0])
         m_num_mutations = self.model.num_mutations()
         to_skip = m_num_mutations + 10
@@ -182,7 +181,7 @@ class GraphModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_zero_multi_template(self):
+    def testSkipZeroMultiTemplate(self):
         self.model.connect(self.templates[0])
         self.model.connect(self.templates[0], self.templates[1])
         m_num_mutations = self.model.num_mutations()
@@ -191,7 +190,7 @@ class GraphModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations
         self._check_skip(to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_half_multi_template(self):
+    def testSkipHalfMultiTemplate(self):
         self.model.connect(self.templates[0])
         self.model.connect(self.templates[0], self.templates[1])
         m_num_mutations = self.model.num_mutations()
@@ -200,7 +199,7 @@ class GraphModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_exact_multi_template(self):
+    def testSkipExactMultiTemplate(self):
         self.model.connect(self.templates[0])
         self.model.connect(self.templates[0], self.templates[1])
         m_num_mutations = self.model.num_mutations()
@@ -209,7 +208,7 @@ class GraphModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_too_much_multi_template(self):
+    def testSkipTooMuchMultiTemplate(self):
         self.model.connect(self.templates[0])
         self.model.connect(self.templates[0], self.templates[1])
         m_num_mutations = self.model.num_mutations()
@@ -218,10 +217,10 @@ class GraphModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(to_skip, expected_skipped, expected_mutated)
 
-    def test_failure_to_to(self):
+    def testFailureToTo(self):
         self.assertEqual(len(self.todo), 0)
 
-    def test_exception_if_loop(self):
+    def testExceptionIfLoop(self):
         self.model.connect(self.templates[0])
         self.model.connect(self.templates[0], self.templates[1])
         self.model.connect(self.templates[1], self.templates[0])
@@ -249,7 +248,7 @@ class StagedSequenceModelTests(unittest.TestCase):
             stages[s] = i
         return stages
 
-    def test_num_mutations_single_stage(self):
+    def testNumMutationsSingleStage(self):
         num_mutation_list = [0, 1, 500, 1000, 10000]
         for expected_num_mutations in num_mutation_list:
             model = StagedSequenceModel(num_mutations=expected_num_mutations)
@@ -261,7 +260,7 @@ class StagedSequenceModelTests(unittest.TestCase):
                 actual_mutations += 1
             self.assertEqual(expected_num_mutations, actual_mutations)
 
-    def test_num_mutations_multi_stage(self):
+    def testNumMutationsMultiStage(self):
         num_mutation_list = [0, 1, 500, 1000, 10000]
         for expected_num_mutations in num_mutation_list:
             model = StagedSequenceModel(num_mutations=expected_num_mutations)
@@ -282,7 +281,7 @@ class StagedSequenceModelTests(unittest.TestCase):
             mutated += 1
         self.assertEqual(expected_mutated, mutated)
 
-    def test_skip_zero(self):
+    def testSkipZero(self):
         model = StagedSequenceModel(num_mutations=120)
         model.add_stage(self.stages[0])
         model.add_stage(self.stages[1])
@@ -292,7 +291,7 @@ class StagedSequenceModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(model, to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_half(self):
+    def testSkipHalf(self):
         model = StagedSequenceModel(num_mutations=120)
         model.add_stage(self.stages[0])
         model.add_stage(self.stages[1])
@@ -302,7 +301,7 @@ class StagedSequenceModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(model, to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_exact(self):
+    def testSkipExact(self):
         model = StagedSequenceModel(num_mutations=120)
         model.add_stage(self.stages[0])
         model.add_stage(self.stages[1])
@@ -312,7 +311,7 @@ class StagedSequenceModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(model, to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_too_much(self):
+    def testSkipTooMuch(self):
         model = StagedSequenceModel(num_mutations=120)
         model.add_stage(self.stages[0])
         model.add_stage(self.stages[1])
@@ -322,7 +321,7 @@ class StagedSequenceModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(model, to_skip, expected_skipped, expected_mutated)
 
-    def test_sequence_length_single_stage(self):
+    def testSequenceLengthSingleStage(self):
         for stage in self.stages:
             expected_length = self.stage_lengths[stage]
             model = StagedSequenceModel(num_mutations=100)
@@ -332,7 +331,7 @@ class StagedSequenceModelTests(unittest.TestCase):
                 sequence_length = len(sequence)
                 self.assertEqual(expected_length, sequence_length)
 
-    def test_sequence_length_multi_stage(self):
+    def testSequenceLengthMultiStage(self):
         model = StagedSequenceModel(num_mutations=100)
         expected_length = 0
         for stage in self.stages:
@@ -343,7 +342,7 @@ class StagedSequenceModelTests(unittest.TestCase):
             sequence_length = len(sequence)
             self.assertEqual(expected_length, sequence_length)
 
-    def test_callback_generator(self):
+    def testCallbackGenerator(self):
         self.src_templates = []
         self.dst_templates = []
         self.cb_call_count = 0
@@ -368,7 +367,7 @@ class StagedSequenceModelTests(unittest.TestCase):
             self.dst_templates = []
             self.cb_call_count = 0
 
-    def test_failure_to_to(self):
+    def testFailureToTo(self):
         self.assertEqual(len(self.todo), 0)
 
 
@@ -403,65 +402,65 @@ class StageTests(unittest.TestCase):
             for template in sequence:
                 self.assertIn(template, templates)
 
-    def test_strategy_length_random(self):
+    def testStrategyLengthRandom(self):
         minl = 1
         maxl = len(self.templates)
         selection_strategy = 'random'
         self._check_strategy_length(selection_strategy, minl, maxl)
 
-    def test_strategy_length_range_1_3(self):
+    def testStrategyLengthRange13(self):
         minl = 1
         maxl = 3
         selection_strategy = '%d-%d' % (minl, maxl)
         self._check_strategy_length(selection_strategy, minl, maxl)
 
-    def test_strategy_length_range_10_100(self):
+    def testStrategyLengthRange10100(self):
         minl = 10
         maxl = 100
         selection_strategy = '%d-%d' % (minl, maxl)
         self._check_strategy_length(selection_strategy, minl, maxl)
 
-    def test_strategy_length_range_same_min(self):
+    def testStrategyLengthRangeSameMin(self):
         minl = 1
         maxl = minl
         selection_strategy = '%d-%d' % (minl, maxl)
         self._check_strategy_length(selection_strategy, minl, maxl)
 
-    def test_strategy_length_range_same_max(self):
+    def testStrategyLengthRangeSameMax(self):
         minl = len(self.templates)
         maxl = minl
         selection_strategy = '%d-%d' % (minl, maxl)
         self._check_strategy_length(selection_strategy, minl, maxl)
 
-    def test_strategy_length_constant_0(self):
+    def testStrategyLengthConstant0(self):
         val = 0
         minl = val
         maxl = val
         selection_strategy = '%d' % (val)
         self._check_strategy_length(selection_strategy, minl, maxl)
 
-    def test_strategy_length_constant_1(self):
+    def testStrategyLengthConstant1(self):
         val = 1
         minl = val
         maxl = val
         selection_strategy = '%d' % (val)
         self._check_strategy_length(selection_strategy, minl, maxl)
 
-    def test_strategy_length_constant_half(self):
+    def testStrategyLengthConstantHalf(self):
         val = len(self.templates) / 2
         minl = val
         maxl = val
         selection_strategy = '%d' % (val)
         self._check_strategy_length(selection_strategy, minl, maxl)
 
-    def test_strategy_length_constant_max(self):
+    def testStrategyLengthConstantMax(self):
         val = len(self.templates)
         minl = val
         maxl = val
         selection_strategy = '%d' % (val)
         self._check_strategy_length(selection_strategy, minl, maxl)
 
-    def test_strategy_length_all(self):
+    def testStrategyLengthAll(self):
         val = len(self.templates)
         minl = val
         maxl = val
@@ -479,35 +478,35 @@ class StageTests(unittest.TestCase):
         with self.assertRaises(KittyException):
             s.mutate()
 
-    def test_strategy_error_range_max_too_high(self):
+    def testStrategyErrorRangeMaxTooHigh(self):
         minl = 1
         maxl = len(self.templates) + 1
         selection_strategy = '%d-%d' % (minl, maxl)
         seed = 1234
         self._check_exception_at_mutate(self.templates, selection_strategy, seed)
 
-    def test_strategy_error_range_min_negative(self):
+    def testStrategyErrorRangeMinNegative(self):
         minl = -1
         maxl = 5
         selection_strategy = '%d-%d' % (minl, maxl)
         seed = 1234
         self._check_exception_at_construction(selection_strategy, seed)
 
-    def test_strategy_error_range_max_negative(self):
+    def testStrategyErrorRangeMaxNegative(self):
         minl = 1
         maxl = -5
         selection_strategy = '%d-%d' % (minl, maxl)
         seed = 1234
         self._check_exception_at_construction(selection_strategy, seed)
 
-    def test_strategy_error_range_max_lower_than_min(self):
+    def testStrategyErrorRangeMaxLowerThanMin(self):
         minl = 5
         maxl = 1
         selection_strategy = '%d-%d' % (minl, maxl)
         seed = 1234
         self._check_exception_at_construction(selection_strategy, seed)
 
-    def test_strategy_error_unknown(self):
+    def testStrategyErrorUnknown(self):
         unknown_strategies = ['single', 'true', 'rand', '++', '0x13']
         for strategy in unknown_strategies:
             self.logger.info('testing unknown strategy: %s' % strategy)
@@ -526,19 +525,19 @@ class StageTests(unittest.TestCase):
         self.assertGreater(len(sequences), iterations / 2)
 
     @not_absolute
-    def test_random_selection_random(self):
+    def testRandomSelectionRandom(self):
         self._check_randomness(self.templates, 'random')
 
     @not_absolute
-    def test_random_selection_range_5_10(self):
+    def testRandomSelectionRange510(self):
         self._check_randomness(self.templates, '5-10')
 
     @not_absolute
-    def test_random_selection_range_1_7(self):
+    def testRandomSelectionRange17(self):
         self._check_randomness(self.templates, '1-7')
 
     @not_absolute
-    def test_random_strategy_random_length(self):
+    def testRandomStrategyRandomLength(self):
         stage = Stage(name='uut', selection_strategy='random', seed=1111)
         for template in self.templates:
             stage.add_template(template)
@@ -571,43 +570,43 @@ class StageTests(unittest.TestCase):
         seqs2 = [stage2.mutate() for i in range(10)]
         self.assertNotEqual(seqs1, seqs2)
 
-    def test_same_seed_random(self):
+    def testSameSeedRandom(self):
         self._check_same_seed('random')
 
-    def test_same_seed_all(self):
+    def testSameSeedAll(self):
         self._check_same_seed('all')
 
-    def test_same_seed_range_1_7(self):
+    def testSameSeedRange17(self):
         self._check_same_seed('1-7')
 
-    def test_same_seed_range_10_50(self):
+    def testSameSeedRange1050(self):
         self._check_same_seed('10-50')
 
-    def test_same_seed_const_5(self):
+    def testSameSeedConst5(self):
         self._check_same_seed('5')
 
-    def test_same_seed_const_20(self):
+    def testSameSeedConst20(self):
         self._check_same_seed('20')
 
-    def test_different_seed_random(self):
+    def testDifferentSeedRandom(self):
         self._check_different_seed('random')
 
-    def test_different_seed_all(self):
+    def testDifferentSeedAll(self):
         self._check_different_seed('all')
 
-    def test_different_seed_range_1_7(self):
+    def testDifferentSeedRange17(self):
         self._check_different_seed('1-7')
 
-    def test_different_seed_range_10_50(self):
+    def testDifferentSeedRange1050(self):
         self._check_different_seed('10-50')
 
-    def test_different_seed_const_5(self):
+    def testDifferentSeedConst5(self):
         self._check_different_seed('5')
 
-    def test_different_seed_const_20(self):
+    def testDifferentSeedConst20(self):
         self._check_different_seed('20')
 
-    def test_failure_to_to(self):
+    def testFailureToTo(self):
         self.assertEqual(len(self.todo), 0)
 
 
@@ -628,7 +627,7 @@ class RandomSequenceModelTests(unittest.TestCase):
             res.append(Template(name=name, fields=[String(value)]))
         return res
 
-    def test_num_mutations(self):
+    def testNumMutations(self):
         num_mutation_list = [0, 1, 500, 1000, 10000]
         for expected_num_mutations in num_mutation_list:
             model = RandomSequenceModel(num_mutations=expected_num_mutations)
@@ -649,7 +648,7 @@ class RandomSequenceModelTests(unittest.TestCase):
             mutated += 1
         self.assertEqual(expected_mutated, mutated)
 
-    def test_skip_zero(self):
+    def testSkipZero(self):
         model = RandomSequenceModel(num_mutations=120)
         for template in self.templates:
             model.add_template(template)
@@ -659,7 +658,7 @@ class RandomSequenceModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(model, to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_half(self):
+    def testSkipHalf(self):
         model = RandomSequenceModel(num_mutations=120)
         for template in self.templates:
             model.add_template(template)
@@ -669,7 +668,7 @@ class RandomSequenceModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(model, to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_exact(self):
+    def testSkipExact(self):
         model = RandomSequenceModel(num_mutations=120)
         for template in self.templates:
             model.add_template(template)
@@ -679,7 +678,7 @@ class RandomSequenceModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(model, to_skip, expected_skipped, expected_mutated)
 
-    def test_skip_too_much(self):
+    def testSkipTooMuch(self):
         model = RandomSequenceModel(num_mutations=120)
         for template in self.templates:
             model.add_template(template)
@@ -689,7 +688,7 @@ class RandomSequenceModelTests(unittest.TestCase):
         expected_mutated = m_num_mutations - expected_skipped
         self._check_skip(model, to_skip, expected_skipped, expected_mutated)
 
-    def test_same_seed(self):
+    def testSameSeed(self):
         seed = 1111
         model1 = RandomSequenceModel(seed=seed, max_sequence=20)
         model2 = RandomSequenceModel(seed=seed, max_sequence=20)
@@ -699,7 +698,7 @@ class RandomSequenceModelTests(unittest.TestCase):
         for i in range(1000):
             self.assertEqual(model1.mutate(), model2.mutate())
 
-    def test_different_seed(self):
+    def testDifferentSeed(self):
         seed1 = 1111
         seed2 = 1112
         model1 = RandomSequenceModel(seed=seed1, max_sequence=20)
@@ -715,7 +714,7 @@ class RandomSequenceModelTests(unittest.TestCase):
         self.assertNotEqual(seqs1, seqs2)
 
     @not_absolute
-    def test_random_length(self):
+    def testRandomLength(self):
         model = RandomSequenceModel(name='uut', seed=1111, max_sequence=20)
         for template in self.templates:
             model.add_template(template)
@@ -727,7 +726,7 @@ class RandomSequenceModelTests(unittest.TestCase):
             sequences.add(len(sequence))
         self.assertGreater(len(sequences), iterations / 8)
 
-    def test_length_not_overflow(self):
+    def testLengthNotOverflow(self):
         max_sequence = 5
         model = RandomSequenceModel(name='uut', seed=1111, max_sequence=5)
         for template in self.templates:
@@ -736,7 +735,7 @@ class RandomSequenceModelTests(unittest.TestCase):
             sequence = model.get_sequence()
             self.assertLessEqual(len(sequence), max_sequence)
 
-    def test_callback_generator(self):
+    def testCallbackGenerator(self):
         self.src_templates = []
         self.dst_templates = []
         self.cb_call_count = 0
@@ -761,7 +760,7 @@ class RandomSequenceModelTests(unittest.TestCase):
             self.dst_templates = []
             self.cb_call_count = 0
 
-    def test_failure_to_to(self):
+    def testFailureToTo(self):
         self.assertEqual(len(self.todo), 0)
 
 import os
