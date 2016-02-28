@@ -22,7 +22,7 @@ from common import metaTest, BaseTestCase
 from bitstring import Bits
 from kitty.model.low_level.field import String, Static, Group
 from kitty.model.low_level.container import Container, ForEach, If, IfNot, Repeat
-from kitty.model.low_level.container import Meta, Pad
+from kitty.model.low_level.container import Meta, Pad, Trunc
 from kitty.model.low_level.condition import Condition
 from kitty.model.low_level.aliases import Equal, NotEqual
 
@@ -553,6 +553,73 @@ class PadTest(BaseTestCase):
     def testNumMutations(self):
         field = String(name='padded', value='abc')
         uut = Pad(self.pad_length, fields=field, name='uut')
+        field_num_mutations = field.num_mutations()
+        uut_num_mutations = uut.num_mutations()
+        self.assertEqual(uut_num_mutations, field_num_mutations)
+        self.assertGreater(uut_num_mutations, 0)
+        actual_num_mutations = 0
+        while uut.mutate():
+            actual_num_mutations += 1
+        self.assertEqual(actual_num_mutations, uut_num_mutations)
+
+    def testFixedWithPad(self):
+        data = 'abcd'
+        expected = Bits(bytes='abcd\xff\xff\xff\xff\xff\xff')
+        uut = Pad(pad_length=10 * 8, fields=Static(data), pad_data='\xff')
+        uut_num_mutations = uut.num_mutations()
+        self.assertEqual(uut_num_mutations, 0)
+        actual_num_mutations = 0
+        while uut.mutate():
+            actual_num_mutations += 1
+        self.assertEqual(actual_num_mutations, uut_num_mutations)
+        self.assertEqual(uut.render(), expected)
+
+    def testFixedWithoutPad(self):
+        data = 'abcdefghijklmnop'
+        expected = Bits(bytes=data)
+        uut = Pad(pad_length=10 * 8, fields=Static(data), pad_data='\xff')
+        uut_num_mutations = uut.num_mutations()
+        self.assertEqual(uut_num_mutations, 0)
+        actual_num_mutations = 0
+        while uut.mutate():
+            actual_num_mutations += 1
+        self.assertEqual(actual_num_mutations, uut_num_mutations)
+        self.assertEqual(uut.render(), expected)
+
+
+class TruncTest(BaseTestCase):
+
+    __meta__ = False
+
+    def setUp(self, cls=Trunc):
+        super(TruncTest, self).setUp(cls)
+        self.trunc_size = 10 * 8
+
+    def _testValueTrunced(self, field, uut, trunc_size):
+        fdata = field.render()
+        udata = uut.render()
+        expected_data = fdata[:trunc_size]
+        self.assertEqual(expected_data, udata)
+
+    def testValueTruncedNotFuzzable(self):
+        field = String(name='trunced', value='abc')
+        uut = Trunc(max_size=self.trunc_size, fields=field, fuzzable=False)
+        self._testValueTrunced(field, uut, self.trunc_size)
+        self.assertEqual(uut.num_mutations(), 0)
+        self.assertFalse(uut.mutate())
+
+    def testValueTruncedFuzzable(self):
+        field = String(name='trunced', value='abc')
+        uut = Trunc(max_size=self.trunc_size, fields=field, fuzzable=True)
+        self._testValueTrunced(field, uut, self.trunc_size)
+        self.assertEqual(uut.num_mutations(), field.num_mutations())
+        self.assertGreater(uut.num_mutations(), 0)
+        while uut.mutate():
+            self._testValueTrunced(field, uut, self.trunc_size)
+
+    def testNumMutations(self):
+        field = String(name='trunced', value='abc')
+        uut = Trunc(self.trunc_size, fields=field, name='uut')
         field_num_mutations = field.num_mutations()
         uut_num_mutations = uut.num_mutations()
         self.assertEqual(uut_num_mutations, field_num_mutations)
