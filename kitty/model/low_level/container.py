@@ -20,11 +20,11 @@ they all inherit from ``Container``, which inherits from
 :class:`~kitty.model.low_levele.field.BaseField`.
 '''
 from bitstring import Bits, BitArray
-import copy
 import random
 from kitty.model.low_level.field import BaseField, empty_bits, Dynamic
 from kitty.model.low_level.encoder import BitsEncoder, ENC_BITS_DEFAULT, ENC_BITS_BYTE_ALIGNED
 from kitty.core import kassert, KittyException, khash
+from kitty.model.low_level.ll_utils import RenderContext
 
 
 class Container(BaseField):
@@ -79,6 +79,10 @@ class Container(BaseField):
         return dup
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the container
+        '''
         hashed = super(Container, self).hash()
         for f in self._fields:
             f_hashed = f.hash()
@@ -89,28 +93,60 @@ class Container(BaseField):
         '''
         :return: number of mutations in the container
         '''
-        self._get_ready()
+        self._initialize()
         res = super(Container, self).num_mutations()
         return res
 
-    def render(self):
+    def set_offset(self, offset=None, ctx=None):
         '''
+        Set the offset of the container
+
+        :param offset: the offset to set
+        :param ctx: rendering context in which the method was called
+        :return: the length of the container
+        '''
+        if offset is None:
+            if self._enclosing is None:
+                offset = 0
+            else:
+                self._enclosing.set_offset(offset, ctx)
+                offset = self._offset
+        self._offset = offset
+        for field in self._fields:
+            offset += field.set_offset(offset, ctx)
+        return offset - self._offset
+
+    def get_length(self, ctx=None):
+        '''
+        :param ctx: rendering context in which the method was called
+        :return: the length of the field
+        '''
+        return self.set_offset(self._offset, ctx)
+
+    def render(self, ctx=None):
+        '''
+        :param ctx: rendering context in which the method was called
+        :rtype: `Bits`
         :return: rendered value of the container
         '''
-        current_offset = self.get_offset()
-        if current_offset is None:
-            if self._enclosing is None:
-                self.set_offset(0)
+        self._initialize()
+        if ctx is None:
+            ctx = RenderContext()
+        ctx.push(self)
+        self.set_offset(self._offset, ctx)
+        if self.is_default():
+            return self._default_rendered
         rendered = BitArray()
+        offset = 0
         for field in self._fields:
-            field.set_offset(current_offset)
-            frendered = field.render()
+            frendered = field.render(ctx)
             if not isinstance(frendered, Bits):
                 raise KittyException('the field %s:%s was rendered to type %s, you should probably wrap it with appropriate encoder' % (
                     field.get_name(), type(field), type(frendered)))
-            current_offset += len(frendered)
             rendered.append(frendered)
+            offset += len(frendered)
         self.set_current_value(rendered)
+        ctx.pop()
         return self._current_rendered
 
     def reset(self):
@@ -163,26 +199,35 @@ class Container(BaseField):
                 if isinstance(field, (Container, Dynamic)):
                     field.set_session_data(session_data)
 
-    def state_changed(self):
+    def is_default(self):
         '''
-        Notify the field that the state was changed,
-        so some data may be inconsistent at the moment
-        '''
-        if self._offset is not None:
-            for field in self._fields:
-                field.state_changed()
-        super(Container, self).state_changed()
+        Checks if the field is in its default form
 
-    def _get_ready(self):
+        :return: True if field is in default form
+        '''
+        for field in self._fields:
+            if not field.is_default():
+                return False
+        return True
+
+    def _init(self):
         '''
         Prepare to run (if not ready)
         '''
-        if not self._ready:
-            num = 0
+        num = 0
+        for field in self._fields:
+            field._initialize()
+        for field in self._fields:
+            num += field.num_mutations()
+        self._calculate_mutations(num)
+        self._initialize_default_buffer()
+
+    def _initialize_default_buffer(self):
+        if self.is_default():
+            rendered = Bits()
             for field in self._fields:
-                num += field.num_mutations()
-            self._calculate_mutations(num)
-            self._ready = True
+                rendered += field._default_rendered
+            self._default_rendered = rendered
 
     def _mutate(self):
         '''
@@ -207,14 +252,19 @@ class Container(BaseField):
             if isinstance(field, Container):
                 self.pop()
 
-    def get_rendered_fields(self):
+    def get_rendered_fields(self, ctx=None):
         '''
+        :param ctx: rendering context in which the method was called
         :return: ordered list of the fields that will be rendered
         '''
+        if ctx is None:
+            ctx = RenderContext()
+        ctx.push(self)
         result = []
         for f in self._fields:
-            if len(f.render()):
+            if len(f.render(ctx)):
                 result.append(f)
+        ctx.pop()
         return result
 
     def get_info(self):
@@ -352,6 +402,10 @@ class ForEach(Container):
         self._mutated_field = mutated_field
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the container
+        '''
         hashed = super(ForEach, self).hash()
         return khash(hashed + self._mutated_field.hash())
 
@@ -375,7 +429,7 @@ class ForEach(Container):
 
     def reset(self, reset_mutated=True):
         '''
-        reset the state of the container and its internal fields
+        Reset the state of the container and its internal fields
 
         :param reset_mutated: should reset the mutated field too (default: True)
         '''
@@ -384,11 +438,10 @@ class ForEach(Container):
             self._mutated_field.reset()
 
 
-class If(Container):
+class Conditional(Container):
     '''
-    Render only if condition evalutes to True
+    Container that its rendering is dependant on a condition
     '''
-
     def __init__(self, condition, fields=[], encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :type condition: an object that has a function applies(self, Container) -> Boolean
@@ -411,121 +464,109 @@ class If(Container):
                 ])
                 # results in the mutations: advil, b, c
         '''
-        super(If, self).__init__(fields=fields, encoder=encoder, fuzzable=fuzzable, name=name)
+        super(Conditional, self).__init__(fields=fields, encoder=encoder, fuzzable=fuzzable, name=name)
         self._condition = condition
         self._in_render = False
-
-    def render(self):
-        '''
-        Only render if condition applies
-        '''
-        if self._in_render:
-            self._current_rendered = self._in_render_value()
-        else:
-            self._in_render = True
-            if self._condition.applies(self):
-                super(If, self).render()
-            else:
-                self.set_current_value(empty_bits)
-            self._in_render = False
-        return self._current_rendered
 
     def _in_render_value(self):
         return empty_bits
 
-    def get_rendered_fields(self):
+    def get_rendered_fields(self, ctx=None):
         '''
+        :param ctx: rendering context in which the method was called
         :return: ordered list of the fields that will be rendered
         '''
-        if self._condition.applies(self):
-            return super(If, self).get_rendered_fields()
-        return []
+        res = []
+        if ctx is None:
+            ctx = RenderContext()
+        if self._evaluate_condition(ctx):
+            ctx.push(self)
+            res = super(Conditional, self).get_rendered_fields(ctx)
+            ctx.pop()
+        return res
+
+    def _evaluate_condition(self, ctx):
+        raise NotImplementedError('should be implemented by a subclass')
 
     def copy(self):
         '''
         Copy the container, put an invalidated copy of the condition in the new container
         '''
-        dup = super(If, self).copy()
+        dup = super(Conditional, self).copy()
         condition = self._condition.copy()
         condition.invalidate()
         dup._condition = condition
         return dup
 
     def hash(self):
-        hashed = super(If, self).hash()
+        '''
+        :rtype: int
+        :return: hash of the container
+        '''
+        hashed = super(Conditional, self).hash()
         return khash(hashed, self._condition.hash())
 
+    def is_default(self):
+        '''
+        Checks if the field is in its default form
 
-class IfNot(Container):
+        :return: True if field is in default form
+        '''
+        return False
+
+    def render(self, ctx=None):
+        '''
+        Only render if condition applies
+
+        :param ctx: rendering context in which the method was called
+        :rtype: `Bits`
+        :return: rendered value of the container
+        '''
+        if ctx is None:
+            ctx = RenderContext()
+        self._initialize()
+        if self in ctx:
+            self._current_rendered = self._in_render_value()
+        else:
+            ctx.push(self)
+            if self._evaluate_condition(ctx):
+                super(Conditional, self).render(ctx)
+            else:
+                self.set_current_value(empty_bits)
+            ctx.pop()
+        return self._current_rendered
+
+    def set_offset(self, offset=None, ctx=None):
+        '''
+        Set the offset of the container
+
+        :param offset: the offset to set
+        :param ctx: rendering context in which the method was called
+        :return: the length of the container
+        '''
+        self._initialize()
+        if self._evaluate_condition(ctx):
+            return super(Conditional, self).set_offset(offset, ctx)
+        self._offset = offset
+        return 0
+
+
+class If(Conditional):
+    '''
+    Render only if condition evalutes to True
+    '''
+
+    def _evaluate_condition(self, ctx):
+        return self._condition.applies(self, ctx)
+
+
+class IfNot(Conditional):
     '''
     Render only if condition evalutes to False
     '''
 
-    def __init__(self, condition, fields=[], encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
-        '''
-        :type condition: an object that has a function applies(self, Container) -> Boolean
-        :param condition: condition to evaluate
-        :param fields: enclosed field(s) (default: [])
-        :type encoder: BitsEncoder
-        :param encoder: encoder for the container (default: ENC_BITS_DEFAULT)
-        :param fuzzable: is container fuzzable (default: True)
-        :param name: (unique) name of the container (default: None)
-
-        :example:
-
-            ::
-
-                Template([
-                    Group(['a', 'b', 'c'], name='letters'),
-                    IfNot(ConditionCompare('letters', '==', 'a'), [
-                        Static('ar')
-                    ])
-                ])
-                # results in the mutations: a, bar, car
-        '''
-        super(IfNot, self).__init__(fields=fields, encoder=encoder, fuzzable=fuzzable, name=name)
-        self._condition = condition
-        self._in_render = False
-
-    def render(self):
-        '''
-        Only render if condition applies
-        '''
-        if self._in_render:
-            self._current_rendered = self._in_render_value()
-        else:
-            self._in_render = True
-            if self._condition.applies(self):
-                self.set_current_value(empty_bits)
-            else:
-                super(IfNot, self).render()
-            self._in_render = False
-        return self._current_rendered
-
-    def _in_render_value(self):
-        return empty_bits
-
-    def get_rendered_fields(self):
-        '''
-        :return: ordered list of the fields that will be rendered
-        '''
-        if not self._condition.applies(self):
-            return super(IfNot, self).get_rendered_fields()
-        return []
-
-    def copy(self):
-        '''
-        Copy the container, put an invalidated copy of the condition in the new container
-        '''
-        dup = super(IfNot, self).copy()
-        condition = copy.copy(self._condition)
-        condition.invalidate()
-        dup._condition = condition
-        return dup
-
-    def hash(self):
-        hashed = super(IfNot, self).hash()
-        return khash(hashed, self._condition.hash())
+    def _evaluate_condition(self, ctx):
+        return not self._condition.applies(self, ctx)
 
 
 class Meta(Container):
@@ -544,15 +585,18 @@ class Meta(Container):
             # will render to: 'no space'
     '''
 
-    def render(self):
+    def render(self, ctx=None):
         '''
-        :return: empty Bits
+        :param ctx: rendering context in which the method was called
+        :rtype: `Bits`
+        :return: empty bits
         '''
         self._current_rendered = empty_bits
         return self._current_rendered
 
-    def get_rendered_fields(self):
+    def get_rendered_fields(self, ctx=None):
         '''
+        :param ctx: rendering context in which the method was called
         :return: ordered list of the fields that will be rendered
         '''
         return []
@@ -574,11 +618,13 @@ class Pad(Container):
         self._pad_length = pad_length
         self._pad_data = Bits(bytes=pad_data)
 
-    def render(self):
+    def render(self, ctx=None):
         '''
-        :return: enclosed fields with padding
+        :param ctx: rendering context in which the method was called
+        :rtype: `Bits`
+        :return: rendered value of the container, padded if needed
         '''
-        super(Pad, self).render()
+        super(Pad, self).render(ctx)
         to_pad = self._pad_length - len(self._current_rendered)
         if to_pad > 0:
             padding_data = self._pad_data * (to_pad / len(self._pad_data) + 1)
@@ -586,6 +632,10 @@ class Pad(Container):
         return self._current_rendered
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the container
+        '''
         hashed = super(Pad, self).hash()
         return khash(hashed, self._pad_length, self._pad_data)
 
@@ -641,24 +691,35 @@ class Repeat(Container):
         if self._current_index >= self._repeats:
             super(Repeat, self)._mutate()
 
-    def render(self):
+    def render(self, ctx=None):
+        '''
+        :param ctx: rendering context in which the method was called
+        :rtype: `Bits`
+        :return: rendered value of the container, repeated
+        '''
+        self._initialize()
         times = self._min_times
-        if self._mutating and (self._current_index < self._repeats):
+        if self._mutating() and (self._current_index < self._repeats):
             times += (self._current_index) * self._step
-        rendered = super(Repeat, self).render()
+        rendered = super(Repeat, self).render(ctx)
         self.set_current_value(rendered * times)
         return self._current_rendered
 
-    def get_rendered_fields(self):
+    def get_rendered_fields(self, ctx=None):
         '''
+        :param ctx: rendering context in which the method was called
         :return: ordered list of the fields that will be rendered
         '''
         times = self._min_times
-        if self._mutating and (self._current_index < self._repeats):
+        if self._mutating() and (self._current_index < self._repeats):
             times += (self._current_index) * self._step
-        return super(Repeat, self).get_rendered_fields() * times
+        return super(Repeat, self).get_rendered_fields(ctx) * times
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the container
+        '''
         hashed = super(Repeat, self).hash()
         return khash(hashed, self._min_times, self._max_times, self._step, self._repeats)
 
@@ -668,21 +729,47 @@ class OneOf(Container):
     Render a single field from the fields (also mutates only one field each time)
     '''
 
-    def render(self):
+    def render(self, ctx=None):
         '''
         Render only the mutated field (or the first one if not in mutation)
+
+        :param ctx: rendering context in which the method was called
+        :rtype: `Bits`
+        :return: rendered value of the container
         '''
-        self._fields[self._field_idx].set_offset(self.get_offset())
-        rendered = self._fields[self._field_idx].render()
+        if ctx is None:
+            ctx = RenderContext()
+        ctx.push(self)
+        self._initialize()
+        rendered = self._fields[self._field_idx].render(ctx)
         self.set_current_value(rendered)
+        ctx.pop()
         return self._current_rendered
 
-    def get_rendered_fields(self):
+    def get_rendered_fields(self, ctx=None):
         '''
+        :param ctx: rendering context in which the method was called
         :return: ordered list of the fields that will be rendered
         '''
+        if ctx is None:
+            ctx = RenderContext()
+        ctx.push(self)
         current = self._fields[self._field_idx]
-        return current.get_rendered_fields()
+        res = current.get_rendered_fields(ctx)
+        ctx.pop()
+        return res
+
+    def get_length(self, ctx):
+        return self._fields[self._field_idx].get_length(ctx)
+
+    def set_offset(self, offset, ctx=None):
+        '''
+        Set the offset of a field
+
+        :param offset: offset to set
+        :param ctx: rendering context in which the method was called
+        '''
+        return self._fields[self._field_idx].set_offset(offset, ctx)
 
     def _calculate_mutations(self, num):
         '''
@@ -721,16 +808,15 @@ class TakeFrom(OneOf):
         self.seed = 0x1234
         self.random = random.Random()
 
-    def _get_ready(self):
-        if not self._ready:
-            if self.min_elements is None:
-                self.min_elements = 0
-            if self.max_elements is None:
-                self.max_elements = len(self._fields)
-            self.max_elements = min(self.max_elements, len(self._fields))
-            self.random.seed(self.seed * self.max_elements + self.min_elements)
-            self._rebuild_fields()
-            super(TakeFrom, self)._get_ready()
+    def _init(self):
+        if self.min_elements is None:
+            self.min_elements = 0
+        if self.max_elements is None:
+            self.max_elements = len(self._fields)
+        self.max_elements = min(self.max_elements, len(self._fields))
+        self.random.seed(self.seed * self.max_elements + self.min_elements)
+        self._rebuild_fields()
+        super(TakeFrom, self)._init()
 
     def _rebuild_fields(self):
         '''
@@ -763,13 +849,31 @@ class TakeFrom(OneOf):
         self.replace_fields(new_containers)
 
     def reset(self):
+        '''
+        Reset the state of the container and its internal fields
+        '''
         super(TakeFrom, self).reset()
         self.random.seed(self.seed * self.max_elements + self.min_elements)
 
-    def render(self):
-        return self._fields[self._field_idx].render()
+    def render(self, ctx=None):
+        '''
+        :param ctx: rendering context in which the method was called
+        :rtype: `Bits`
+        :return: rendered value of the taken fields from the container
+        '''
+        if ctx is None:
+            ctx = RenderContext()
+        ctx.push(self)
+        self._initialize()
+        res = self._fields[self._field_idx].render(ctx)
+        ctx.pop()
+        return res
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the container
+        '''
         hashed = super(TakeFrom, self).hash()
         return khash(hashed, self.min_elements, self.max_elements, self.seed)
 
@@ -803,6 +907,11 @@ class Template(Container):
         super(Template, self).__init__(fields=fields, encoder=encoder, fuzzable=fuzzable, name=name)
 
     def get_info(self):
+        '''
+        Get info regarding the current template state
+
+        :return: info dictionary
+        '''
         self.render()
         info = super(Template, self).get_info()
         res = {'field/%s' % k: v for (k, v) in info.items()}
@@ -833,12 +942,21 @@ class Trunc(Container):
         super(Trunc, self).__init__(fields=fields, encoder=ENC_BITS_DEFAULT, fuzzable=fuzzable, name=name)
         self._max_size = max_size
 
-    def render(self):
-        super(Trunc, self).render()
+    def render(self, ctx=None):
+        '''
+        :param ctx: rendering context in which the method was called
+        :rtype: `Bits`
+        :return: rendered value of the container
+        '''
+        super(Trunc, self).render(ctx)
         self._current_value = self._current_rendered
         self._current_rendered = self._current_rendered[:self._max_size]
         return self._current_rendered
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the container
+        '''
         hashed = super(Trunc, self).hash()
         return khash(hashed, self._max_size)
