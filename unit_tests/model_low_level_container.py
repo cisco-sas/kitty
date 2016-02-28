@@ -598,6 +598,37 @@ class PadTest(BaseTestCase):
         self.assertEqual(actual_num_mutations, uut_num_mutations)
         self.assertEqual(uut.render(), expected)
 
+    def testHashTheSameForTwoSimilarObjects(self):
+        pad1 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data='\xff')
+        pad2 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data='\xff')
+        self.assertEqual(pad1.hash(), pad2.hash())
+
+    def testHashTheSameAfterReset(self):
+        container = Pad(pad_length=10 * 8, fields=String('abc'), pad_data='\xff')
+        hash_after_creation = container.hash()
+        container.mutate()
+        hash_after_mutate = container.hash()
+        self.assertEqual(hash_after_creation, hash_after_mutate)
+        container.reset()
+        hash_after_reset = container.hash()
+        self.assertEqual(hash_after_creation, hash_after_reset)
+        while container.mutate():
+            hash_after_mutate_all = container.hash()
+            self.assertEqual(hash_after_creation, hash_after_mutate_all)
+            container.render()
+            hash_after_render_all = container.hash()
+            self.assertEqual(hash_after_creation, hash_after_render_all)
+
+    def testDifferentHashIfPadLengthIsDifferend(self):
+        pad1 = Pad(pad_length=11 * 8, fields=String('abc'), pad_data='\xff')
+        pad2 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data='\xff')
+        self.assertNotEqual(pad1.hash(), pad2.hash())
+
+    def testDifferentHashIfPadDataIsDifferend(self):
+        pad1 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data='\x00')
+        pad2 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data='\xff')
+        self.assertNotEqual(pad1.hash(), pad2.hash())
+
 
 class TruncTest(BaseTestCase):
 
@@ -640,3 +671,29 @@ class TruncTest(BaseTestCase):
         while uut.mutate():
             actual_num_mutations += 1
         self.assertEqual(actual_num_mutations, uut_num_mutations)
+
+    def testHashTheSameForTwoSimilarObjects(self):
+        trunc1 = Trunc(10 * 8, fields=String('abc'))
+        trunc2 = Trunc(10 * 8, fields=String('abc'))
+        self.assertEqual(trunc1.hash(), trunc2.hash())
+
+    def testHashTheSameAfterReset(self):
+        container = Trunc(10 * 8, fields=String('abc'))
+        hash_after_creation = container.hash()
+        container.mutate()
+        hash_after_mutate = container.hash()
+        self.assertEqual(hash_after_creation, hash_after_mutate)
+        container.reset()
+        hash_after_reset = container.hash()
+        self.assertEqual(hash_after_creation, hash_after_reset)
+        while container.mutate():
+            hash_after_mutate_all = container.hash()
+            self.assertEqual(hash_after_creation, hash_after_mutate_all)
+            container.render()
+            hash_after_render_all = container.hash()
+            self.assertEqual(hash_after_creation, hash_after_render_all)
+
+    def testDifferentHashIfPadLengthIsDifferend(self):
+        trunc1 = Trunc(11 * 8, fields=String('abc'))
+        trunc2 = Trunc(10 * 8, fields=String('abc'))
+        self.assertNotEqual(trunc1.hash(), trunc2.hash())
