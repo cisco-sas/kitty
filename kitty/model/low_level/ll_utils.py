@@ -13,3 +13,6 @@ class RenderContext(object):
 
     def __contains__(self, item):
         return item in self._render_stack
+
+    def __str__(self):
+        return '<RenderContext ' + '/'.join('%s(%s)' % (f.get_name(), type(f).__name__) for f in self._render_stack) + ' />'
