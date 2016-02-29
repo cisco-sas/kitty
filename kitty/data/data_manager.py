@@ -42,6 +42,7 @@ class DataManagerTask(object):
         self._result = None
         self._task = task
         self._args = args
+        self._exception = None
 
     def execute(self, dataman):
         '''
@@ -51,7 +52,10 @@ class DataManagerTask(object):
         :param dataman: the executing data manager
         '''
         self._event.clear()
-        self._result = self._task(dataman, *self._args)
+        try:
+            self._result = self._task(dataman, *self._args)
+        except Exception as ex:
+            self._exception = ex
         self._event.set()
 
     def get_results(self):
@@ -59,6 +63,8 @@ class DataManagerTask(object):
         :return: result from running the task
         '''
         self._event.wait()
+        if self._exception:
+            raise self._exception
         return self._result
 
 
