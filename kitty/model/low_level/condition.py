@@ -28,12 +28,13 @@ from kitty.core import KittyException, khash
 
 class Condition(object):
 
-    def applies(self, container):
+    def applies(self, container, ctx):
         '''
         All subclasses must implement the `applies(self, container)` method
 
         :type container: Container
         :param container: the caller
+        :param ctx: rendering context in which applies was called
         :return: True if condition applies, False otherwise
         '''
         raise NotImplementedError('applies')
@@ -77,19 +78,20 @@ class FieldContidion(Condition):
         if not self._field:
             raise KittyException('No field provided to base the condition on')
 
-    def applies(self, container):
+    def applies(self, container, ctx):
         '''
         Subclasses should not override `applies`, but instead they should override `_applies`, which has the same syntax as `applies`.
         In the `_applies` method the condition is guaranteed to have a reference to the desired field, as `self._field`.
 
         :type container: :class:`~kitty.model.low_level.container.Container`
         :param container: the caller
+        :param ctx: rendering context in which applies was called
         :return: True if condition applies, False otherwise
         '''
         self._get_ready(container)
-        return self._applies(container)
+        return self._applies(container, ctx)
 
-    def _applies(self, container):
+    def _applies(self, container, ctx):
         raise NotImplementedError('_applies')
 
     def hash(self):
@@ -131,7 +133,7 @@ class InList(ListCondition):
             ])
     '''
 
-    def _applies(self, container):
+    def _applies(self, container, ctx):
         value = self._field.get_current_value()
         return value in self._value_list
 
@@ -188,7 +190,7 @@ class Compare(FieldContidion):
             raise KittyException('unknown comparison type (%s)' % (comp_type))
         self._comp_value = comp_value
 
-    def _applies(self, container):
+    def _applies(self, container, ctx):
         value = self._field.get_current_value()
         return self._comp_fn(value, self._comp_value)
 

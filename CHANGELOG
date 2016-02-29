@@ -1,0 +1,20 @@
+Version 0.6.2 (2016-03-01)
+==========================
+
+
+* bugfix: [Data Manager] Handle exceptions in tasks by raising them in caller context
+* bugfix: [Data Manager] Unicode strings are now properly encoded in the report
+* bugfix: [Data Model] BitFieldMultiByteEncoder: fixed byte order
+* bugfix: [Data Model] BlockOperation: block size validation
+* bugfix: [Data Model] ByteAlignedBitsEncoder: fixed byte alignment (issue #11)
+* bugfix: [Data Model] ByteFlips: removed silent failures
+* bugfix: [Data Model] If/IfNot: Protect from recursive rendering
+* bugfix: [Web Interface] handle errors and return descriptive message when error occurs in the report API
+
+* new feature: [Data Model] BitFieldMultiByteEncoder: support for little endian
+* new feature: [Data Model] ElementCount: field that holds the number of elements in given container
+* new feature: [Data Model] IndexOf: field that holds the index of a given field in its container
+* new feature: [Data Model] RandomBits: Similar to RandomBytes, but in bits (allows non-byte aligned fields)
+* new feature: [Tools] kitty-template-tester: print version
+
+* removed feature: [Data Model] Crypto Encoders were removed from Kitty and now available in Katnip v0.2.2 this removes the dependency in pycrypto from kitty (issue #7)

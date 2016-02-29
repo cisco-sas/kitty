@@ -26,7 +26,6 @@ import os
 
 from kitty.interfaces.base import EmptyInterface
 from kitty.core.threading_utils import FuncThread
-from kitty.data.data_manager import DataManagerTask
 
 
 class _WebInterfaceServer(BaseHTTPServer.HTTPServer):
@@ -194,34 +193,27 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return response
 
     def _get_report(self):
-        def as_int(val):
-            try:
-                return int(val)
-            except ValueError:
-                return -1
         report = None
         encoding = 'base64'
 
         parsed = urlparse(self.path)
         query = parse_qs(parsed.query)
         if 'report_id' in query:
-            key = as_int(query['report_id'][0])
-
-            def task(dataman):
-                manager = dataman.get_reports_manager()
-                try:
-                    return manager.get(key)
-                except Exception:
-                    return None
             try:
+                report_id_string = query['report_id'][0]
+                key = int(report_id_string)
                 report = self.dataman.get_report_by_id(key)
                 if report:
                     response = {
                         'encoding': encoding,
                         'report': report.to_dict(encoding)
                     }
-            except:
-                pass
+                else:
+                    raise 'No report with id %d' % key
+            except Exception as ex:
+                response = {'error': 'Failed to get report %s' % ex}
+        else:
+            response = {'error': 'No report_id provided'}
         return json.dumps(response)
 
     def _my_handle(self):

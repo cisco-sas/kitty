@@ -32,6 +32,7 @@ from kitty.core import KittyObject, KittyException, kassert, khash
 from kitty.model.low_level.encoder import ENC_STR_DEFAULT, StrEncoder
 from kitty.model.low_level.encoder import ENC_INT_DEFAULT, BitFieldEncoder
 from kitty.model.low_level.encoder import ENC_BITS_DEFAULT, BitsEncoder
+from kitty.model.low_level.ll_utils import RenderContext
 
 empty_bits = Bits()
 
@@ -63,7 +64,38 @@ class BaseField(KittyObject):
         self._current_rendered = self._default_rendered
         self._current_index = -1
         self._enclosing = None
-        self._mutating = False
+        self._offset = None
+        self._initialized = False
+
+    def set_offset(self, offset, ctx=None):
+        '''
+        Set the offset of the field
+
+        :param offset: the offset to set
+        :param ctx: rendering context in which the method was called
+        :return: the length of the container
+        '''
+        self._initialize()
+        self._offset = offset
+        return self.get_length(ctx)
+
+    def _mutating(self):
+        return self._current_index != -1
+
+    def get_offset(self):
+        '''
+        Get the offset of the field
+
+        :return: the length of the container
+        '''
+        return self._offset
+
+    def get_length(self, ctx):
+        '''
+        :param ctx: rendering context in which the method was called
+        :return: the length of the field
+        '''
+        return len(self.render(ctx))
 
     def set_current_value(self, value):
         '''
@@ -94,14 +126,11 @@ class BaseField(KittyObject):
         '''
         return self._num_mutations if self._fuzzable else 0
 
-    def _reached_end(self):
-        return self._current_index >= self.num_mutations() - 1
-
     def _exhausted(self):
         '''
         :return: True if field exhusted, False otherwise
         '''
-        return self._reached_end()
+        return self._current_index >= self._last_index()
 
     def skip(self, count):
         '''
@@ -126,25 +155,31 @@ class BaseField(KittyObject):
         :rtype: boolean
         :return: True if field the mutated
         '''
-        self._get_ready()
+        self._initialize()
         if self._exhausted():
             return False
-        self._mutating = True
         self._current_index += 1
         self._mutate()
         return True
 
-    def _get_ready(self):
-        pass
+    def _initialize(self):
+        if self._initialized:
+            return
+        self._init()
+        self._initialized = True
 
-    def render(self):
+    def _init(self):
+        self.reset()
+
+    def render(self, ctx=None):
         '''
         Render the current value of the field
 
         :rtype: Bits
         :return: rendered value
         '''
-        if self._mutating:
+        self._initialize()
+        if not self.is_default():
             self._current_rendered = self._encode_value(self._current_value)
         return self._current_rendered
 
@@ -155,7 +190,7 @@ class BaseField(KittyObject):
         self._current_index = -1
         self._current_value = self._default_value
         self._current_rendered = self._default_rendered
-        self._mutating = False
+        self._offset = None if self._enclosing else 0
 
     def _mutate(self):
         '''
@@ -163,17 +198,21 @@ class BaseField(KittyObject):
         '''
         pass
 
+    def _get_enclosing_list(self):
+        '''
+        :return: list of fields from the top of the path to current field
+        '''
+        alist = [self]
+        if self._enclosing:
+            alist = self._enclosing._get_enclosing_list() + alist
+        return alist
+
     def _get_enclosing_path(self):
         '''
         :return: ordered name list of enclosing fields
         '''
-        name = self.get_name()
-        if name is None:
-            name = '<no name>'
-        if not self._enclosing:
-            return [name]
-        else:
-            return self._enclosing._get_enclosing_path() + [name]
+        alist = self._get_enclosing_list()
+        return [x.get_name() or '<no name>' for x in alist]
 
     def get_info(self):
         '''
@@ -237,13 +276,21 @@ class BaseField(KittyObject):
         else:
             return None
 
-    def get_rendered_fields(self):
+    def get_rendered_fields(self, ctx=None):
         '''
         :return: ordered list of the fields that will be rendered
         '''
-        if len(self.render()):
+        if len(self.render(ctx)):
             return [self]
         return []
+
+    def is_default(self):
+        '''
+        Checks if the field is in its default form
+
+        :return: True if field is in default form
+        '''
+        return not self._mutating()
 
     def __str__(self):
         data = []
@@ -253,15 +300,23 @@ class BaseField(KittyObject):
         if self._default_value:
             data.append('default:%s' % self._default_value)
         if self._fuzzable:
-            if self._mutating:
+            if self._mutating():
                 data.append('%s/%s' % (self._current_index, self.num_mutations()))
                 data.append('+')
         return '|'.join(data)
 
     def hash(self):
-        self._get_ready()
+        '''
+        :rtype: int
+        :return: hash of the field
+        '''
+        self._initialize()
         hashed = khash(type(self).__name__, self._default_value, self._fuzzable)
         return hashed
+
+    def _initialize_default_buffer(self):
+        self.set_current_value(self._default_value)
+        return self._default_rendered
 
 
 class _MultiListAccessor(object):
@@ -310,30 +365,28 @@ class _LibraryField(BaseField):
     def __init__(self, value, encoder, fuzzable=True, name=None):
         super(_LibraryField, self).__init__(value, encoder, fuzzable, name)
         self._lib = None
-        self._prepare()
+        self._initialize()
 
     def skip(self, count):
         '''
-        skip up to [count] cases, default behavior is to just mutate [count] times
+        skip up to [count] cases
 
         :param count: number of cases to skip
         :rtype: int
         :return: number of cases skipped
         '''
+        self._initialize()
         skipped = 0
         if not self._exhausted():
-            self._mutating = True
             skipped = min(count, self._last_index() - self._current_index)
             self._current_index += skipped
-        if self._exhausted():
-            self._mutating = False
         return skipped
 
     def _mutate(self):
         value = self._lib.get(self._current_index)
         self._current_value = value
 
-    def _prepare(self):
+    def _init(self):
         lib = _MultiListAccessor()
         lib.add_list(self._get_local_lib())
         lib.add_list(self._wrap_get_class_lib())
@@ -502,6 +555,10 @@ class String(_LibraryField):
         return res
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the field
+        '''
         hashed = super(String, self).hash()
         return khash(hashed, self._max_size)
 
@@ -673,6 +730,10 @@ class BitField(_LibraryField):
         return res
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the field
+        '''
         hashed = super(BitField, self).hash()
         return khash(hashed, self._length, self._signed, self._min_value, self._max_value)
 
@@ -709,6 +770,10 @@ class Group(_LibraryField):
         return []
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the field
+        '''
         hashed = super(Group, self).hash()
         return khash(hashed, frozenset(self._values))
 
@@ -746,20 +811,19 @@ class Dynamic(BaseField):
             self._num_mutations = self._length * 8
         self._last_value = default_value
 
-    def render(self):
-        if self._mutating:
+    def render(self, ctx=None):
+        self._initialize()
+        if self._mutating():
             xor_bits = Bits(uint=1 << self._current_index, length=self._length * 8)
             self._current_rendered = self._current_rendered ^ xor_bits
         return self._current_rendered
 
     def skip(self, count):
+        self._initialize()
         skipped = 0
         if not self._exhausted():
-            self._mutating = True
             skipped = min(count, self.num_mutations() - self._current_index - 1)
             self._current_index += skipped
-        if self._exhausted():
-            self._mutating = False
         return skipped
 
     def set_session_data(self, session_data):
@@ -769,8 +833,108 @@ class Dynamic(BaseField):
         return False
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the field
+        '''
         hashed = super(Dynamic, self).hash()
         return khash(hashed, self._key, self._length)
+
+    def is_default(self):
+        '''
+        Checks if the field is in its default form
+
+        :return: True if field is in default form
+        '''
+        return False
+
+
+class RandomBits(BaseField):
+    '''
+    A random sequence of bits.
+    The length of the sequence is between *min_length* and *max_length*,
+    and decided either randomally (if *step* is *None*)
+    or starts from *min_length* and inreased by *step* bits (if *step* has a value).
+    '''
+    _encoder_type_ = BitsEncoder
+
+    def __init__(
+        self, value, min_length, max_length, unused_bits=0,
+        seed=1235, num_mutations=25, step=None, encoder=ENC_BITS_DEFAULT,
+        fuzzable=True, name=None
+    ):
+        '''
+        :type value: str
+        :param value: default value, the last *unsused_bits* will be removed from the value
+        :param min_length: minimal length of the field (in bits)
+        :param max_length: maximal length of the field (in bits)
+        :param unused_bits: how many bits from the value are not used (default: 0)
+        :param seed: seed for the random number generator, to allow consistency between runs (default: 1235)
+        :param num_mutations: number of mutations to perform (if step is None) (default:25)
+        :type step: int
+        :param step: step between lengths of each mutation (default: None)
+        :type encoder: :class:`~kitty.model.low_levele.encoder.BitsEncoder`
+        :param encoder: encoder for the field (default: ENC_BITS_DEFAULT)
+        :param fuzzable: is field fuzzable (default: True)
+        :param name: name of the object (default: None)
+
+        :examples:
+
+            ::
+
+                RandomBits(value='1234', min_length=0, max_length=75, unused_bits=0, step=15)
+                RandomBits(value='1234', min_length=0, max_length=75, unused_bits=3, num_mutations=80)
+        '''
+        if unused_bits not in range(8):
+            raise KittyException('unused bits (%d) is not between 0-7' % unused_bits)
+        value = Bits(bytes=value)
+        if unused_bits:
+            value = value[:-unused_bits]
+        super(RandomBits, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
+        self._validate_lengths(min_length, max_length)
+        self._min_length = min_length
+        self._max_length = max_length
+        self._num_mutations = num_mutations
+        self._step = step
+        self._random = Random()
+        self._seed = seed
+        self._random.seed(self._seed)
+        if self._step:
+            if self._step < 0:
+                raise KittyException('step (%d) < 0' % (step))
+            self._num_mutations = (self._max_length - self._min_length) / self._step
+
+    def _validate_lengths(self, min_length, max_length):
+        kassert.is_int(min_length)
+        kassert.is_int(max_length)
+        if min_length > max_length:
+            raise KittyException('min_length(%d) > max_length(%d)' % (min_length, max_length))
+        elif min_length < 0:
+            raise KittyException('min_length(%d) < 0' % (min_length))
+        elif max_length <= 0:
+            raise KittyException('max_length(%d) < 0' % (max_length))
+
+    def reset(self):
+        super(RandomBits, self).reset()
+        self._random.seed(self._seed)
+
+    def _mutate(self):
+        if self._step:
+            length = self._min_length + self._step * self._current_index
+        else:
+            length = self._random.randint(self._min_length, self._max_length)
+        current_bytes = ''
+        for i in range(length / 8 + 1):
+            current_bytes += chr(self._random.randint(0, 255))
+        self._current_value = Bits(bytes=current_bytes)[:length]
+
+    def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the field
+        '''
+        hashed = super(RandomBits, self).hash()
+        return khash(hashed, self._min_length, self._max_length, self._num_mutations, self._step, self._seed)
 
 
 class RandomBytes(BaseField):
@@ -842,6 +1006,10 @@ class RandomBytes(BaseField):
         self._current_value = current
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the field
+        '''
         hashed = super(RandomBytes, self).hash()
         return khash(hashed, self._min_length, self._max_length, self._num_mutations, self._step, self._seed)
 
@@ -868,7 +1036,6 @@ class Calculated(BaseField):
         :param name: (unique) name of the container
         '''
         self._rendered_field = None
-        self._in_render = False
         super(Calculated, self).__init__(value=self.__class__._default_value_, encoder=encoder, fuzzable=fuzzable, name=name)
         if isinstance(depends_on, types.StringTypes):
             self._field_name = depends_on
@@ -879,30 +1046,43 @@ class Calculated(BaseField):
         else:
             raise KittyException('depends_on parameter (%s) is neither a string nor a valid field' % depends_on)
 
-    def _get_ready(self):
+    def is_default(self):
+        '''
+        Checks if the field is in its default form
+
+        :return: True if field is in default form
+        '''
+        return False
+
+    def _initialize(self):
+        '''
+        We override _initialize, as we want to resolve the field each time
+        '''
         if self._field_name:
             self._field = self.resolve_field(self._field_name)
         if not self._field:
             raise KittyException('Could not resolve field name %s' % self._field_name)
 
-    def render(self):
+    def render(self, ctx=None):
         '''
         Render the current value into a :class:`bitstring.Bits` object
 
         :rtype: :class:`bitstring.Bits`
         :return: the rendered field
         '''
-        self._get_ready()
+        self._initialize()
+        if ctx is None:
+            ctx = RenderContext()
         #
         # if we are called from within render, return a dummy object...
         #
-        if self._in_render:
+        if self in ctx:
             self._current_rendered = self._in_render_value()
         else:
-            self._in_render = True
-            self._rendered_field = self._field.render()
+            ctx.push(self)
+            self._rendered_field = self._field.render(ctx)
             self._render()
-            self._in_render = False
+            ctx.pop()
         return self._current_rendered
 
     def _render(self):
@@ -917,9 +1097,13 @@ class Calculated(BaseField):
         :rtype: Bits
         :return: a dummy rendered value
         '''
-        raise NotImplementedError('_in_render_value should be implemented in subclass')
+        raise NotImplementedError('_in_render_value should be implemented in subclass (%s)' % type(self).__name__)
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the field
+        '''
         hashed = super(Calculated, self).hash()
         return khash(hashed, self._field_name)
 
@@ -1009,12 +1193,12 @@ class Hash(CalculatedStr):
         Take a look at :mod:`~kitty.model.low_level.aliases`.
     '''
     _algos = {
-        'md5': hashlib.md5,
-        'sha1': hashlib.sha1,
-        'sha224': hashlib.sha224,
-        'sha256': hashlib.sha256,
-        'sha384': hashlib.sha384,
-        'sha512': hashlib.sha512,
+        'md5': (hashlib.md5, 128),
+        'sha1': (hashlib.sha1, 160),
+        'sha224': (hashlib.sha224, 224),
+        'sha256': (hashlib.sha256, 256),
+        'sha384': (hashlib.sha384, 384),
+        'sha512': (hashlib.sha512, 512),
     }
 
     def __init__(self, depends_on, algorithm, encoder=ENC_STR_DEFAULT, fuzzable=False, name=None):
@@ -1027,20 +1211,25 @@ class Hash(CalculatedStr):
         :param name: (unique) name of the field (default: None)
         '''
         if algorithm in Hash._algos:
-            algo = Hash._algos[algorithm]
+            algo = Hash._algos[algorithm][0]
 
             def algo_func(x):
                 return algo(x).digest()
 
             func = algo_func
+            self._hash_length = Hash._algos[algorithm][1]
         else:
             try:
                 res = algorithm('')
                 kassert.is_of_types(res, types.StringTypes)
                 func = algorithm
+                self._hash_length = len(res) * 8
             except:
                 raise KittyException('algorithm should be a func(str)->str or one of the strings %s' % (Hash._algos.keys(),))
         super(Hash, self).__init__(depends_on=depends_on, func=func, encoder=encoder, fuzzable=fuzzable, name=name)
+
+    def _in_render_value(self):
+        return Bits(self._hash_length)
 
 
 class CalculatedInt(Calculated):
@@ -1086,7 +1275,7 @@ class CalculatedInt(Calculated):
         # This code meant for handling overflow...
         calculated_value = min(calculated_value, self._bit_field._max_value)
         calculated_value = max(calculated_value, self._bit_field._min_value)
-        if self._mutating:
+        if self._mutating():
             if self._first_render:
                 # mutate applies a mutation function on the default value
                 self._bit_field._default_value = calculated_value
@@ -1106,36 +1295,77 @@ class CalculatedInt(Calculated):
         return Bits(len(self._bit_field.render()))
 
 
-def _num_subelements(field):
-    return len(field.get_rendered_fields())
-
-
-class ElementCount(CalculatedInt):
+class FieldIntProperty(CalculatedInt):
     '''
-    Number of elements inside another field
-    value depends on the number of fields in the field it depends on
+    Calculate an int value based on some field property.
+    The main difference from :class:`~kitty.model.low_level.field.CalculatedInt`
+    is that it provides the field itself to the calculation function,
+    not its rendered value.
     '''
-    def __init__(self, depends_on, length, calc_func=None, encoder=ENC_INT_DEFAULT, fuzzable=False, name=None):
+    def __init__(self, depends_on, length, correction=None, encoder=ENC_INT_DEFAULT, fuzzable=False, name=None):
         '''
         :param depends_on: (name of) field we depend on
-        :param length: length of the ElementCount field (in bits)
+        :param length: length of the FieldIntProperty field (in bits)
+        :type corrention: int or func(int) -> int
+        :param correction: correction function, or value for the index
         :type calc_func: func(field) -> int
-        :param calc_func:
-            function to calculate the value of the field.
-            default function will return the number of fields that are directly in the container,
-            and 1 for a non-container field
+        :param calc_func: function to calculate the value of the field.
         :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
         :param encoder: encoder for the field (default: ENC_INT_DEFAULT)
         :param fuzzable: is container fuzzable
         :param name: (unique) name of the container (default: None)
         '''
-        if calc_func is None:
-            calc_func = _num_subelements
+        if correction:
+            if not isinstance(correction, types.FunctionType):
+                if not isinstance(correction, types.IntType):
+                    raise KittyException('correction must be int, function or None!')
+        self._correction = correction
         bit_field = BitField(value=0, length=length, encoder=encoder)
-        super(ElementCount, self).__init__(depends_on=depends_on, bit_field=bit_field, calc_func=calc_func, fuzzable=fuzzable, name=name)
+        super(FieldIntProperty, self).__init__(depends_on=depends_on, bit_field=bit_field, calc_func=None, fuzzable=fuzzable, name=name)
 
     def _calculate_value(self):
-        return self._calc_func(self._field)
+        calculated = self._calculate(self._field)
+        if isinstance(self._correction, types.FunctionType):
+            calculated = self._correction(calculated)
+        elif isinstance(self._correction, types.IntType):
+            calculated += self._correction
+        return calculated
+
+
+class ElementCount(FieldIntProperty):
+    '''
+    Number of elements inside another field.
+    The value depends on the number of fields in the field it depends on.
+    '''
+    def _calculate(self, field):
+        return len(field.get_rendered_fields(RenderContext(self)))
+
+
+class IndexOf(FieldIntProperty):
+    '''
+    Index of a field in its container.
+
+    Edge case behavior:
+
+        - If field has no encloser - return 0
+        - If field is not rendered - return len(rendered element list) as index/
+    '''
+
+    def _calculate(self, field):
+        '''
+        We want to avoid trouble, so if the field is not enclosed by any other field,
+        we just return 0.
+        '''
+        encloser = field._enclosing
+        if encloser:
+            rendered = encloser.get_rendered_fields(RenderContext(self))
+            if field not in rendered:
+                value = len(rendered)
+            else:
+                value = rendered.index(field)
+        else:
+            value = 0
+        return value
 
 
 class Checksum(CalculatedInt):
