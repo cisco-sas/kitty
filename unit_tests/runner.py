@@ -17,6 +17,7 @@
 import os
 import unittest
 from server_fuzzer import *
+from web_interface import *
 from model_high_level import *
 from model_low_level_container import *
 from model_low_level_fields import *
