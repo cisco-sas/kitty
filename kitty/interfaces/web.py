@@ -16,9 +16,7 @@
 # along with Kitty.  If not, see <http://www.gnu.org/licenses/>.
 
 import BaseHTTPServer
-from httplib import HTTPConnection
 import json
-from threading import Event
 import datetime
 import time
 from urlparse import urlparse, parse_qs
