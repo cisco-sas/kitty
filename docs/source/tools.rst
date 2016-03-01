@@ -23,6 +23,35 @@ Template Tester
         --tree      print fields tree of the template instead of mutating it
         --verbose   print full call stack upon exception
 
+Kitty Tools
+-----------
+
+kitty-tool will replace kitty-template tester and provide extended functionality
+
+::
+
+    Tools for testing and manipulating kitty templates.
+
+    Usage:
+        kitty-tool generate [--verbose] [-s SKIP] [-c COUNT] [-o OUTDIR] <FILE> <TEMPLATE>
+        kitty-tool list <FILE>
+        kitty-tool --version
+
+    Commands:
+
+        generate    generate files with mutated payload
+        list        list templates in a file
+
+    Options:
+        <FILE>            python file that contains the template
+        <TEMPLATE>        template name to generate files from
+        --out -o OUTDIR   output directory for the generated mutations [default: out]
+        --skip -s SKIP    how many mutations to skip [default: 0]
+        --count -c COUNT  end index to generate
+        --verbose -v      verbose output
+        --version         print version and exit
+        --help -h         print this help and exit
+
 CLI Web Client
 --------------
 
@@ -39,4 +68,3 @@ CLI Web Client
         -v --verbose            verbose information
         -h --host <hostname>    kitty web server host [default: localhost]
         -p --port <port>        kitty web server port [default: 26000]
-

@@ -44,7 +44,8 @@ else:
         entry_points={
             'console_scripts': [
                 'kitty-web-client=bin.kitty_web_client:_main',
-                'kitty-template-tester=bin.kitty_template_tester:_main'
+                'kitty-template-tester=bin.kitty_template_tester:_main',
+                'kitty-tool=bin.kitty_tool:_main',
             ]
         },
         package_data={'kitty': ['interfaces/web/static/*', 'interfaces/web/images/*']}
