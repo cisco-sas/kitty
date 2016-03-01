@@ -56,8 +56,8 @@ class BaseTarget(KittyObject):
         Make sure the target is ready for fuzzing, including monitors and
         controllers
         '''
-        assert(self.controller)
-        self.controller.setup()
+        if self.controller:
+            self.controller.setup()
         for monitor in self.monitors:
             monitor.setup()
 
@@ -65,7 +65,8 @@ class BaseTarget(KittyObject):
         '''
         Clean up the target once all tests are completed
         '''
-        self.controller.teardown()
+        if self.controller:
+            self.controller.teardown()
         for monitor in self.monitors:
             monitor.teardown()
 
@@ -75,7 +76,8 @@ class BaseTarget(KittyObject):
         '''
         self.test_number = test_num
         self.report = Report(self.name)
-        self.controller.pre_test(test_number=self.test_number)
+        if self.controller:
+            self.controller.pre_test(test_number=self.test_number)
         for monitor in self.monitors:
             monitor.pre_test(test_number=self.test_number)
         self.report.add('test_number', test_num)
@@ -85,12 +87,14 @@ class BaseTarget(KittyObject):
         '''
         Called when test is completed, a report should be prepared now
         '''
-        self.controller.post_test()
+        if self.controller:
+            self.controller.post_test()
         for monitor in self.monitors:
             monitor.post_test()
         self.report.add('state', 'COMPLETED')
-        controller_report = self.controller.get_report()
-        self.report.add('controller', controller_report)
+        if self.controller:
+            controller_report = self.controller.get_report()
+            self.report.add('controller', controller_report)
         for monitor in self.monitors:
             current_report = monitor.get_report()
             self.report.add(current_report.get('name'), current_report)
