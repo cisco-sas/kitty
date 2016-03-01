@@ -266,7 +266,6 @@ class WebInterface(EmptyInterface):
         self._host = host
         self._port = port
         self._web_thread = FuncThread(self._server_func)
-        self._stopevent = Event()
 
     def _start(self):
         self._web_thread.start()
@@ -283,12 +282,10 @@ class WebInterface(EmptyInterface):
 
     def _server_func(self):
         server = _WebInterfaceServer((self._host, self._port), _WebInterfaceHandler, self)
-        while not self._stopevent.isSet():
-            server.handle_request()
+        self._server = server
+        server.allow_reuse_address = True
+        server.serve_forever()
 
     def _stop(self, timeout=None):
-        # A little dirty but no other solution afaik
-        self._stopevent.set()
-        conn = HTTPConnection("localhost:%d" % self._port)
-        conn.request("GET", "/")
-        conn.getresponse()
+        self._server.shutdown()
+        self._server.server_close()
