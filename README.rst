@@ -120,7 +120,7 @@ Contribution FAQ
 *Found an interesting bug using a Kitty-based fuzzer?*
    We'd love to hear about it! please drop us a line
 
-|docs| |travis| |coverage|
+|docs| |travis| |coverage| |gitter|
 
 
 .. |docs| image:: https://readthedocs.org/projects/kitty/badge/?version=latest
@@ -137,3 +137,8 @@ Contribution FAQ
     :alt: Test Coverage Status
     :scale: 100%
     :target: https://coveralls.io/github/cisco-sas/kitty?branch=master
+
+.. |gitter| image:: https://badges.gitter.im/cisco-sas/kitty.svg
+   :alt: Chat on Gitter
+   :scale: 100%
+   :target: https://gitter.im/cisco-sas/kitty?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge
