@@ -99,7 +99,7 @@ What's Next?
 
     ::
 
-        pip install git+https://github.com/cisco-sas/kitty.git#egg=kitty
+        pip install kittyfuzzer
 
 - Read some of the documentation at `ReadTheDocs <https://kitty.readthedocs.org>`_.
 - Build your fuzzer :-)
