@@ -148,7 +148,7 @@ def process_file(f, processor):
 
 
 def _main():
-    print('kitty version: %s' % get_distribution('kitty').version)
+    print('kitty version: %s' % get_distribution('kittyfuzzer').version)
     opts = docopt.docopt(__doc__)
     files = opts['<FILE>']
     fast = opts['--fast']

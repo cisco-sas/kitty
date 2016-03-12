@@ -155,7 +155,7 @@ class ListHandler(Handler):
 
 
 def _main():
-    opts = docopt.docopt(__doc__, version=get_distribution('kitty').version)
+    opts = docopt.docopt(__doc__, version=get_distribution('kittyfuzzer').version)
     logger = get_logger(opts)
     try:
         if opts['generate']:

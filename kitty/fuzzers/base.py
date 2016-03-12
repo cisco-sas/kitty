@@ -37,7 +37,7 @@ class _Configuration:
 
 
 def _get_current_version():
-    package_name = 'kitty'
+    package_name = 'kittyfuzzer'
     current_version = get_distribution(package_name).version
     return current_version
 
