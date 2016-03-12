@@ -1,6 +1,12 @@
-Version 0.6.2 (2016-03-01)
+Version 0.6.2 (2016-03-13)
 ==========================
 
+* bugfix: [Web Interface] cleaner shutdown
+* new feature: [Tools] kitty-tool, will replace other cmd line tools in the future
+* now indexed in PyPi as kittyfuzzer
+
+Version 0.6.2 (2016-03-01)
+==========================
 
 * bugfix: [Data Manager] Handle exceptions in tasks by raising them in caller context
 * bugfix: [Data Manager] Unicode strings are now properly encoded in the report
