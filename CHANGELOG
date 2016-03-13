@@ -1,4 +1,8 @@
-Version 0.6.2 (2016-03-13)
+Version 0.6.4 (2016-03-13)
+==========================
+* bugfix: [package] fixed package name in get_distribution calls
+
+Version 0.6.3 (2016-03-13)
 ==========================
 
 * bugfix: [Web Interface] cleaner shutdown
