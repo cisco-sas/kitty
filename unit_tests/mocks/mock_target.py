@@ -119,7 +119,7 @@ class ClientTargetMock(ClientTarget):
         stages = self.config.get_val('stages')
         for (stage, data) in stages:
             resp = fuzzer.get_mutation(stage=stage, data=data)
-            self.response_callback(stage, resp)
+            self.response_callback(self.test_number, stage, resp)
 
     def signal_mutated(self):
         pass

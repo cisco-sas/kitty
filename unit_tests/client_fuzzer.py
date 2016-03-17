@@ -45,19 +45,23 @@ class TestClientFuzzer(unittest.TestCase):
     def setUp(self):
         self.logger = get_test_logger()
         self.logger.debug('TESTING METHOD: %s', self._testMethodName)
+        self._default_stage = 'simple_str_template'
 
-        self.t_str = Template(name='simple_str_template', fields=[String(name='str1', value='kitty')])
+        self.t_str = Template(name=self._default_stage, fields=[String(name='str1', value='kitty')])
 
         self.t_int = Template(name='simple_int_template', fields=[UInt32(name='int1', value=0x1234)])
         self.fuzzer = None
+        self.mutations = {}
         self.prepare()
 
     def tearDown(self):
         if self.fuzzer:
             self.fuzzer.stop()
 
-    def default_callback(self, stage, resp):
-        pass
+    def default_callback(self, test, stage, resp):
+        if test not in self.mutations:
+            self.mutations[test] = []
+        self.mutations[test].append((stage, resp))
 
     def prepare(self):
         self.start_index = 10
@@ -79,7 +83,7 @@ class TestClientFuzzer(unittest.TestCase):
                 'trigger': {
                     'fuzzer': self.fuzzer,
                     'stages': [
-                        ('simple_str_template', {})
+                        (self._default_stage, {})
                     ]
                 }
             }
@@ -217,3 +221,115 @@ class TestClientFuzzer(unittest.TestCase):
         self.assertEqual(mutations_tested, expected_num_mutations)
         self.assertEqual(info.start_index, start_index)
         self.assertEqual(info.end_index, expected_end_index)
+
+    def testGetMutationForStage(self):
+        self.fuzzer.set_range(0, 1)
+        config = {
+            'always': {
+                'trigger': {
+                    'fuzzer': self.fuzzer,
+                    'stages': [
+                        (self._default_stage, {})
+                    ]
+                }
+            }
+        }
+        target = ClientTargetMock(config, self.default_callback, logger=self.logger)
+        self.fuzzer.set_target(target)
+        self.fuzzer.start()
+        self.fuzzer.wait_until_done()
+        self.assertIn(0, self.mutations)
+        self.assertEquals(self.mutations[0][0][0], self._default_stage)
+        self.assertIsNotNone(self.mutations[0][0][1])
+
+    def testGetMutationForStageTwice(self):
+        self.fuzzer.set_range(0, 1)
+        config = {
+            'always': {
+                'trigger': {
+                    'fuzzer': self.fuzzer,
+                    'stages': [
+                        (self._default_stage, {}),
+                        (self._default_stage, {})
+                    ]
+                }
+            }
+        }
+        target = ClientTargetMock(config, self.default_callback, logger=self.logger)
+        self.fuzzer.set_target(target)
+        self.fuzzer.start()
+        self.fuzzer.wait_until_done()
+        self.assertIn(0, self.mutations)
+        self.assertEquals(self.mutations[0][0][0], self._default_stage)
+        self.assertIsNotNone(self.mutations[0][0][1])
+        self.assertEquals(self.mutations[0][1][0], self._default_stage)
+        self.assertIsNotNone(self.mutations[0][1][1])
+
+    def testGetMutationWrongStage(self):
+        self.fuzzer.set_range(0, 1)
+        wrong_stage = 'simple_str_template1'
+        config = {
+            'always': {
+                'trigger': {
+                    'fuzzer': self.fuzzer,
+                    'stages': [
+                        (wrong_stage, {}),
+                    ]
+                }
+            }
+        }
+        target = ClientTargetMock(config, self.default_callback, logger=self.logger)
+        self.fuzzer.set_target(target)
+        self.fuzzer.start()
+        self.fuzzer.wait_until_done()
+        self.assertIn(0, self.mutations)
+        self.assertEquals(self.mutations[0][0][0], wrong_stage)
+        self.assertIsNone(self.mutations[0][0][1])
+
+    def testGetMutationWrongAfterCorrectStage(self):
+        self.fuzzer.set_range(0, 1)
+        wrong_stage = 'simple_str_template1'
+        config = {
+            'always': {
+                'trigger': {
+                    'fuzzer': self.fuzzer,
+                    'stages': [
+                        (self._default_stage, {}),
+                        (wrong_stage, {}),
+                    ]
+                }
+            }
+        }
+        target = ClientTargetMock(config, self.default_callback, logger=self.logger)
+        self.fuzzer.set_target(target)
+        self.fuzzer.start()
+        self.fuzzer.wait_until_done()
+        self.assertIn(0, self.mutations)
+        self.assertEquals(self.mutations[0][0][0], self._default_stage)
+        self.assertIsNotNone(self.mutations[0][0][1])
+        self.assertEquals(self.mutations[0][1][0], wrong_stage)
+        self.assertIsNone(self.mutations[0][1][1])
+
+    def testGetMutationCorrectAfterWrongStage(self):
+        self.fuzzer.set_range(0, 1)
+        wrong_stage = 'simple_str_template1'
+        config = {
+            'always': {
+                'trigger': {
+                    'fuzzer': self.fuzzer,
+                    'stages': [
+                        (wrong_stage, {}),
+                        (self._default_stage, {}),
+                    ]
+                }
+            }
+        }
+        target = ClientTargetMock(config, self.default_callback, logger=self.logger)
+        self.fuzzer.set_target(target)
+        self.fuzzer.start()
+        self.fuzzer.wait_until_done()
+        self.assertIn(0, self.mutations)
+        self.assertEquals(self.mutations[0][0][0], wrong_stage)
+        self.assertIsNone(self.mutations[0][0][1])
+        self.assertEquals(self.mutations[0][1][0], self._default_stage)
+        self.assertIsNotNone(self.mutations[0][1][1])
