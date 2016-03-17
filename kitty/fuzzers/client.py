@@ -48,11 +48,26 @@ class ClientFuzzer(BaseFuzzer):
         self._index_in_path = 0
         self._requested_stages = []
         self._report = None
+        self._done_evt = Event()
 
     def _pre_test(self):
         self._requested_stages = []
         self._report = Report(self.get_name())
         super(ClientFuzzer, self)._pre_test()
+
+    def is_done(self):
+        '''
+        check if fuzzer is done fuzzing
+
+        :return: True if done
+        '''
+        return self._done_evt.is_set()
+
+    def wait_until_done(self):
+        '''
+        wait until fuzzer is done
+        '''
+        self._done_evt.wait()
 
     def stop(self):
         '''
@@ -75,6 +90,7 @@ class ClientFuzzer(BaseFuzzer):
             self._post_test()
         else:
             self._end_message()
+            self._done_evt.set()
             self._trigger_stop_evt.wait()
 
     def _start(self):
