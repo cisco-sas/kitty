@@ -19,9 +19,9 @@ import unittest
 import logging
 
 from kitty.model import Template, GraphModel, String, UInt32
-from kitty.fuzzers import ServerFuzzer
+from kitty.fuzzers import ClientFuzzer
 from kitty.interfaces.base import EmptyInterface
-from mocks.mock_target import ServerTargetMock
+from mocks.mock_target import ClientTargetMock
 
 test_logger = None
 
@@ -32,7 +32,7 @@ def get_test_logger():
         logger = logging.getLogger('TestServerFuzzer')
         logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] -> %(message)s')
-        handler = logging.FileHandler('logs/test_server_fuzzer.log', mode='w')
+        handler = logging.FileHandler('logs/test_client_fuzzer.log', mode='w')
         handler.setFormatter(formatter)
         handler.setLevel(logging.DEBUG)
         logger.addHandler(handler)
@@ -40,7 +40,7 @@ def get_test_logger():
     return test_logger
 
 
-class TestServerFuzzer(unittest.TestCase):
+class TestClientFuzzer(unittest.TestCase):
 
     def setUp(self):
         self.logger = get_test_logger()
@@ -56,11 +56,14 @@ class TestServerFuzzer(unittest.TestCase):
         if self.fuzzer:
             self.fuzzer.stop()
 
+    def default_callback(self, stage, resp):
+        pass
+
     def prepare(self):
         self.start_index = 10
         self.end_index = 20
         self.delay_duration = 0
-        self.fuzzer = ServerFuzzer(name="TestServerFuzzer", logger=self.logger)
+        self.fuzzer = ClientFuzzer(name="TestServerFuzzer", logger=self.logger)
 
         self.interface = EmptyInterface()
         self.fuzzer.set_interface(self.interface)
@@ -71,7 +74,17 @@ class TestServerFuzzer(unittest.TestCase):
         self.model.connect(self.t_str)
         self.fuzzer.set_model(self.model)
 
-        self.target = ServerTargetMock({}, logger=self.logger)
+        self.default_config = {
+            'always': {
+                'trigger': {
+                    'fuzzer': self.fuzzer,
+                    'stages': [
+                        ('simple_str_template', {})
+                    ]
+                }
+            }
+        }
+        self.target = ClientTargetMock(self.default_config, self.default_callback, logger=self.logger)
         self.fuzzer.set_target(self.target)
 
         self.fuzzer.set_range(self.start_index, self.end_index)
@@ -95,6 +108,7 @@ class TestServerFuzzer(unittest.TestCase):
 
     def testVanilla(self):
         self.fuzzer.start()
+        self.fuzzer.wait_until_done()
         info = self.fuzzer._get_session_info()
         # reports = self.fuzzer._get_reports_manager()
         # self.assertEqual(len(reports), 0)
@@ -110,6 +124,7 @@ class TestServerFuzzer(unittest.TestCase):
         start_index = self.model.num_mutations() - 2
         self.fuzzer.set_range(start_index)
         self.fuzzer.start()
+        self.fuzzer.wait_until_done()
 
         info = self.fuzzer._get_session_info()
         self.assertEqual(info.current_index, self.model.last_index())
@@ -120,6 +135,7 @@ class TestServerFuzzer(unittest.TestCase):
         end_index = 3
         self.fuzzer.set_range(start_index, end_index)
         self.fuzzer.start()
+        self.fuzzer.wait_until_done()
 
         info = self.fuzzer._get_session_info()
         self.assertEqual(info.start_index, 0)
@@ -129,26 +145,12 @@ class TestServerFuzzer(unittest.TestCase):
     def testFullMutationRange(self):
         self.fuzzer.set_range()
         self.fuzzer.start()
+        self.fuzzer.wait_until_done()
 
         info = self.fuzzer._get_session_info()
         self.assertEqual(info.start_index, 0)
         self.assertEqual(info.end_index, self.model.last_index())
         self.assertEqual(info.current_index, self.model.last_index())
-
-    def _MOVE_TO_TARGET_TESTS_test_send_failure(self):
-        config = {
-            '12': {
-                'send': {"raise exception": True}
-            }
-        }
-        send_error_target = ServerTargetMock(config, logger=self.logger)
-        self.fuzzer.set_target(send_error_target)
-        self.fuzzer.start()
-        info = self.fuzzer._get_session_info()
-        reports = self.fuzzer._get_reports_manager()
-        self.assertEqual(len(reports), 1)
-        self.assertTrue(12 in reports)
-        self.assertEqual(info.failure_count, 1)
 
     def testTestFailedWhenReportIsFailed(self):
         config = {
@@ -158,13 +160,15 @@ class TestServerFuzzer(unittest.TestCase):
                 }
             }
         }
-        target = ServerTargetMock(config, logger=self.logger)
+        config.update(self.default_config)
+        target = ClientTargetMock(config, self.default_callback, logger=self.logger)
         self.fuzzer.set_target(target)
         self.fuzzer.start()
+        self.fuzzer.wait_until_done()
         info = self.fuzzer._get_session_info()
         reports = self.fuzzer.dataman.get_report_test_ids()
-        self.assertEqual(reports, [int(x) for x in config.keys()])
-        self.assertEqual(info.failure_count, len(config))
+        self.assertEqual(sorted(reports), sorted([int(x) for x in config.keys() if x != 'always']))
+        self.assertEqual(info.failure_count, len(config) - 1)
 
     def testAllFailedTestsHaveReports(self):
         config = {
@@ -173,20 +177,24 @@ class TestServerFuzzer(unittest.TestCase):
             '12': {'report': {'failed': True}},
             '13': {'report': {'failed': True}}
         }
-        target = ServerTargetMock(config, logger=self.logger)
+        config.update(self.default_config)
+        target = ClientTargetMock(config, self.default_callback, logger=self.logger)
         self.fuzzer.set_target(target)
         self.fuzzer.start()
+        self.fuzzer.wait_until_done()
         info = self.fuzzer._get_session_info()
         reports = self.fuzzer.dataman.get_report_test_ids()
-        self.assertEqual(reports, sorted([int(x) for x in config.keys()]))
-        self.assertEqual(info.failure_count, len(config))
+        self.assertEqual(sorted(reports), sorted([int(x) for x in config.keys() if x != 'always']))
+        self.assertEqual(info.failure_count, len(config) - 1)
 
     def testStoringAllReportsWhenStoreAllReportsIsSetToTrue(self):
         config = {}
-        target = ServerTargetMock(config, logger=self.logger)
+        config.update(self.default_config)
+        target = ClientTargetMock(config, self.default_callback, logger=self.logger)
         self.fuzzer.set_store_all_reports(True)
         self.fuzzer.set_target(target)
         self.fuzzer.start()
+        self.fuzzer.wait_until_done()
         info = self.fuzzer._get_session_info()
         reports = self.fuzzer.dataman.get_report_test_ids()
         expected_mutation_count = self.end_index - self.start_index + 1
@@ -201,6 +209,7 @@ class TestServerFuzzer(unittest.TestCase):
         expected_num_mutations = expected_end_index - start_index
         self.fuzzer.set_range(start_index)
         self.fuzzer.start()
+        self.fuzzer.wait_until_done()
         info = self.fuzzer._get_session_info()
         self.assertEqual(info.failure_count, 0)
         self.assertEqual(info.current_index, expected_end_index)
@@ -208,86 +217,3 @@ class TestServerFuzzer(unittest.TestCase):
         self.assertEqual(mutations_tested, expected_num_mutations)
         self.assertEqual(info.start_index, start_index)
         self.assertEqual(info.end_index, expected_end_index)
-
-    def testCallbackIsCalledBetweenTwoNodes(self):
-        template1 = Template(name='template1', fields=String('str1'))
-        template2 = Template(name='template2', fields=String('str2'))
-        self.cb_call_count = 0
-
-        def t1_t2_cb(fuzzer, edge, response):
-            self.assertEqual(fuzzer, self.fuzzer)
-            self.assertEqual(edge.src, template1)
-            self.assertEqual(edge.dst, template2)
-            self.cb_call_count += 1
-
-        model = GraphModel()
-        model.logger = self.logger
-        model.connect(template1)
-        model.connect(template1, template2, t1_t2_cb)
-        self.model = model
-        self.fuzzer.set_model(model)
-        self.fuzzer.set_range()
-        self.fuzzer.start()
-        self.assertEqual(template2.num_mutations(), self.cb_call_count)
-
-    def testCorrectCallbackIsCalledForEachEdge(self):
-        template1 = Template(name='template1', fields=String('str1'))
-        template2 = Template(name='template2', fields=String('str2'))
-        template3 = Template(name='template3', fields=String('str3'))
-        self.cb2_call_count = 0
-        self.cb3_call_count = 0
-
-        def t1_t2_cb(fuzzer, edge, response):
-            self.assertEqual(fuzzer, self.fuzzer)
-            self.assertEqual(edge.src, template1)
-            self.assertEqual(edge.dst, template2)
-            self.cb2_call_count += 1
-
-        def t1_t3_cb(fuzzer, edge, response):
-            self.assertEqual(fuzzer, self.fuzzer)
-            self.assertEqual(edge.src, template1)
-            self.assertEqual(edge.dst, template3)
-            self.cb3_call_count += 1
-
-        model = GraphModel()
-        model.logger = self.logger
-        model.connect(template1)
-        model.connect(template1, template2, t1_t2_cb)
-        model.connect(template1, template3, t1_t3_cb)
-        self.model = model
-        self.fuzzer.set_model(model)
-        self.fuzzer.set_range()
-        self.fuzzer.start()
-        self.assertEqual(template2.num_mutations(), self.cb2_call_count)
-        self.assertEqual(template3.num_mutations(), self.cb3_call_count)
-
-    def testCorrectCallbackIsCalledForAllEdgesInPath(self):
-        template1 = Template(name='template1', fields=String('str1'))
-        template2 = Template(name='template2', fields=String('str2'))
-        template3 = Template(name='template3', fields=String('str3'))
-        self.cb2_call_count = 0
-        self.cb3_call_count = 0
-
-        def t1_t2_cb(fuzzer, edge, response):
-            self.assertEqual(fuzzer, self.fuzzer)
-            self.assertEqual(edge.src, template1)
-            self.assertEqual(edge.dst, template2)
-            self.cb2_call_count += 1
-
-        def t2_t3_cb(fuzzer, edge, response):
-            self.assertEqual(fuzzer, self.fuzzer)
-            self.assertEqual(edge.src, template2)
-            self.assertEqual(edge.dst, template3)
-            self.cb3_call_count += 1
-
-        model = GraphModel()
-        model.logger = self.logger
-        model.connect(template1)
-        model.connect(template1, template2, t1_t2_cb)
-        model.connect(template2, template3, t2_t3_cb)
-        self.model = model
-        self.fuzzer.set_model(model)
-        self.fuzzer.set_range()
-        self.fuzzer.start()
-        self.assertEqual(template2.num_mutations() + template3.num_mutations(), self.cb2_call_count)
-        self.assertEqual(template3.num_mutations(), self.cb3_call_count)

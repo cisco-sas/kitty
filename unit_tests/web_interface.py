@@ -20,7 +20,7 @@ Tests for the web interface (server side)
 from kitty.model import GraphModel, Template, String, UInt32
 from kitty.fuzzers import ServerFuzzer
 from kitty.interfaces import WebInterface
-from mocks.mock_target import TargetMock
+from mocks.mock_target import ServerTargetMock
 from common import BaseTestCase
 import requests
 
@@ -81,7 +81,7 @@ class WebInterfaceTest(BaseTestCase):
 
         self.fuzzer.set_interface(uut)
 
-        target = TargetMock(config, logger=self.logger)
+        target = ServerTargetMock(config, logger=self.logger)
         self.fuzzer.set_target(target)
 
         self.fuzzer.start()
