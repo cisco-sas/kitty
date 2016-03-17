@@ -252,7 +252,7 @@ class BaseFuzzer(KittyObject):
         self.logger.debug('(current_index=%d)', self.model.current_index())
         failure_detected = False
         self.target.post_test(self.model.current_index())
-        report = self.target.get_report()
+        report = self._get_report()
 
         if report.get('failed'):
             self.logger.error('BaseFuzzer._post_test - failure detected')
@@ -267,6 +267,10 @@ class BaseFuzzer(KittyObject):
         time.sleep(self.config.delay_secs)
         self.logger.debug('failure_detected=%d', failure_detected)
         return failure_detected
+
+    def _get_report(self):
+        report = self.target.get_report()
+        return report
 
     def _start_message(self):
         self.logger.info('''

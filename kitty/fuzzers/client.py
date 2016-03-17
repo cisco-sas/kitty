@@ -18,6 +18,8 @@
 from threading import Event
 from kitty.fuzzers.base import BaseFuzzer
 from kitty.core.threading_utils import LoopFuncThread
+from kitty.data.report import Report
+from binascii import hexlify
 
 
 class ClientFuzzer(BaseFuzzer):
@@ -44,7 +46,13 @@ class ClientFuzzer(BaseFuzzer):
         self._trigger_stop_evt = Event()
         self._target_control_thread.set_func_stop_event(self._trigger_stop_evt)
         self._index_in_path = 0
-        # self._do_fuzz = Event()
+        self._requested_stages = []
+        self._report = None
+
+    def _pre_test(self):
+        self._requested_stages = []
+        self._report = Report(self.get_name())
+        super(ClientFuzzer, self)._pre_test()
 
     def stop(self):
         '''
@@ -54,13 +62,6 @@ class ClientFuzzer(BaseFuzzer):
         self._target_control_thread.stop()
         self.target.signal_mutated()
         super(ClientFuzzer, self).stop()
-
-    def _pre_test(self):
-        super(ClientFuzzer, self)._pre_test()
-        # self._do_fuzz.set()
-
-    def _post_test(self):
-        super(ClientFuzzer, self)._post_test()
 
     def _do_trigger(self):
         self.logger.debug('_do_trigger called')
@@ -119,8 +120,16 @@ class ClientFuzzer(BaseFuzzer):
                     self._index_in_path = 0
         if payload:
             self._notify_mutated()
+        self._requested_stages.append((stage, payload))
         return payload
 
     def _notify_mutated(self):
-        # self._do_fuzz.clear()
         self.target.signal_mutated()
+
+    def _get_report(self):
+        base_report = super(ClientFuzzer, self)._get_report()
+        stages, payloads = zip(*self._requested_stages)
+        self._report.add('stages', stages)
+        self._report.add('payloads', [None if payload is None else hexlify(payload) for payload in payloads])
+        base_report.add('fuzzer', self._report)
+        return base_report
