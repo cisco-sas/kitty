@@ -16,15 +16,15 @@
 # along with Kitty.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import unittest
-from server_fuzzer import *
-from client_fuzzer import *
-from web_interface import *
-from model_high_level import *
-from model_low_level_container import *
-from model_low_level_fields import *
-from model_low_level_mutated import *
-from model_low_level_encoders import *
-from model_low_level_full import *
+from test_fuzzer_server import *
+from test_fuzzer_client import *
+from test_interface_web import *
+from test_model_high_level import *
+from test_model_low_level_container import *
+from test_model_low_level_fields import *
+from test_model_low_level_mutated import *
+from test_model_low_level_encoders import *
+from test_model_low_level_full import *
 
 
 if __name__ == '__main__':
