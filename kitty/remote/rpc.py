@@ -172,6 +172,12 @@ class RpcClient(object):
                 return result
         return _
 
+    def stop_remote_server(self):
+        '''
+        Stop the remote server (after responding to this message)
+        '''
+        self._meta_stop_server()
+
 
 class RpcHttpServer(HTTPServer):
 
@@ -290,6 +296,10 @@ class RpcHandler(BaseHTTPRequestHandler):
 
 class RpcServer(object):
 
+    _STATE_IDLE = 1
+    _STATE_RUN = 2
+    _STATE_SHOULD_STOP = 3
+
     def __init__(self, host, port, impl):
         '''
         :param host: listening address
@@ -300,11 +310,32 @@ class RpcServer(object):
         self.port = port
         self.server = RpcHttpServer((host, port), RpcHandler, impl, self)
         self.impl = impl
+        self.running = True
+        self.state = RpcServer._STATE_IDLE
 
     def start(self):
         '''
         Serving loop
         '''
         print('Waiting for a client to connect to url http://%s:%d/' % (self.host, self.port))
-        while True:
+        self.state = RpcServer._STATE_RUN
+        while self.state == RpcServer._STATE_RUN:
             self.server.handle_request()
+        self.server.server_close()
+        self.state = RpcServer._STATE_IDLE
+
+    def stop_server(self):
+        '''
+        Mark the server state to be stopped.
+        No further action needed when called from remote RPC client (stop_remote_server),
+        but requires another request if called directly
+        '''
+        self.state = RpcServer._STATE_SHOULD_STOP
+
+    def is_running(self):
+        '''
+        Check if the server is currently running
+
+        :return: whether the server is currently running
+        '''
+        return self.state != RpcServer._STATE_IDLE
