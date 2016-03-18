@@ -1,7 +1,7 @@
 *.pyc
 .idea/
 .ropeproject/
-unit_tests/logs/
+tests/logs/
 *.egg-info/
 docs/build/
 *kittylogs*
