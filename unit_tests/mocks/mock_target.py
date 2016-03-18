@@ -17,13 +17,14 @@
 
 from mock_config import Config
 from kitty.targets.server import ServerTarget
+from kitty.targets.client import ClientTarget
 from kitty.data.report import Report
 
 
-class TargetMock(ServerTarget):
+class ServerTargetMock(ServerTarget):
 
     def __init__(self, config=None, logger=None):
-        super(TargetMock, self).__init__('MockTarget', logger=logger)
+        super(ServerTargetMock, self).__init__('MockTarget', logger=logger)
         self.config = Config('target', config)
 
     def _restart(self):
@@ -71,3 +72,54 @@ class TargetMock(ServerTarget):
     def failure_detected(self):
         self.config.set_func('failure_detected')
         return False
+
+
+class ClientTargetMock(ClientTarget):
+
+    def __init__(self, config, response_callback, logger=None):
+        super(ClientTargetMock, self).__init__('MockTarget', logger=logger)
+        self.config = Config('target', config)
+        self.response_callback = response_callback
+
+    def _restart(self):
+        pass
+
+    def get_report(self):
+        self.config.set_func('report')
+        report = self.report
+        config_report = self.config.get_vals()
+        if config_report:
+            self.logger.debug('found matching config: %s', repr(config_report))
+            for k, v in config_report.iteritems():
+                report.add(k, v)
+        return report
+
+    def setup(self):
+        self.config.set_func('setup')
+
+    def teardown(self):
+        self.config.set_func('teardown')
+
+    def pre_test(self, test_num):
+        self.config.set_func('pre_test')
+        self.config.set_test(test_num)
+        self.test_number = test_num
+        self.report = Report(self.name)
+
+    def post_test(self, test_num):
+        self.config.set_func('post_test')
+
+    def failure_detected(self):
+        self.config.set_func('failure_detected')
+        return False
+
+    def trigger(self):
+        self.config.set_func('trigger')
+        fuzzer = self.config.get_val('fuzzer')
+        stages = self.config.get_val('stages')
+        for (stage, data) in stages:
+            resp = fuzzer.get_mutation(stage=stage, data=data)
+            self.response_callback(self.test_number, stage, resp)
+
+    def signal_mutated(self):
+        pass

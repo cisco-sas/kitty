@@ -21,7 +21,7 @@ import logging
 from kitty.model import Template, GraphModel, String, UInt32
 from kitty.fuzzers import ServerFuzzer
 from kitty.interfaces.base import EmptyInterface
-from mocks.mock_target import TargetMock
+from mocks.mock_target import ServerTargetMock
 
 test_logger = None
 
@@ -71,7 +71,7 @@ class TestServerFuzzer(unittest.TestCase):
         self.model.connect(self.t_str)
         self.fuzzer.set_model(self.model)
 
-        self.target = TargetMock({}, logger=self.logger)
+        self.target = ServerTargetMock({}, logger=self.logger)
         self.fuzzer.set_target(self.target)
 
         self.fuzzer.set_range(self.start_index, self.end_index)
@@ -141,7 +141,7 @@ class TestServerFuzzer(unittest.TestCase):
                 'send': {"raise exception": True}
             }
         }
-        send_error_target = TargetMock(config, logger=self.logger)
+        send_error_target = ServerTargetMock(config, logger=self.logger)
         self.fuzzer.set_target(send_error_target)
         self.fuzzer.start()
         info = self.fuzzer._get_session_info()
@@ -158,7 +158,7 @@ class TestServerFuzzer(unittest.TestCase):
                 }
             }
         }
-        target = TargetMock(config, logger=self.logger)
+        target = ServerTargetMock(config, logger=self.logger)
         self.fuzzer.set_target(target)
         self.fuzzer.start()
         info = self.fuzzer._get_session_info()
@@ -173,7 +173,7 @@ class TestServerFuzzer(unittest.TestCase):
             '12': {'report': {'failed': True}},
             '13': {'report': {'failed': True}}
         }
-        target = TargetMock(config, logger=self.logger)
+        target = ServerTargetMock(config, logger=self.logger)
         self.fuzzer.set_target(target)
         self.fuzzer.start()
         info = self.fuzzer._get_session_info()
@@ -183,7 +183,7 @@ class TestServerFuzzer(unittest.TestCase):
 
     def testStoringAllReportsWhenStoreAllReportsIsSetToTrue(self):
         config = {}
-        target = TargetMock(config, logger=self.logger)
+        target = ServerTargetMock(config, logger=self.logger)
         self.fuzzer.set_store_all_reports(True)
         self.fuzzer.set_target(target)
         self.fuzzer.start()

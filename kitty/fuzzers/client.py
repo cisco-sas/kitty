@@ -18,6 +18,8 @@
 from threading import Event
 from kitty.fuzzers.base import BaseFuzzer
 from kitty.core.threading_utils import LoopFuncThread
+from kitty.data.report import Report
+from binascii import hexlify
 
 
 class ClientFuzzer(BaseFuzzer):
@@ -44,7 +46,28 @@ class ClientFuzzer(BaseFuzzer):
         self._trigger_stop_evt = Event()
         self._target_control_thread.set_func_stop_event(self._trigger_stop_evt)
         self._index_in_path = 0
-        # self._do_fuzz = Event()
+        self._requested_stages = []
+        self._report = None
+        self._done_evt = Event()
+
+    def _pre_test(self):
+        self._requested_stages = []
+        self._report = Report(self.get_name())
+        super(ClientFuzzer, self)._pre_test()
+
+    def is_done(self):
+        '''
+        check if fuzzer is done fuzzing
+
+        :return: True if done
+        '''
+        return self._done_evt.is_set()
+
+    def wait_until_done(self):
+        '''
+        wait until fuzzer is done
+        '''
+        self._done_evt.wait()
 
     def stop(self):
         '''
@@ -55,17 +78,10 @@ class ClientFuzzer(BaseFuzzer):
         self.target.signal_mutated()
         super(ClientFuzzer, self).stop()
 
-    def _pre_test(self):
-        super(ClientFuzzer, self)._pre_test()
-        # self._do_fuzz.set()
-
-    def _post_test(self):
-        super(ClientFuzzer, self)._post_test()
-
     def _do_trigger(self):
         self.logger.debug('_do_trigger called')
         self._check_pause()
-        if self.model.mutate() and self._keep_running():
+        if self._keep_running() and self.model.mutate():
             self._fuzz_path = self.model.get_sequence()
             self._index_in_path = 0
             self._pre_test()
@@ -74,6 +90,7 @@ class ClientFuzzer(BaseFuzzer):
             self._post_test()
         else:
             self._end_message()
+            self._done_evt.set()
             self._trigger_stop_evt.wait()
 
     def _start(self):
@@ -119,8 +136,16 @@ class ClientFuzzer(BaseFuzzer):
                     self._index_in_path = 0
         if payload:
             self._notify_mutated()
+        self._requested_stages.append((stage, payload))
         return payload
 
     def _notify_mutated(self):
-        # self._do_fuzz.clear()
         self.target.signal_mutated()
+
+    def _get_report(self):
+        base_report = super(ClientFuzzer, self)._get_report()
+        stages, payloads = zip(*self._requested_stages)
+        self._report.add('stages', stages)
+        self._report.add('payloads', [None if payload is None else hexlify(payload) for payload in payloads])
+        base_report.add('fuzzer', self._report)
+        return base_report
