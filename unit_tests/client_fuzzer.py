@@ -333,3 +333,23 @@ class TestClientFuzzer(unittest.TestCase):
         self.assertIsNone(self.mutations[0][0][1])
         self.assertEquals(self.mutations[0][1][0], self._default_stage)
         self.assertIsNotNone(self.mutations[0][1][1])
+
+    def testGetMutationWithWildcard(self):
+        self.fuzzer.set_range(0, 1)
+        config = {
+            'always': {
+                'trigger': {
+                    'fuzzer': self.fuzzer,
+                    'stages': [
+                        (ClientFuzzer.STAGE_ANY, {})
+                    ]
+                }
+            }
+        }
+        target = ClientTargetMock(config, self.default_callback, logger=self.logger)
+        self.fuzzer.set_target(target)
+        self.fuzzer.start()
+        self.fuzzer.wait_until_done()
+        self.assertIn(0, self.mutations)
+        self.assertEquals(self.mutations[0][0][0], ClientFuzzer.STAGE_ANY)
+        self.assertIsNotNone(self.mutations[0][0][1])
