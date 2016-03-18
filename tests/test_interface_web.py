@@ -23,6 +23,7 @@ from kitty.interfaces import WebInterface
 from mocks.mock_target import ServerTargetMock
 from common import BaseTestCase
 import requests
+import os
 
 
 class WebInterfaceTest(BaseTestCase):
@@ -150,3 +151,49 @@ class WebInterfaceTest(BaseTestCase):
         .. todo:: pause/resume api tests
         '''
         pass
+
+    def get_static_content(self, filename):
+        (dir_path, _) = os.path.split(__file__)
+        index_path = os.path.join(dir_path, '..', 'kitty', 'interfaces', 'web', 'static', filename)
+        data = None
+        with open(index_path, 'rb') as f:
+            data = f.read()
+        return data
+
+    def testGetIndexHtml(self):
+        url = self.url + '/index.html'
+        uut = WebInterface(host=self.host, port=self.port)
+        self._runFuzzerWithReportList(uut, [])
+        resp = requests.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers['content-type'], 'text/html')
+        index_content = self.get_static_content('index.html')
+        self.assertEqual(resp.text, index_content)
+
+    def testReturnIndexForRoot(self):
+        root_url = self.url + '/'
+        index_url = self.url + '/index.html'
+        uut = WebInterface(host=self.host, port=self.port)
+        self._runFuzzerWithReportList(uut, [])
+        root_resp = requests.get(root_url)
+        index_url = requests.get(index_url)
+        self.assertEqual(root_resp.status_code, 200)
+        self.assertEqual(root_resp.headers['content-type'], 'text/html')
+        self.assertEqual(root_resp.text, index_url.text)
+
+    def testGetOtherFilesReturns401(self):
+        url = self.url + '/../../../../../../../etc/passwd'
+        uut = WebInterface(host=self.host, port=self.port)
+        self._runFuzzerWithReportList(uut, [])
+        resp = requests.get(url)
+        self.assertEqual(resp.status_code, 401)
+
+    def testPost(self):
+        url = self.url + '/index.html'
+        uut = WebInterface(host=self.host, port=self.port)
+        self._runFuzzerWithReportList(uut, [])
+        resp = requests.post(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers['content-type'], 'text/html')
+        index_content = self.get_static_content('index.html')
+        self.assertEqual(resp.text, index_content)
