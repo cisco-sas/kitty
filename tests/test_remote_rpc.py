@@ -107,6 +107,37 @@ class RpcServerTestCase(unittest.TestCase):
             ('func_with_args', {u'arg1': 1111, u'arg2': 2222}),
         ])
 
+    def testCallWithString(self):
+        self.start_server()
+        retval = self.rpc_client.func_with_args(arg1='hello', arg2='world')
+        self.assertEqual(retval, 1)
+        self.stop_server()
+        self.assertEqual(self.called_functions, [('func_with_args', {u'arg1': 'hello', u'arg2': 'world'})])
+
+    def testCallWithDict(self):
+        arg = {'k1': 'hello', 'k2': 1}
+        self.start_server()
+        retval = self.rpc_client.func_with_args(arg=arg)
+        self.assertEqual(retval, 1)
+        self.stop_server()
+        self.assertEqual(self.called_functions, [('func_with_args', {u'arg': arg})])
+
+    def testCallWithArr(self):
+        arg = ['a string', 123]
+        self.start_server()
+        retval = self.rpc_client.func_with_args(arg=arg)
+        self.assertEqual(retval, 1)
+        self.stop_server()
+        self.assertEqual(self.called_functions, [('func_with_args', {u'arg': arg})])
+
+    def testCallWithNone(self):
+        arg = None
+        self.start_server()
+        retval = self.rpc_client.func_with_args(arg=arg)
+        self.assertEqual(retval, 1)
+        self.stop_server()
+        self.assertEqual(self.called_functions, [('func_with_args', {u'arg': arg})])
+
     def testCallNoRetVal(self):
         self.start_server()
         retval = self.rpc_client.func_with_no_retval()
