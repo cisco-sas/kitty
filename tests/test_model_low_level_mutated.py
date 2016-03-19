@@ -17,56 +17,81 @@ class BitFlipTests(BaseTestCase):
     def setUp(self):
         super(BitFlipTests, self).setUp(BitFlip)
 
+    def get_field(self, value=b'\x12\x34', num_bits=3):
+        return BitFlip(value=value, num_bits=num_bits)
+
     def _testBase(self, value, num_bits_to_flip, expected_mutations):
         len_in_bits = len(value) * 8
-        uut = BitFlip(value=value, num_bits=num_bits_to_flip)
+        uut = self.get_field(value=value, num_bits=num_bits_to_flip)
         self.assertEqual(uut.num_mutations(), len_in_bits - num_bits_to_flip + 1)
         mutations = map(lambda x: x.tobytes(), self.get_all_mutations(uut))
         self.assertEqual(set(mutations), set(expected_mutations))
 
     def testFlipSingleBitOnSingleByte(self):
         expected_mutations = map(lambda i: chr(1 << i), range(8))
-        self._testBase('\x00', 1, expected_mutations)
+        self._testBase(b'\x00', 1, expected_mutations)
 
     def testFlipTwoBitsOnSingleByte(self):
         expected_mutations = map(lambda i: chr(3 << i), range(7))
-        self._testBase('\x00', 2, expected_mutations)
+        self._testBase(b'\x00', 2, expected_mutations)
 
     def testFlipAllBitsOnSingleByte(self):
-        expected_mutations = ['\xff']
-        self._testBase('\x00', 8, expected_mutations)
+        expected_mutations = [b'\xff']
+        self._testBase(b'\x00', 8, expected_mutations)
 
     def testFlipSingleBitOnTwoBytes(self):
         expected_mutations = map(lambda i: pack('>H', 1 << i), range(16))
-        self._testBase('\x00\x00', 1, expected_mutations)
+        self._testBase(b'\x00\x00', 1, expected_mutations)
 
     def testFlipTwoBitsOnTwoBytes(self):
         expected_mutations = map(lambda i: pack('>H', 3 << i), range(15))
-        self._testBase('\x00\x00', 2, expected_mutations)
+        self._testBase(b'\x00\x00', 2, expected_mutations)
 
     def testFlipTenBitsOnTwoBytes(self):
         expected_mutations = map(lambda i: pack('>H', 0x3ff << i), range(7))
-        self._testBase('\x00\x00', 10, expected_mutations)
+        self._testBase(b'\x00\x00', 10, expected_mutations)
 
     def testFlipAllBitsOnTwoBytes(self):
         expected_mutations = map(lambda i: pack('>H', 0xffff << i), range(1))
-        self._testBase('\x00\x00', 16, expected_mutations)
+        self._testBase(b'\x00\x00', 16, expected_mutations)
 
     def testFuzzableIsFalse(self):
-        uut = BitFlip('\x00\x00',  num_bits=3, fuzzable=False)
+        uut = BitFlip(b'\x00\x00',  num_bits=3, fuzzable=False)
         self.assertEqual(uut.num_mutations(), 0)
         self.assertEqual(self.get_all_mutations(uut), [])
 
     def testExceptionIfNumOfBitsIsBiggerThanValue(self):
         with self.assertRaises(KittyException):
-            value = '\x00'
+            value = b'\x00'
             max_len = len(value) * 8
             BitFlip(value=value, num_bits=max_len + 1)
 
     def testExceptionIfNumOfBitsIsNegative(self):
         with self.assertRaises(KittyException):
-            value = '\x00'
+            value = b'\x00'
             BitFlip(value=value, num_bits=-1)
+
+    def testHashStaysTheSameForTheField(self):
+        uut = self.get_field()
+        hash_default = uut.hash()
+        uut.mutate()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.render()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.mutate()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.reset()
+        self.assertEqual(uut.hash(), hash_default)
+
+    def testHashTheSameForSameFields(self):
+        uut1 = self.get_field()
+        uut2 = self.get_field()
+        self.assertEqual(uut1.hash(), uut2.hash())
+
+    def testHashDifferentWithDifferentValues(self):
+        uut1 = self.get_field(value=b'\x12\x34')
+        uut2 = self.get_field(value=b'\x12\x33')
+        self.assertNotEqual(uut1.hash(), uut2.hash())
 
 
 class BitFlipsTests(BaseTestCase):
@@ -88,7 +113,7 @@ class BitFlipsTests(BaseTestCase):
 
     def _testBase(self, num_bytes, itr, uut=None):
         if uut is None:
-            uut = BitFlips('\x00' * num_bytes, itr)
+            uut = BitFlips(b'\x00' * num_bytes, itr)
         expected_mutations = self._generate_mutations(num_bytes, itr)
         mutations = map(lambda x: x.tobytes(), self.get_all_mutations(uut))
         self.assertGreaterEqual(len(mutations), len(expected_mutations))
@@ -96,7 +121,7 @@ class BitFlipsTests(BaseTestCase):
             self.assertIn(em, mutations)
 
     def testSingleByteDefaultRangeIs1to5(self):
-        uut = BitFlips('\x00')
+        uut = BitFlips(b'\x00')
         expected_mutations = self._generate_mutations(1, range(1, 5))
         mutations = map(lambda x: x.tobytes(), self.get_all_mutations(uut))
         self.assertGreaterEqual(len(mutations), len(expected_mutations))
@@ -104,7 +129,7 @@ class BitFlipsTests(BaseTestCase):
             self.assertIn(em, mutations)
 
     def testTwoBytesDefaultRangeIs1to5(self):
-        uut = BitFlips('\x00\x00')
+        uut = BitFlips(b'\x00\x00')
         expected_mutations = self._generate_mutations(2, range(1, 5))
         mutations = map(lambda x: x.tobytes(), self.get_all_mutations(uut))
         self.assertGreaterEqual(len(mutations), len(expected_mutations))
@@ -131,19 +156,44 @@ class BitFlipsTests(BaseTestCase):
 
     def testExceptionIfRangeOverflowsSingleByte(self):
         with self.assertRaises(KittyException):
-            BitFlips('\x00', bits_range=[9])
+            BitFlips(b'\x00', bits_range=[9])
 
     def testExceptionIfUnorderedRangeOverflowsSingleByte(self):
         with self.assertRaises(KittyException):
-            BitFlips('\x00', bits_range=[2, 9, 1])
+            BitFlips(b'\x00', bits_range=[2, 9, 1])
 
     def testExceptionIfRangeOverflowsMultipleBytes(self):
         with self.assertRaises(KittyException):
-            BitFlips('\x00\x00\x00\x00', bits_range=[33])
+            BitFlips(b'\x00\x00\x00\x00', bits_range=[33])
 
     def testExceptionIfUnorderedRangeOverflowsMultipleBytes(self):
         with self.assertRaises(KittyException):
-            BitFlips('\x00', bits_range=[12, 33, 7])
+            BitFlips(b'\x00', bits_range=[12, 33, 7])
+
+    def get_field(self, value='\x00\x00'):
+        return BitFlips(value=value)
+
+    def testHashStaysTheSameForTheField(self):
+        uut = self.get_field()
+        hash_default = uut.hash()
+        uut.mutate()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.render()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.mutate()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.reset()
+        self.assertEqual(uut.hash(), hash_default)
+
+    def testHashTheSameForSameFields(self):
+        uut1 = self.get_field()
+        uut2 = self.get_field()
+        self.assertEqual(uut1.hash(), uut2.hash())
+
+    def testHashDifferentWithDifferentValues(self):
+        uut1 = self.get_field(value=b'\x12\x34')
+        uut2 = self.get_field(value=b'\x12\x33')
+        self.assertNotEqual(uut1.hash(), uut2.hash())
 
 
 class ByteFlipTests(BaseTestCase):
@@ -187,9 +237,34 @@ class ByteFlipTests(BaseTestCase):
             ByteFlip(value=value, num_bytes=-1)
 
     def testFuzzableIsFalse(self):
-        uut = ByteFlip('\x00\x00\x00\x00',  num_bytes=2, fuzzable=False)
+        uut = ByteFlip(b'\x00\x00\x00\x00',  num_bytes=2, fuzzable=False)
         self.assertEqual(uut.num_mutations(), 0)
         self.assertEqual(self.get_all_mutations(uut), [])
+
+    def get_field(self, value='\x00\x00\x00\x00'):
+        return ByteFlip(value=value, num_bytes=1)
+
+    def testHashStaysTheSameForTheField(self):
+        uut = self.get_field()
+        hash_default = uut.hash()
+        uut.mutate()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.render()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.mutate()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.reset()
+        self.assertEqual(uut.hash(), hash_default)
+
+    def testHashTheSameForSameFields(self):
+        uut1 = self.get_field()
+        uut2 = self.get_field()
+        self.assertEqual(uut1.hash(), uut2.hash())
+
+    def testHashDifferentWithDifferentValues(self):
+        uut1 = self.get_field(value=b'\x12\x34\x56\x78')
+        uut2 = self.get_field(value=b'\x12\x34\x56\x77')
+        self.assertNotEqual(uut1.hash(), uut2.hash())
 
 
 class ByteFlipsTests(BaseTestCase):
@@ -210,7 +285,7 @@ class ByteFlipsTests(BaseTestCase):
 
     def _testBase(self, num_bytes, itr, uut=None):
         if uut is None:
-            uut = ByteFlips('\x00' * num_bytes, itr)
+            uut = ByteFlips(b'\x00' * num_bytes, itr)
         expected_mutations = self._generate_mutations(num_bytes, itr)
         mutations = map(lambda x: x.tobytes(), self.get_all_mutations(uut))
         self.assertGreaterEqual(len(mutations), len(expected_mutations))
@@ -218,7 +293,7 @@ class ByteFlipsTests(BaseTestCase):
             self.assertIn(em, mutations)
 
     def testFourByteDefaultRangeIs124(self):
-        uut = ByteFlips('\x00\x00\x00\x00')
+        uut = ByteFlips(b'\x00\x00\x00\x00')
         expected_mutations = self._generate_mutations(4, [1, 2, 4])
         mutations = map(lambda x: x.tobytes(), self.get_all_mutations(uut))
         self.assertGreaterEqual(len(mutations), len(expected_mutations))
@@ -226,7 +301,7 @@ class ByteFlipsTests(BaseTestCase):
             self.assertIn(em, mutations)
 
     def testTenBytesDefaultRangeIs124(self):
-        uut = ByteFlips('\x00' * 10)
+        uut = ByteFlips(b'\x00' * 10)
         expected_mutations = self._generate_mutations(10, [1, 2, 4])
         mutations = map(lambda x: x.tobytes(), self.get_all_mutations(uut))
         self.assertGreaterEqual(len(mutations), len(expected_mutations))
@@ -247,19 +322,44 @@ class ByteFlipsTests(BaseTestCase):
 
     def testExceptionIfRangeOverflowsSingleByte(self):
         with self.assertRaises(KittyException):
-            ByteFlips('\x00', bytes_range=[2])
+            ByteFlips(b'\x00', bytes_range=[2])
 
     def testExceptionIfUnorderedRangeOverflowsSingleByte(self):
         with self.assertRaises(KittyException):
-            ByteFlips('\x00', bytes_range=[2, 1])
+            ByteFlips(b'\x00', bytes_range=[2, 1])
 
     def testExceptionIfRangeOverflowsMultipleBytes(self):
         with self.assertRaises(KittyException):
-            ByteFlips('\x00' * 10, bytes_range=[11])
+            ByteFlips(b'\x00' * 10, bytes_range=[11])
 
     def testExceptionIfUnorderedRangeOverflowsMultipleBytes(self):
         with self.assertRaises(KittyException):
-            ByteFlips('\x00' * 10, bytes_range=[3, 11, 7])
+            ByteFlips(b'\x00' * 10, bytes_range=[3, 11, 7])
+
+    def get_field(self, value='\x00\x00\x00\x00'):
+        return ByteFlips(value=value, bytes_range=[1, 3])
+
+    def testHashStaysTheSameForTheField(self):
+        uut = self.get_field()
+        hash_default = uut.hash()
+        uut.mutate()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.render()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.mutate()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.reset()
+        self.assertEqual(uut.hash(), hash_default)
+
+    def testHashTheSameForSameFields(self):
+        uut1 = self.get_field()
+        uut2 = self.get_field()
+        self.assertEqual(uut1.hash(), uut2.hash())
+
+    def testHashDifferentWithDifferentValues(self):
+        uut1 = self.get_field(value=b'\x12\x34\x56\x78')
+        uut2 = self.get_field(value=b'\x12\x34\x56\x77')
+        self.assertNotEqual(uut1.hash(), uut2.hash())
 
 
 class BlockOperationTests(BaseTestCase):
@@ -336,6 +436,31 @@ class BlockOperationTests(BaseTestCase):
         with self.assertRaises(KittyException):
             self._get_field(50, -1)
 
+    @metaTest
+    def testHashStaysTheSameForTheField(self):
+        uut = self._get_field(100, 5)
+        hash_default = uut.hash()
+        uut.mutate()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.render()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.mutate()
+        self.assertEqual(uut.hash(), hash_default)
+        uut.reset()
+        self.assertEqual(uut.hash(), hash_default)
+
+    @metaTest
+    def testHashTheSameForSameFields(self):
+        uut1 = self._get_field(100, 5)
+        uut2 = self._get_field(100, 5)
+        self.assertEqual(uut1.hash(), uut2.hash())
+
+    @metaTest
+    def testHashDifferentWithDifferentValues(self):
+        uut1 = self._get_field(100, 5)
+        uut2 = self._get_field(200, 5)
+        self.assertNotEqual(uut1.hash(), uut2.hash())
+
 
 class BlockRemoveTests(BlockOperationTests):
 
@@ -394,4 +519,4 @@ class BlockDuplicateTests(BlockOperationTests):
 
     def testExceptionIfNumDupsNotPositive(self):
         with self.assertRaises(KittyException):
-            BlockDuplicate('\x00\x00\x00', 2, num_dups=-1)
+            BlockDuplicate(b'\x00\x00\x00', 2, num_dups=-1)
