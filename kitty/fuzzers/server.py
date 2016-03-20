@@ -36,9 +36,6 @@ class ServerFuzzer(BaseFuzzer):
         super(ServerFuzzer, self).__init__(name, logger, option_line)
 
     def _start(self):
-        self._start_message()
-        self.target.setup()
-
         self.logger.info('should keep running? %s' % self._keep_running())
         while self._keep_running() and self.model.mutate():
             sequence = self.model.get_sequence()
@@ -49,6 +46,15 @@ class ServerFuzzer(BaseFuzzer):
                 self.logger.error(traceback.format_exc())
                 break
         self._end_message()
+
+    def _test_environment(self):
+        sequence = self.model.get_sequence()
+        try:
+            if self._run_sequence(sequence):
+                raise Exception('Environment test failed')
+        except:
+            self.logger.info('Environment test failed')
+            raise
 
     def _run_sequence(self, sequence):
         '''
@@ -66,7 +72,7 @@ class ServerFuzzer(BaseFuzzer):
             node = edge.dst
             node.set_session_data(session_data)
             resp = self._transmit(node)
-        self._post_test()
+        return self._post_test()
 
     def _transmit(self, node):
         '''
