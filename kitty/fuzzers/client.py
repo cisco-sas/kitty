@@ -150,7 +150,11 @@ class ClientFuzzer(BaseFuzzer):
 
     def _get_report(self):
         base_report = super(ClientFuzzer, self)._get_report()
-        stages, payloads = zip(*self._requested_stages)
+        if len(self._requested_stages):
+            stages, payloads = zip(*self._requested_stages)
+        else:
+            stages = []
+            payloads = []
         self._report.add('stages', stages)
         self._report.add('payloads', [None if payload is None else hexlify(payload) for payload in payloads])
         base_report.add('fuzzer', self._report)
