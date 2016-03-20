@@ -49,6 +49,7 @@ class ClientFuzzer(BaseFuzzer):
         self._requested_stages = []
         self._report = None
         self._done_evt = Event()
+        self._started = False
 
     def _pre_test(self):
         self._requested_stages = []
@@ -92,6 +93,11 @@ class ClientFuzzer(BaseFuzzer):
             self._end_message()
             self._done_evt.set()
             self._trigger_stop_evt.wait()
+
+    def start(self):
+        if not self._started:
+            self._started = True
+            super(ClientFuzzer, self).start()
 
     def _start(self):
         self._start_message()
@@ -144,7 +150,11 @@ class ClientFuzzer(BaseFuzzer):
 
     def _get_report(self):
         base_report = super(ClientFuzzer, self)._get_report()
-        stages, payloads = zip(*self._requested_stages)
+        if len(self._requested_stages):
+            stages, payloads = zip(*self._requested_stages)
+        else:
+            stages = []
+            payloads = []
         self._report.add('stages', stages)
         self._report.add('payloads', [None if payload is None else hexlify(payload) for payload in payloads])
         base_report.add('fuzzer', self._report)
