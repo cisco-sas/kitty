@@ -100,9 +100,13 @@ class ClientFuzzer(BaseFuzzer):
             super(ClientFuzzer, self).start()
 
     def _start(self):
-        self._start_message()
-        self.target.setup()
         self._target_control_thread.start()
+
+    def _test_environment(self):
+        '''
+        .. todo:: can we do that here somehow?
+        '''
+        pass
 
     def _should_fuzz_node(self, fuzz_node, stage):
         '''

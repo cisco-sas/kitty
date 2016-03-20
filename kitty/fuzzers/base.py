@@ -75,6 +75,8 @@ class BaseFuzzer(KittyObject):
         self._fuzz_path = None
         self._fuzz_node = None
         self._last_payload = None
+        self._do_environment_test = True
+        self._in_environment_test = True
         self._handle_options(option_line)
 
     def _handle_options(self, option_line):
@@ -90,14 +92,15 @@ class BaseFuzzer(KittyObject):
             These are the options to the kitty fuzzer object, not the options to the runner.
 
             Usage:
-                fuzzer [--session=<session-file>] [--start=<start-index>] [--end=<end-index>] [--delay=<delay>]
+                fuzzer [--session=<session-file>] [--start=<start-index>] [--end=<end-index>] [--delay=<delay>] [--no-env-test]
 
             Options:
                 -d --delay <delay>              delay between tests in secodes, float number
                 -e --end <end-index>            fuzzing end index, ignored if session-file loaded
                 -f --session <session-file>     session file name to use
                 -s --start <start-index>        fuzzing start index, ignored if session-file loaded
-                '''
+                -n --no-env-test                don't perform environment test before the fuzzing session
+            '''
             options = docopt.docopt(usage, shlex.split(option_line))
             s = options['--start']
             s = 0 if s is None else int(s)
@@ -111,6 +114,9 @@ class BaseFuzzer(KittyObject):
             delay = options['--delay']
             if delay is not None:
                 self.set_delay_between_tests(float(delay))
+            skip_env_test = options['--no-evn-test']
+            if skip_env_test:
+                self._do_environment_test = False
 
     def set_delay_duration(self, delay_duration):
         '''
@@ -229,12 +235,30 @@ class BaseFuzzer(KittyObject):
 
         self.session_info.start_time = time.time()
         try:
+            self._start_message()
+            self.target.setup()
+            start_index = self.session_info.current_index
+            if self._do_environment_test:
+                self.logger.info('Performing environment test')
+                self._test_environment()
+            else:
+                self.logger.info('Skipping environment test')
+            self._in_environment_test = False
+            self.session_info.current_index = start_index
             self.model.skip(self.session_info.current_index)
             self._start()
+            return True
         except Exception as e:
             self.logger.error('Error occurred while fuzzing: %s', repr(e))
             self.logger.error(traceback.format_exc())
-            # raise
+            return False
+
+    def _test_environment(self):
+        '''
+        Test that the environment is ready to run.
+        Should be implemented by subclass
+        '''
+        raise NotImplementedError('should be implemented by subclass')
 
     def _start(self):
         self.not_implemented('_start')
@@ -249,13 +273,16 @@ class BaseFuzzer(KittyObject):
         self._update_test_info()
 
     def _post_test(self):
-        self.logger.debug('(current_index=%d)', self.model.current_index())
+        '''
+        :return: True if test failed
+        '''
         failure_detected = False
         self.target.post_test(self.model.current_index())
         report = self._get_report()
-
-        if report.get('failed'):
-            self.logger.error('BaseFuzzer._post_test - failure detected')
+        if self._in_environment_test:
+            return report.is_failed()
+        if report.is_failed():
+            self.logger.error('!! Failure detected !!')
             self._store_report(report)
             self.user_interface.failure_detected()
             failure_detected = True
