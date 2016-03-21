@@ -114,7 +114,7 @@ class BaseFuzzer(KittyObject):
             delay = options['--delay']
             if delay is not None:
                 self.set_delay_between_tests(float(delay))
-            skip_env_test = options['--no-evn-test']
+            skip_env_test = options['--no-env-test']
             if skip_env_test:
                 self._do_environment_test = False
 
