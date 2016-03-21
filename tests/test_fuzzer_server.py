@@ -17,6 +17,8 @@
 
 import unittest
 import logging
+import time
+import os
 
 from kitty.model import Template, GraphModel, String, UInt32
 from kitty.fuzzers import ServerFuzzer
@@ -55,25 +57,28 @@ class TestServerFuzzer(unittest.TestCase):
     def tearDown(self):
         if self.fuzzer:
             self.fuzzer.stop()
+        if self.session_file_name:
+            if os.path.exists(self.session_file_name):
+                os.remove(self.session_file_name)
 
     def prepare(self):
         self.start_index = 10
         self.end_index = 20
         self.delay_duration = 0
-        self.fuzzer = ServerFuzzer(name="TestServerFuzzer", logger=self.logger)
+        self.session_file_name = None
 
         self.interface = EmptyInterface()
-        self.fuzzer.set_interface(self.interface)
 
         self.model = GraphModel()
         self.model.logger = self.logger
-
         self.model.connect(self.t_str)
-        self.fuzzer.set_model(self.model)
 
         self.target = ServerTargetMock({}, logger=self.logger)
-        self.fuzzer.set_target(self.target)
 
+        self.fuzzer = ServerFuzzer(name="TestServerFuzzer", logger=self.logger)
+        self.fuzzer.set_interface(self.interface)
+        self.fuzzer.set_model(self.model)
+        self.fuzzer.set_target(self.target)
         self.fuzzer.set_range(self.start_index, self.end_index)
         self.fuzzer.set_delay_between_tests(self.delay_duration)
 
@@ -92,6 +97,63 @@ class TestServerFuzzer(unittest.TestCase):
         self.fuzzer.set_interface(None)
         self.assertRaises(AssertionError, self.fuzzer.start)
         self.fuzzer = None
+
+    def testCommandLineArgumentsStart(self):
+        self.start_index = 10
+        cmd_line = '--start=%d' % self.start_index
+        self.fuzzer = ServerFuzzer(name="TestServerFuzzer", logger=self.logger, option_line=cmd_line)
+        self.fuzzer.set_interface(self.interface)
+        self.fuzzer.set_model(self.model)
+        self.fuzzer.set_target(self.target)
+        self.fuzzer.set_delay_between_tests(self.delay_duration)
+        self.fuzzer.start()
+
+        info = self.fuzzer._get_session_info()
+        self.assertEqual(info.current_index, self.model.last_index())
+        self.assertEqual(info.start_index, self.start_index)
+
+    def testCommandLineArgumentsEnd(self):
+        self.end_index = 10
+        cmd_line = '--end=%d' % self.end_index
+        self.fuzzer = ServerFuzzer(name="TestServerFuzzer", logger=self.logger, option_line=cmd_line)
+        self.fuzzer.set_interface(self.interface)
+        self.fuzzer.set_model(self.model)
+        self.fuzzer.set_target(self.target)
+        self.fuzzer.set_delay_between_tests(self.delay_duration)
+        self.fuzzer.start()
+
+        info = self.fuzzer._get_session_info()
+        self.assertEqual(info.start_index, 0)
+        self.assertEqual(info.end_index, self.end_index)
+        self.assertEqual(info.current_index, self.end_index)
+
+    def testCommandLineArgumentDelay(self):
+        self.delay_duration = 0.1
+        cmd_line = '--delay=%s' % self.delay_duration
+        self.fuzzer = ServerFuzzer(name="TestServerFuzzer", logger=self.logger, option_line=cmd_line)
+        self.fuzzer.set_interface(self.interface)
+        self.fuzzer.set_model(self.model)
+        self.fuzzer.set_target(self.target)
+        self.fuzzer.set_range(self.start_index, self.end_index)
+        self.assertEqual(self.delay_duration, self.fuzzer.config.delay_secs)
+        start_time = time.time()
+        self.fuzzer.start()
+        end_time = time.time()
+        expected_runtime = self.delay_duration * (self.end_index - self.start_index + 1)
+        actual_runtime = end_time - start_time
+        self.assertAlmostEqual(int(actual_runtime), int(expected_runtime))
+
+    def testCommandLineArgumentSession(self):
+        self.session_file_name = 'mysession.sqlite'
+        cmd_line = '--session=%s' % self.session_file_name
+        self.fuzzer = ServerFuzzer(name="TestServerFuzzer", logger=self.logger, option_line=cmd_line)
+        self.fuzzer.set_interface(self.interface)
+        self.fuzzer.set_model(self.model)
+        self.fuzzer.set_target(self.target)
+        self.fuzzer.set_delay_between_tests(self.delay_duration)
+        self.fuzzer.set_range(self.start_index, self.end_index)
+        self.assertEqual(self.session_file_name, self.fuzzer.config.session_file_name)
+        self.fuzzer.start()
 
     def testVanilla(self):
         self.fuzzer.start()
