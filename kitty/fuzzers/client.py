@@ -122,6 +122,13 @@ class ClientFuzzer(BaseFuzzer):
         else:
             return False
 
+    def _update_path_index(self, stage):
+        last_index_in_path = len(self._fuzz_path) - 1
+        if self._index_in_path < last_index_in_path:
+            node = self._fuzz_path[self._index_in_path].dst
+            if node.name.lower() == stage.lower():
+                self._index_in_path += 1
+
     def get_mutation(self, stage, data):
         '''
         Get the next mutation, if in the correct stage
@@ -141,9 +148,7 @@ class ClientFuzzer(BaseFuzzer):
                 payload = fuzz_node.render().tobytes()
                 self._last_payload = payload
             else:
-                self._index_in_path += 1
-                if self._index_in_path >= len(self._fuzz_path):
-                    self._index_in_path = 0
+                self._update_path_index(stage)
         if payload:
             self._notify_mutated()
         self._requested_stages.append((stage, payload))
