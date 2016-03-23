@@ -19,7 +19,7 @@
 Tools for testing and manipulating kitty templates.
 
 Usage:
-    kitty-tool generate [--verbose] [-s SKIP] [-c COUNT] [-o OUTDIR] <FILE> <TEMPLATE>
+    kitty-tool generate [--verbose] [-s SKIP] [-c COUNT] [-o OUTDIR] [-f FILENAME_TEMPLATE] <FILE> <TEMPLATE>
     kitty-tool list <FILE>
     kitty-tool --version
 
@@ -29,14 +29,22 @@ Commands:
     list        list templates in a file
 
 Options:
-    <FILE>            python file that contains the template
-    <TEMPLATE>        template name to generate files from
-    --out -o OUTDIR   output directory for the generated mutations [default: out]
-    --skip -s SKIP    how many mutations to skip [default: 0]
-    --count -c COUNT  end index to generate
-    --verbose -v      verbose output
-    --version         print version and exit
-    --help -h         print this help and exit
+    <FILE>                  python file that contains the template
+    <TEMPLATE>              template name to generate files from
+    --out -o OUTDIR         output directory for the generated mutations [default: out]
+    --skip -s SKIP          how many mutations to skip [default: 0]
+    --count -c COUNT        end index to generate
+    --verbose -v            verbose output
+    --filename-template -f TEMPLATE  name template of generated files [default: %(template)s.%(index)s.bin]
+    --version               print version and exit
+    --help -h               print this help and exit
+
+File name templates:
+    You can control the name of an output file by giving a filename template,
+    it follows python's dictionary format string.
+    The available keywords are:
+        template - the template name
+        index - the template index
 '''
 import os
 import sys
@@ -106,7 +114,7 @@ class Handler(object):
 
 class FileGeneratorHandler(Handler):
 
-    def __init__(self, outdir, skip, count, template_name, logger):
+    def __init__(self, outdir, skip, count, template_name, filename_template, logger):
         super(FileGeneratorHandler, self).__init__(logger)
         self.outdir = outdir or 'out'
         if skip is not None:
@@ -123,6 +131,14 @@ class FileGeneratorHandler(Handler):
             except:
                 raise Exception('count should be a number')
         self.template_name = template_name
+        self.filename_template = filename_template
+        try:
+            self.filename_template % {
+                'template': 'hello',
+                'index': 1
+            }
+        except:
+            raise Exception('invalid filename template: %s' % (self.filename_template))
 
     def start(self):
         if os.path.exists(self.outdir):
@@ -137,10 +153,10 @@ class FileGeneratorHandler(Handler):
             self.end_index = template.num_mutations() if not self.count else (self.skip + self.count - 1)
             self.logger.info('Mutation range: %s-%s' % (self.skip, self.end_index))
             while template.mutate():
-                template_filename = '%s.%s.bin' % (template_name, template._current_index)
+                template_filename = self.filename_template % {'template': template_name, 'index': template._current_index}
                 with open(os.path.join(self.outdir, template_filename), 'wb') as f:
                     f.write(template.render().tobytes())
-                metadata_filename = '%s.%s.meta' % (template_name, template._current_index)
+                metadata_filename = template_filename + '.metadata'
                 with open(os.path.join(self.outdir, metadata_filename), 'wb') as f:
                     f.write(dumps(template.get_info(), indent=4, sort_keys=True))
                 if self.count:
@@ -156,6 +172,7 @@ class ListHandler(Handler):
 
 def _main():
     opts = docopt.docopt(__doc__, version=get_distribution('kittyfuzzer').version)
+    print(opts)
     logger = get_logger(opts)
     try:
         if opts['generate']:
@@ -166,6 +183,7 @@ def _main():
                     opts['--skip'],
                     opts['--count'],
                     opts['<TEMPLATE>'],
+                    opts['--filename-template'],
                     logger
                 ),
                 logger
