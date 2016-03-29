@@ -43,12 +43,12 @@ var Hexdump = {
       if( i < chunks.length ) {
         dumped += Hexdump.dump_chunk( chunks[i] );
       } else {
-        dumped += ".. .. .. .. ";
+        dumped += "            ";
       }
       dumped += "";
     }
     
-    dumped += "    " + block.replace( /[\x00-\x1F]/g, "." );
+    dumped += "    " + block.replace( /[\x00-\x1F\x80-\xff]/g, "." );
     
     return dumped;
   },
