@@ -224,7 +224,8 @@ class BaseField(KittyObject):
         info['path'] = '/'.join(self._get_enclosing_path())
         info['current mutation index'] = '%s/%s' % (self._current_index, self._last_index())
         info['value/raw'] = repr(self._current_value)
-        info['value/rendered(hex)'] = self._current_rendered.tobytes().encode('hex')
+        info['value/rendered/hex'] = self._current_rendered.tobytes().encode('hex')
+        info['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64')
         info['value/length'] = len(self._current_rendered.tobytes())
         info['value/default'] = repr(self._default_value)
         return info

@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="static/style.css">
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon"> 
     <title>Kitty Fuzzer</title>
 </head>
 <body>
@@ -13,57 +14,99 @@
     <div id="body">
         <script src="js/jquery-1.11.1.js"></script>
         <script src="js/bootstrap.min.js"></script>
-        <div class="page-header">
-            <h1>Kitty Fuzzer <div id="fuzzer_version" style="display:inline"></div></h1>
-        </div>
+        <script src="js/hexdump.js"></script>
+        <!--
 
-        <h3  align="center" id="error_message"></h3>
-        
+        +======================+===============+======================+
+        | Session info         | Stages        |       Reports        |
+        +                      |               +=======+======+=======+
+        |                      |               |  rep# | time | type  |
+        |========+=============+               +=======+======+=======+
+        |  Pause |Progress     |               |       |      |       |
+        +========+=============+===============+       |      |       |
+        |   Tree graph         | Payload       |       |      |       |
+        |                      |               +=======+======+=======+
+        |                      |               |  Target info         |
+        |                      |               |                      |
+        |                      |               |                      |
+        +======================+===============+======================+
+
+        -->
+        <tr>
+            <h1>Kitty Fuzzer <div id="fuzzer_version" style="display:inline"></div> - <div id="fuzzer_name" style="display:inline">Ragnar</div></h1>
+            <h3  align="center" id="error_message"></h3>
+        </tr>
         <table class="table table-main-layout">
-            <col width="5%">
-            <col width="75%">
-            <col width="20%">
             <tr>
-                <td rowspan="2">
-                </td> 
-                <td>
+                <td colspan="2">
                     <div class="panel panel-danger">
-                        <div class="panel-heading">Fuzzing Session</div>
-                        <table id="stats_table" class="table table-hover table-striped table-bordered info-table"></table>
-                        <div class="progress">
-                            <div class="progress-bar  progress-bar-striped active progress-bar-danger" role="progress-bar" id="progress_bar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
-                            </div>
-                        </div>
-                        <div id="progress_text" class="well well-danger"></div>
-                        <button id="pause_button" type="button" class="btn btn-default btn-danger"></button>
-                    </div>
-                </td>
-                <td rowspan="2">
-                    <div id="report-panel" class="panel panel-danger">
-                        <div class="panel-heading">Reports</div>
-                        <!--<div class="reportlist">-->
-                            <lu id="reports" class="list-group reportlist"></lu>
-                        <!--</div>-->
-                        
-                    </div>
-                </td>
-                
-            </tr>
-            <tr>
-                <td>
-                    <div class="panel panel-danger">
-                        <div class="panel-heading">Current Fuzzed Node</div>
-                        <table id="current_test" class="table table-hover table-striped table-bordered info-table">
-                            
+                        <div class="panel-heading">Session Info</div>
+                        <table class="table table-hover table-striped table-responsive info-table">
+                            <tr><td>Start Index</td><td id="start_index">N/A</td></tr>
+                            <tr><td>Current Index</td><td id="current_index">N/A</td></tr>
+                            <tr><td>End Index</td><td id="end_index">N/A</td></tr>
+                            <!-- TODO: should be moved to reports -->
+                            <tr><td>Failures</td><td id="failure_count">N/A</td></tr>
+                            <tr><td>Start Time</td><td id="start_time">N/A</td></tr>
+                            <tr><td>ETA</td><td id="eta">N/A</td></tr>
+                        </table>
+                        <table class="table table-hover table-striped table-responsive info-table">
+                            <tr>
+                                <td>
+                                    <button id="pause_button" type="button" class="btn btn-default btn-danger"></button>
+                                </td>
+                                <td>
+                                    <div class="progress">
+                                        <div class="progress-bar progress-bar-large progress-bar-danger" role="progress-bar" id="progress_bar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>
+                                    </div>
+                                </td>
+                            </tr>
                         </table>
                     </div>
                 </td>
-                
+                <td colspan="5">
+                    <div class="panel panel-danger">
+                        <div class="panel-heading">Fuzzing Stages</div>
+                        <div>A graph of the stages should be drawn here</div>
+                    </div>
+                </td>
+                <td colspan="3">
+                    <div class="panel panel-danger">
+                        <div class="panel-heading">Reports</div>
+                        <!-- TODO: replace with actual implementation -->
+                        <lu id="reports" class="list-group reportlist"></lu>
+                    </div>
+                </td>
+            </tr>
+            <tr class="child">
+                <td colspan="4">
+                    <div class="panel panel-danger">
+                        <div class="panel-heading">Template Structure</div>
+                        <div class="monospaced-text unknown-data-size" id="template_tree"></div>
+                    </div>
+                </td>
+                <td colspan="3">
+                    <div class="panel panel-danger">
+                        <div class="panel-heading">Current Payload</div>
+                        <pre class="unknown-data-size" id="current_payload_hexdump"></pre>
+                    </div>
+                </td>
+                <td colspan="3">
+                    <div class="panel panel-danger">
+                        <div class="panel-heading">Target Information</div>
+                    </div>
+                </td>
             </tr>
         </table>
     </div>
-    <script src="static/jquery.js"></script>
     <script>
+        var state = {}
+        state.start_time = null;
+        state.failure_count = null;
+        state.paused = null;
+        state.current_payload = null;
+        state.template_tree = null;
+
         function updateReports(reports) {
             $('#reports a').remove();
             if (reports.length > 0) {
@@ -77,40 +120,74 @@
             reports = null;
         }
 
-        function updateButton(paused) {
-            var btn_text = (paused == true) ? 'Resume' : 'Pause';
-            var btn_action = (paused == true) ? 'doResume();' : 'doPause();';
-            $('#pause_button').text(btn_text);
-            $('#pause_button').attr('onclick', btn_action);
-            btn_action = null;
-            btn_text = null;
+        function setPauseState(paused) {
+            if(paused != state.paused)
+            {
+                var btn_text = (paused == true) ? 'Resume' : 'Pause';
+                var btn_action = (paused == true) ? 'doResume();' : 'doPause();';
+                $('#pause_button').text(btn_text);
+                $('#pause_button').attr('onclick', btn_action);
+                state.paused = paused;
+            }            
         }
 
         function setErrorMessage(msg) {
             $('#error_message').text(msg);
         }
 
+        function updateFieldFromDict(field, d)
+        {
+            if(state[field] != d[field])
+            {
+                state[field] = d[field];
+                $('#' + field).text(state[field]);
+            }
+        }
         function updateStatsTable(stats) {
-            var blacklisted = ['kitty_version'];
-            //$('#stats_table tr').remove();
-            $.each(stats, function(key, val) {
-                var data_id = 'stats_data_' + key.replace(/[()/\s]/g, '_');
-                if(blacklisted.indexOf(key) == -1){
-                    if(key == 'start_time') {
-                        val = new Date(Math.floor(val * 1000)) + '';
-                    }
-                    var item = $('#' + data_id);
-                    if(item.length == 0) {
-                        $('<tr>').append($('<td>').text(toTitleCase(key)), $('<td>').attr('id', data_id).text(val)).appendTo('#stats_table');
-                    }
-                    else {
-                        if(val != item.text()){
-                            $('#' + data_id).text(val);    
-                        }
-                    }
-                }
-            });
-            blacklisted = null;
+            if(stats.start_time != state.start_time)
+            {
+                updateTitle(stats.kitty_version)
+                updateFieldFromDict('start_index', stats);
+                updateFieldFromDict('end_index', stats);
+                state.start_time = stats.start_time;
+                $('#start_time').text(new Date(Math.floor(stats.start_time * 1000)).toISOString().slice(0,19).replace(/T|Z/g," "));    
+            }
+            updateFieldFromDict('failure_count', stats);
+            updateFieldFromDict('current_index', stats);
+        }
+
+        function hex2a(hexx) {
+            var hex = hexx.toString();//force conversion
+            var str = '';
+            for (var i = 0; i < hex.length; i += 2)
+                str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+            return str;
+        }
+
+        function updateCurrentPayload(test_details)
+        {
+            var curr = test_details['node/value/rendered/base64'];
+            if(state.current_payload != curr)
+            {
+                $('#current_payload_hexdump').text(Hexdump.dump(atob(curr)))
+                state.current_payload = curr;
+            }
+        }
+
+        function updateTemplateTree(test_details)
+        {
+            var curr = test_details['node/tree'];
+            if(state.template_tree != curr)
+            {
+                var tree = atob(curr);
+                // fix lines
+                // tree = tree.replace(/\n/g, '<br>');
+                // fix spaces
+                // tree = tree.replace(/ /g, '&nbsp;');
+                
+                $('#template_tree').html(tree);
+                state.template_tree = curr;
+            }
         }
 
         function setProgress(stats, eta) {
@@ -122,13 +199,13 @@
             $('#progress_bar').css('width', percent + '%').attr('aria-valuenow', percent); 
             //$('#progress_bar').css('width', percent).attr('aria-valuenow', percent);
             var msg;
-            if (current > end) {
+            if (current >= end) {
                 msg = 'Fuzzing session completed';
             }
             else {
-                msg = 'Estimated completion in ' + eta;
+                msg = eta;
             }
-            $('#progress_text').text(msg);
+            $('#eta').text(msg);
         }
 
         function toTitleCase(str) {
@@ -172,12 +249,13 @@
 
         function processResponse(data) {
             setErrorMessage(' ');
-            updateTitle(data.stats.kitty_version)
-            updateButton(data.paused);
+            setPauseState(data.paused);
             updateStatsTable(data.stats);
             setProgress(data.stats, data.eta);
-            updateTestDetails(data.current_test);
-            updateReports(data.reports);
+            // updateTestDetails(data.current_test);
+            updateCurrentPayload(data.current_test);
+            updateTemplateTree(data.current_test);
+            // updateReports(data.reports);
             setTimeout(performUpdate, 3000);
         }
 
@@ -190,6 +268,7 @@
             $.getJSON('api/stats.json', processResponse).fail(handleFailure);
         }
 
+        setPauseState(false);
         performUpdate();
 
     </script>

@@ -1,8 +1,9 @@
 html, body {
-  height: 95%;
-  width: 95%;
+  /*height: 95%;
+  width: 95%; */
   /*position: fixed;*/
-  padding: 0;
+  padding-left: 1%;
+  padding-right: 1%;
   margin: 0;
 }
 
@@ -12,6 +13,14 @@ h1, h2 {
 
 .progress {
     max-width: inherit;
+    height: 34px;
+    margin-bottom: 0px;
+}
+
+.progress-bar {
+  height: 100%;
+  font-size: 14px;
+  line-height: 34px;
 }
 
 td {
@@ -70,4 +79,12 @@ td {
 
 .value_cell {
   max-width: 100px;
+}
+
+.unknown-data-size {
+  height: 400px;
+}
+
+.monospaced-text {
+  font-family: "Lucida Console", Monaco, monospace;
 }

@@ -923,7 +923,9 @@ class Template(Container):
         res['name'] = self.get_name()
         res['current mutation index'] = '%s/%s' % (self._current_index, self._last_index())
         res['value/rendered/hex'] = self._current_rendered.tobytes().encode('hex')
+        res['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64')
         res['value/rendered/len'] = len(self._current_rendered.tobytes())
+        res['tree'] = self.get_tree().encode('base64')
         return res
 
     def copy(self):
