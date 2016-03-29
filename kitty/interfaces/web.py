@@ -184,7 +184,7 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         elif path == 'action/resume':
             response = ''
             self._resume_fuzzer()
-        if response:
+        if response is not None:
             self.send_response(200)
             self.send_header('Content-type', data_type)
             self.end_headers()
@@ -242,7 +242,7 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     response = endpoints[endpoint]()
                     break
 
-        if response:
+        if response is not None:
             self.wfile.write(response)
         else:
             self.send_response(401)
