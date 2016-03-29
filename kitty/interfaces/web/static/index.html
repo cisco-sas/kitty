@@ -32,10 +32,8 @@
         +======================+===============+======================+
 
         -->
-        <tr>
-            <h1>Kitty Fuzzer <div id="fuzzer_version" style="display:inline"></div> - <div id="fuzzer_name" style="display:inline">Ragnar</div></h1>
-            <h3  align="center" id="error_message"></h3>
-        </tr>
+            <h1>Kitty Fuzzer <div id="kitty_version" style="display:inline"></div> - <div id="fuzzer_name" style="display:inline">Name Not Supported Yet</div></h1>
+            <div align="center" class="alert alert-danger alert-large" id="error_message">Fuzzer Not Available</div>
         <table class="table table-main-layout">
             <tr>
                 <td colspan="2">
@@ -45,8 +43,6 @@
                             <tr><td>Start Index</td><td id="start_index">N/A</td></tr>
                             <tr><td>Current Index</td><td id="current_index">N/A</td></tr>
                             <tr><td>End Index</td><td id="end_index">N/A</td></tr>
-                            <!-- TODO: should be moved to reports -->
-                            <tr><td>Failures</td><td id="failure_count">N/A</td></tr>
                             <tr><td>Start Time</td><td id="start_time">N/A</td></tr>
                             <tr><td>ETA</td><td id="eta">N/A</td></tr>
                         </table>
@@ -72,9 +68,12 @@
                 </td>
                 <td colspan="3">
                     <div class="panel panel-danger">
-                        <div class="panel-heading">Reports</div>
+                        <div class="panel-heading">Reports (<span id="failure_count" style="align:right;"></span>)</div>
                         <!-- TODO: replace with actual implementation -->
-                        <lu id="reports" class="list-group reportlist"></lu>
+                        <div class="unknown-data-size">
+                        <lu id="reports" class="unknown-data-size list-group"></lu>
+                        </div>
+                        <button id="export_all" type="button" class="btn btn-danger" style="width:100%;">Export All reports</button>
                     </div>
                 </td>
             </tr>
@@ -82,13 +81,13 @@
                 <td colspan="4">
                     <div class="panel panel-danger">
                         <div class="panel-heading">Template Structure</div>
-                        <div class="monospaced-text unknown-data-size" id="template_tree"></div>
+                        <div class="monospaced-text unknown-data-size" id="template_structure"></div>
                     </div>
                 </td>
                 <td colspan="3">
                     <div class="panel panel-danger">
                         <div class="panel-heading">Current Payload</div>
-                        <pre class="unknown-data-size" id="current_payload_hexdump"></pre>
+                        <div class="unknown-data-size monospaced-text" id="current_payload_hexdump"></div>
                     </div>
                 </td>
                 <td colspan="3">
@@ -100,12 +99,8 @@
         </table>
     </div>
     <script>
-        var state = {}
-        state.start_time = null;
-        state.failure_count = null;
-        state.paused = null;
-        state.current_payload = null;
-        state.template_tree = null;
+        var state = {};
+        state.template_description = {};
 
         function updateReports(reports) {
             $('#reports a').remove();
@@ -131,10 +126,6 @@
             }            
         }
 
-        function setErrorMessage(msg) {
-            $('#error_message').text(msg);
-        }
-
         function updateFieldFromDict(field, d)
         {
             if(state[field] != d[field])
@@ -146,7 +137,7 @@
         function updateStatsTable(stats) {
             if(stats.start_time != state.start_time)
             {
-                updateTitle(stats.kitty_version)
+                updateFieldFromDict('kitty_version', stats)
                 updateFieldFromDict('start_index', stats);
                 updateFieldFromDict('end_index', stats);
                 state.start_time = stats.start_time;
@@ -156,41 +147,82 @@
             updateFieldFromDict('current_index', stats);
         }
 
-        function hex2a(hexx) {
-            var hex = hexx.toString();//force conversion
-            var str = '';
-            for (var i = 0; i < hex.length; i += 2)
-                str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
-            return str;
-        }
-
         function updateCurrentPayload(test_details)
         {
             var curr = test_details['node/value/rendered/base64'];
             if(state.current_payload != curr)
             {
-                $('#current_payload_hexdump').text(Hexdump.dump(atob(curr)))
+                $('#current_payload_hexdump').html(convertToHtml(Hexdump.dump(atob(curr))));
                 state.current_payload = curr;
             }
         }
 
-        function updateTemplateTree(test_details)
+        function convertToHtml(text)
         {
-            var curr = test_details['node/tree'];
-            if(state.template_tree != curr)
+            text = $("<div>").text(text).html();
+            // text = escape(text);
+            text = text.replace(/ /g, '&nbsp;');
+            text = text.replace(/\n/g, '<br>');   
+            return text;
+        }
+
+        function updateTemplateStructure(test_details)
+        {
+            var hash  = test_details['node/hash'];
+            if(state.waiting_for_template_structure)
             {
-                var tree = atob(curr);
-                // The order of this matters
-                // fix spaces
-                tree = tree.replace(/ /g, '&nbsp;');
-                // highlight mutated fields
-                tree = tree.replace(/(.*)\|\+/g, '<span class="mutation-highlight">$1</span>');
-                // fix lines
-                tree = tree.replace(/\n/g, '<br>');                
-                $('#template_tree').html(tree);
-                state.template_tree = curr;
+
+            }
+            else
+            {
+                if(hash != state.template_description['node/hash'])
+                {
+                    $.getJSON('api/template_description.json', function (data)
+                        {
+                            state.template_description = data;
+                            state.template_description['node/hash'] = hash;
+                            state.waiting_for_template_structure = false;
+                            setTimeout(performUpdate, 10);
+                        }
+                    );
+                    state.waiting_for_template_structure = true;
+                    // updateTemplateTree(test_details);
+                }
+                else
+                {
+                    updateTemplateWithCurrentState(test_details);
+                }
             }
         }
+
+        function updateTemplateWithCurrentState(test_details)
+        {
+            var tree_string = buildTree(state.template_description, test_details, 0, test_details['node/mutation/current index']);
+            $('#template_structure').html(tree_string);
+        }
+
+        function buildTree(node, test_details, depth, relative_mutation_index)
+        {
+            var res = '';
+            var node_total_number = node['mutation/total number'];
+            var mutating = relative_mutation_index < node_total_number && relative_mutation_index > 0;
+            res += '&nbsp;'.repeat(depth * 2);
+            res += '<b>' + node['name'] + '</b>';
+            res += ' (' + node['field type'] + ')';
+            if(mutating)
+            {
+                res += '(' + relative_mutation_index.toString() + '/' + node_total_number.toString() + ')';
+                res = '<span class="mutation-highlight">' + res + '</span>'; 
+            }
+            res += '<br>';
+            if(node['fields'])
+                $.each(node['fields'], function(index, value){
+                    res += buildTree(value, test_details, depth + 1, relative_mutation_index);
+                    relative_mutation_index -= value['mutation/total number'];
+                });
+
+            return res;
+        }        
 
         function setProgress(stats, eta) {
             var start = stats.start_index;
@@ -199,7 +231,6 @@
             var percent = Math.round(100.0 / (end - start) * (current - start));
             $('#progress_bar').text(percent + '%');
             $('#progress_bar').css('width', percent + '%').attr('aria-valuenow', percent); 
-            //$('#progress_bar').css('width', percent).attr('aria-valuenow', percent);
             var msg;
             if (current >= end) {
                 msg = 'Fuzzing session completed';
@@ -208,31 +239,6 @@
                 msg = eta;
             }
             $('#eta').text(msg);
-        }
-
-        function toTitleCase(str) {
-            return str.replace(/_/g, ' ').replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
-        }
-
-        function updateTestDetails(test_details) {
-            //$('#current_test tr').remove();
-            var keys = [];
-            for (var prop in test_details) {
-                keys.push(prop);
-            }
-            keys.sort();
-            for (var i = 0; i < keys.length; i++) {
-                var key = keys[i];
-                var value = test_details[key];
-                var fkey = toTitleCase(key);
-                var data_id = 'test_details_' + key.replace(/[()/\s]/g, '_');
-                if($('#' + data_id).length == 0) {
-                    $('<tr>').append($('<td>').text(fkey), $('<td>').addClass("value_cell").attr('id', data_id).text(value)).appendTo('#current_test');
-                }
-                else {
-                    $('#' + data_id).text(value);
-                }
-            }
         }
 
         function doPause() {
@@ -245,24 +251,21 @@
             $('#pause_button').disabled = true;
         }
 
-        function updateTitle(version) {
-            $('#fuzzer_version').text(version);
-        }
-
         function processResponse(data) {
-            setErrorMessage(' ');
+            if($('#error_message').is(":visible"))
+                $('#error_message').hide({duration: 'fast', easing: 'linear'});
             setPauseState(data.paused);
             updateStatsTable(data.stats);
             setProgress(data.stats, data.eta);
-            // updateTestDetails(data.current_test);
+            updateTemplateStructure(data.current_test);
             updateCurrentPayload(data.current_test);
-            updateTemplateTree(data.current_test);
-            // updateReports(data.reports);
+            updateReports(data.reports);
             setTimeout(performUpdate, 3000);
         }
 
         function handleFailure() {
-            setErrorMessage('Error communicating with fuzzer web server');
+            if(!$('#error_message').is(":visible"))
+                $('#error_message').show();
             setTimeout(performUpdate, 10000);
         }
 

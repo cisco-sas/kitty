@@ -96,7 +96,7 @@ class FieldContidion(Condition):
 
     def hash(self):
         hashed = super(FieldContidion, self).hash()
-        return hash(hashed, self._field_name)
+        return khash(hashed, self._field_name)
 
 
 class ListCondition(FieldContidion):

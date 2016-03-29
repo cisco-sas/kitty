@@ -64,32 +64,38 @@ td {
   text-align: center;
 }
 
-#report-panel {
-  max-height: 80%;
-  min-width: 200px;
-  position: fixed;
-}
-
-.reportlist {
-  max-height: inherit;
-  min-width: inherit;
-  overflow: scroll;
-  position: fixed;
-}
-
 .value_cell {
   max-width: 100px;
 }
 
 .unknown-data-size {
-  height: 400px;
-  overflow: scroll;
+  height: 320px;
+  overflow: auto;
 }
 
 .monospaced-text {
-  font-family: "Lucida Console", Monaco, monospace;
+  font-family: "Courier New", Courier, monospace;
 }
 
 .mutation-highlight {
   background-color: pink;
+}
+
+.alert {
+  display:inline-block;
+  width: 50%;
+  margin: 0 auto;
+  margin-right: 0 auto;
+  margin-left: 0 auto;
+  text-align: center;
+  display: none;
+}
+
+.panel {
+  align-content: center;
+  text-align: left;
+}
+
+.panel-heading {
+  text-align: center;
 }

@@ -208,6 +208,13 @@ class GraphModel(BaseModel):
         info['duplicate (skipped) test count'] = self._duplication_count
         return info
 
+    def get_template_info(self):
+        '''
+        :return: dictionary of information regarding the current template
+        '''
+        node = self._get_node()
+        return node.get_structure()
+
     def check_loops_in_grpah(self, current=None, visited=[]):
         '''
         :param current: current node to check if visited

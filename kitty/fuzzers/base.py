@@ -266,6 +266,8 @@ class BaseFuzzer(KittyObject):
     def _update_test_info(self):
         test_info = self.model.get_test_info()
         self.dataman.set_test_info(test_info)
+        template_info = self.model.get_template_info()
+        self.dataman.set_template_info(template_info)
 
     def _pre_test(self):
         self.session_info.current_index = self.model.current_index()

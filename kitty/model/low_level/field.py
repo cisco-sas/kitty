@@ -66,6 +66,7 @@ class BaseField(KittyObject):
         self._enclosing = None
         self._offset = None
         self._initialized = False
+        self._hash = None
 
     def set_offset(self, offset, ctx=None):
         '''
@@ -167,6 +168,7 @@ class BaseField(KittyObject):
             return
         self._init()
         self._initialized = True
+        self._hash = self.hash()
 
     def _init(self):
         self.reset()
@@ -207,12 +209,8 @@ class BaseField(KittyObject):
             alist = self._enclosing._get_enclosing_list() + alist
         return alist
 
-    def _get_enclosing_path(self):
-        '''
-        :return: ordered name list of enclosing fields
-        '''
-        alist = self._get_enclosing_list()
-        return [x.get_name() or '<no name>' for x in alist]
+    def get_structure(self):
+        return self.get_info()
 
     def get_info(self):
         '''
@@ -220,14 +218,20 @@ class BaseField(KittyObject):
         :return: field information
         '''
         info = {}
-        info['name'] = self.name if self.name else 'N/A'
-        info['path'] = '/'.join(self._get_enclosing_path())
-        info['current mutation index'] = '%s/%s' % (self._current_index, self._last_index())
+        info['name'] = self.name if self.name else '<no name>'
+        info['path'] = info['name']
+        info['field type'] = type(self).__name__
         info['value/raw'] = repr(self._current_value)
         info['value/rendered/hex'] = self._current_rendered.tobytes().encode('hex')
-        info['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64')
-        info['value/length'] = len(self._current_rendered.tobytes())
+        info['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64')[:-1]
+        info['value/rendered/length/bits'] = len(self._current_rendered)
+        info['value/rendered/length/bytes'] = len(self._current_rendered.tobytes())
         info['value/default'] = repr(self._default_value)
+        info['value/offset'] = self.get_offset()
+        info['mutation/total number'] = self._num_mutations
+        info['mutation/current index'] = self._current_index
+        info['mutation/mutating'] = self._mutating()
+        info['mutation/fuzzable'] = self._fuzzable
         return info
 
     def _encode_value(self, value):
@@ -311,9 +315,10 @@ class BaseField(KittyObject):
         :rtype: int
         :return: hash of the field
         '''
-        self._initialize()
-        hashed = khash(type(self).__name__, self._default_value, self._fuzzable)
-        return hashed
+        if self._hash is None:
+            self._initialize()
+            self._hash = khash(type(self).__name__, self._default_value, self._fuzzable)
+        return self._hash
 
     def _initialize_default_buffer(self):
         self.set_current_value(self._default_value)

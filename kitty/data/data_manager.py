@@ -137,6 +137,7 @@ class DataManager(Thread):
         self._session_info = SessionInfoTable(self._connection, self._cursor)
         self._reports = ReportsTable(self._connection, self._cursor)
         self._test_info = {}
+        self._template_info = {}
 
     def close(self):
         '''
@@ -216,6 +217,23 @@ class DataManager(Thread):
         :param test_info: the test information to be set
         '''
         self._test_info = {k: v for (k, v) in test_info.items()}
+
+    @synced
+    def get_template_info(self):
+        '''
+        :return: template info
+        '''
+        return self._template_info
+
+    @synced
+    def set_template_info(self, template_info):
+        '''
+        set the template info
+
+        :type template_info: dict
+        :param template_info: the template information to be set
+        '''
+        self._template_info = {k: v for (k, v) in template_info.items()}
 
 
 class Table(object):

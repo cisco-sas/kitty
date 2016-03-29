@@ -55,6 +55,18 @@ class BaseModel(KittyObject):
         self._current_index = -1
         self._ready = False
 
+    def get_template_info(self):
+        '''
+        :return: dictionary of information regarding the current template
+
+        .. note::
+
+            by default, we return None, as the current template
+            might not be interesting.
+            Take a look at GraphModel for actual implementation.
+        '''
+        return {}
+
     def current_index(self):
         '''
         :return: current mutation index

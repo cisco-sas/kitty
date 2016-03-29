@@ -155,6 +155,10 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             eta = average_test_time * tests_left
             return str(datetime.timedelta(seconds=int(eta)))
 
+    def _get_template_description(self):
+        resp_dict = self.dataman.get_template_info()
+        return json.dumps(resp_dict)
+
     def _get_stats(self):
         is_paused = self.server.interface.is_paused()
         session_info = self.dataman.get_session_info()
@@ -176,6 +180,8 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         data_type = 'text/json'
         if path == 'stats.json':
             response = self._get_stats()
+        if path == 'template_description.json':
+            response = self._get_template_description()
         elif path.startswith('report'):
             response = self._get_report()
         elif path == 'action/pause':
