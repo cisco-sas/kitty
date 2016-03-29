@@ -83,8 +83,13 @@ td {
 
 .unknown-data-size {
   height: 400px;
+  overflow: scroll;
 }
 
 .monospaced-text {
   font-family: "Lucida Console", Monaco, monospace;
+}
+
+.mutation-highlight {
+  background-color: pink;
 }

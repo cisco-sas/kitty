@@ -180,11 +180,13 @@
             if(state.template_tree != curr)
             {
                 var tree = atob(curr);
-                // fix lines
-                // tree = tree.replace(/\n/g, '<br>');
+                // The order of this matters
                 // fix spaces
-                // tree = tree.replace(/ /g, '&nbsp;');
-                
+                tree = tree.replace(/ /g, '&nbsp;');
+                // highlight mutated fields
+                tree = tree.replace(/(.*)\|\+/g, '<span class="mutation-highlight">$1</span>');
+                // fix lines
+                tree = tree.replace(/\n/g, '<br>');                
                 $('#template_tree').html(tree);
                 state.template_tree = curr;
             }
