@@ -15,6 +15,8 @@
         <script src="js/jquery-1.11.1.js"></script>
         <script src="js/bootstrap.min.js"></script>
         <script src="js/hexdump.js"></script>
+        <script src="js/jszip.min.js"></script>
+        <script src="js/filesaver.min.js"></script>
         <!--
 
         +======================+===============+======================+
@@ -73,7 +75,7 @@
                         <div class="unknown-data-size">
                         <lu id="reports" class="unknown-data-size list-group"></lu>
                         </div>
-                        <button id="export_all" type="button" class="btn btn-danger" style="width:100%;">Export All reports</button>
+                        <button id="export_all" type="button" class="btn btn-danger" style="width:100%;" onclick="exportAllReports()">Export All reports</button>
                     </div>
                 </td>
             </tr>
@@ -108,11 +110,42 @@
                 reports.sort(function(a, b){return a-b});
                 $.each(reports, function(index, test_number) {
                     var link = '<a href="static/report.html?report_id=' + test_number + '" class="list-group-item list-group-item-danger">Report #' + test_number + '</a>';
-                    //$('<li class="list-group-item list-group-item-danger">').append(link).appendTo('#reports');
                     $(link).appendTo('#reports');
+                    state.reports.push(test_number);
                 });    
             }
             reports = null;
+        }
+
+        function getAllReports() {
+            /*
+            Fetch all reports, return a dictionary - testname/report
+            */
+            var res = {};
+            $.each(state.reports, function(index, test_number){
+                var report = $.ajax({
+                    type: 'GET',
+                    url: '../api/report?report_id=' + test_number,
+                    async: false
+                }).responseText;
+                res[test_number] = report;
+            });
+            return res;
+        }
+
+        function exportAllReports() {
+            /*
+            Store all reports into a single zip file
+            */
+            var zip = new JSZip();
+            var filename = 'kitty_' + state.start_time.toString() + '_reports.zip';
+            var report_dir = zip.folder('reports');
+            var reports = getAllReports();
+            $.each(reports, function(test_number, report) {
+                report_dir.file('report_' + test_number.toString() + '.json', report);
+            });
+            var content = zip.generate({type:"blob"});
+            saveAs(content, filename);
         }
 
         function setPauseState(paused) {
@@ -159,7 +192,7 @@
 
         function convertToHtml(text)
         {
-            text = $("<div>").text(text).html();
+            text = $('<div>').text(text).html();
             // text = escape(text);
             text = text.replace(/ /g, '&nbsp;');
             text = text.replace(/\n/g, '<br>');   
@@ -274,6 +307,7 @@
         }
 
         setPauseState(false);
+        state.reports = new Array();
         performUpdate();
 
     </script>
