@@ -158,7 +158,9 @@ class BaseFuzzer(KittyObject):
         :param model: Model object to fuzz
         '''
         self.model = model
-        self.model.set_notification_handler(self)
+        if self.model:
+            self.model.set_notification_handler(self)
+            self.handle_stage_changed(model)
         return self
 
     def set_target(self, target):
@@ -261,7 +263,8 @@ class BaseFuzzer(KittyObject):
         :param model: the data model that was changed
         '''
         stages = model.get_stages()
-        self.dataman.set('stages', stages)
+        if self.dataman:
+            self.dataman.set('stages', stages)
 
     def _test_environment(self):
         '''
@@ -421,6 +424,8 @@ class BaseFuzzer(KittyObject):
 
     def _set_session_info(self):
         self.dataman.set_session_info(self.session_info)
+        self.dataman.set('fuzzer_name', self.get_name())
+        self.dataman.set('session_file_name', self.config.session_file_name)
 
     def _load_session(self):
         if not self.config.session_file_name:

@@ -167,12 +167,15 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         is_paused = self.server.interface.is_paused()
         session_info = self.dataman.get_session_info()
         eta_s = self._get_eta(session_info)
+        stats = session_info.as_dict()
+        stats['fuzzer_name'] = self.dataman.get('fuzzer_name')
+        stats['session_file_name'] = self.dataman.get('session_file_name')
         resp_dict = {
             'paused': is_paused,
             'eta': eta_s,
-            'stats': session_info.as_dict(),
+            'stats': stats,
             'current_test': self.dataman.get('test_info'),
-            'reports': self.dataman.get_report_test_ids()
+            'reports': self.dataman.get_report_test_ids(),
         }
         return json.dumps(resp_dict)
 

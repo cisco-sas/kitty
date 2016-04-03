@@ -56,6 +56,11 @@ td {
   /*height: 100%;*/
   position: absolute;
   overflow: auto;
+  left:0px; 
+  top: 41px;
+  bottom: 0px;
+  overflow: auto;
+  width: 100%;
 }
 
 .monospaced-text {
@@ -106,6 +111,8 @@ position: relative;
 #fuzzer_name, #kitty_version { display: inline; }
 
 #progress_bar { width: 0%; }
+
+#progress_table { bottom: 0px; width:100%; position: absolute; left:0px; }
 
 #pause_button { position: relative; left: 25%; width: 50%; }
 

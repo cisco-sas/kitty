@@ -244,7 +244,8 @@ class GraphModel(BaseModel):
             for e in seq:
                 if e.src.get_name() not in stages:
                     stages[e.src.get_name()] = []
-                stages[e.src.get_name()].append(e.dst.get_name())
+                if e.dst.get_name() not in stages[e.src.get_name()]:
+                    stages[e.src.get_name()].append(e.dst.get_name())
         return {
             'current': [e.dst.get_name() for e in sequence],
             'stages': stages
