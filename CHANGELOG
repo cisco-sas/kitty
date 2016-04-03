@@ -1,5 +1,17 @@
+Version 0.6.6 (2016-04-03)
+==========================
+
+* bugfix: [WebInterface] Fixed responses to API calls (pause/resume)
+* bugfix: [ClientFuzzer] fix advancement in path when get_mutation is called
+* bugfix: [BaseFuzzer] fixed typo in cmd line arg
+* new feature: [WebInterface] New web interface design, allowing export of reports and showing more relevant status
+* new feature: [DataManager] Support generic (volatile) content operations (still synchronized)
+* new feature: [kitty-tool] add out-file name format command line option
+* new feature: [Fuzzer] perform environment test before starting the actual fuzzing session
+
 Version 0.6.5 (2016-03-20)
 ==========================
+
 * bugfix: [ClientFuzzer] Fixed off-by-one bug in the fuzzing index (start/end) of client fuzzer
 * bugfix: [ClientFuzzer] Protect from multiple calls to start (can now restart stack without restarting fuzzer)
 * bugfix: [ClientFuzzer] Fixed exception when there are no stage to log
@@ -7,9 +19,9 @@ Version 0.6.5 (2016-03-20)
 * new feature: [ClientFuzzer] Added API to check if client fuzzer is done fuzzing
 * new feature: [Remote] Added stop API for RPC server
 
-
 Version 0.6.4 (2016-03-13)
 ==========================
+
 * bugfix: [package] fixed package name in get_distribution calls
 
 Version 0.6.3 (2016-03-13)
