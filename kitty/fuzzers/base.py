@@ -432,6 +432,8 @@ class BaseFuzzer(KittyObject):
             self.config.session_file_name = ':memory:'
         self.dataman = DataManager(self.config.session_file_name)
         self.dataman.start()
+        if self.model:
+            self.handle_stage_changed(self.model)
         info = self._get_session_info()
         if info:
             self.logger.info('Loaded session from DB')
