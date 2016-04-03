@@ -105,7 +105,7 @@ class DataManager(Thread):
         self._cursor = None
         self._session_info = None
         self._reports = None
-        self._test_info = None
+        self._volatile_data = {}
 
     def run(self):
         '''
@@ -136,8 +136,6 @@ class DataManager(Thread):
         self._cursor = self._connection.cursor()
         self._session_info = SessionInfoTable(self._connection, self._cursor)
         self._reports = ReportsTable(self._connection, self._cursor)
-        self._test_info = {}
-        self._template_info = {}
 
     def close(self):
         '''
@@ -202,38 +200,15 @@ class DataManager(Thread):
         self._reports.store(report, test_id)
 
     @synced
-    def get_test_info(self):
-        '''
-        :return: test info
-        '''
-        return self._test_info
+    def set(self, key, data):
+        if isinstance(data, dict):
+            self._volatile_data[key] = {k: v for (k, v) in data.items()}
+        else:
+            self._volatile_data[key] = data
 
     @synced
-    def set_test_info(self, test_info):
-        '''
-        set the test info
-
-        :type test_info: dict
-        :param test_info: the test information to be set
-        '''
-        self._test_info = {k: v for (k, v) in test_info.items()}
-
-    @synced
-    def get_template_info(self):
-        '''
-        :return: template info
-        '''
-        return self._template_info
-
-    @synced
-    def set_template_info(self, template_info):
-        '''
-        set the template info
-
-        :type template_info: dict
-        :param template_info: the template information to be set
-        '''
-        self._template_info = {k: v for (k, v) in template_info.items()}
+    def get(self, key):
+        return self._volatile_data[key]
 
 
 class Table(object):

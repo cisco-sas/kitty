@@ -26,7 +26,7 @@ from kitty.core import KittyException, khash
 
 class _RootNode(object):
     def get_name(self):
-        return 'ROOT'
+        return 'Start'
 
     def hash(self):
         return khash(self.get_name())
@@ -123,6 +123,8 @@ class GraphModel(BaseModel):
             self._sequence_idx = idx
             self._sequence = self._sequences[self._sequence_idx]
             self._current_node = self._sequence[-1].dst
+            if self._notification_handler:
+                self._notification_handler.handle_stage_changed(self)
 
     def skip(self, count):
         self._get_ready()
@@ -227,3 +229,23 @@ class GraphModel(BaseModel):
         current = current if current else self._root
         for conn in self._graph[current.hash()]:
             self.check_loops_in_grpah(conn.dst, visited + [conn.src])
+
+    def get_stages(self):
+        '''
+        :return: dictionary of information regarding the stages in the fuzzing session
+
+        .. note::
+
+            structure: { current: ['stage1', 'stage2', 'stage3'], 'stages': {'source1': ['dest1', 'dest2'], 'source2': ['dest1', 'dest3']}}
+        '''
+        sequence = self.get_sequence()
+        stages = {}
+        for seq in self._sequences:
+            for e in seq:
+                if e.src.get_name() not in stages:
+                    stages[e.src.get_name()] = []
+                stages[e.src.get_name()].append(e.dst.get_name())
+        return {
+            'current': [e.dst.get_name() for e in sequence],
+            'stages': stages
+        }
