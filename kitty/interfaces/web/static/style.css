@@ -1,15 +1,10 @@
 html, body {
-  /*height: 95%;
-  width: 95%; */
-  /*position: fixed;*/
   padding-left: 1%;
   padding-right: 1%;
   margin: 0;
 }
 
-h1, h2 {
-  text-align: center;
-}
+h1, h2 { text-align: center; }
 
 .progress {
     max-width: inherit;
@@ -44,20 +39,9 @@ td {
      border-top: none !important; 
  }
 
-/*
-.info-table td:first-child + td{
-  width: 80%;
-}
-*/
-
 #stats_table {
   max-height: inherit;
   max-width: inherit;
-}
-
-.table {
-    max-height: inherit;
-    max-width: inherit;
 }
 
 .well {
@@ -69,7 +53,8 @@ td {
 }
 
 .unknown-data-size {
-  height: 320px;
+  /*height: 100%;*/
+  position: absolute;
   overflow: auto;
 }
 
@@ -94,8 +79,44 @@ td {
 .panel {
   align-content: center;
   text-align: left;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  margin-bottom: 0px;
 }
 
 .panel-heading {
   text-align: center;
+}
+
+#stages-graph {
+  /*height: 320px;*/
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  display: block;
+  overflow: scroll;
+}
+
+.kitty-cell {
+position: relative;
+  height: 400px;
+}
+
+#fuzzer_name, #kitty_version { display: inline; }
+
+#progress_bar { width: 0%; }
+
+#pause_button { position: relative; left: 25%; width: 50%; }
+
+#export_all { width:100%; position: absolute; left:0px; bottom: 0px; overflow: hidden;}
+
+#report-list {
+  width:100%; position: absolute; left:0px; bottom: 34px; top: 41px; overflow: auto;  
+}
+
+#stages-graph {
+  overflow: hidden;
+  max-height: 90%;
+  max-width: 100%;
 }
