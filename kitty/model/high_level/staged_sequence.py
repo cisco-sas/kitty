@@ -225,6 +225,8 @@ class StagedSequenceModel(BaseModel):
             sequence.append(Connection(prev, t, cb))
             prev = t
         self._sequence = sequence
+        if self._notification_handler:
+            self._notification_handler.handle_stage_changed(self)
 
     def get_model_info(self):
         '''

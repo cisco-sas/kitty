@@ -54,6 +54,19 @@ class BaseModel(KittyObject):
         self._sequence = None
         self._current_index = -1
         self._ready = False
+        self._notification_handler = None
+
+    def get_template_info(self):
+        '''
+        :return: dictionary of information regarding the current template
+
+        .. note::
+
+            by default, we return None, as the current template
+            might not be interesting.
+            Take a look at GraphModel for actual implementation.
+        '''
+        return {}
 
     def current_index(self):
         '''
@@ -159,3 +172,29 @@ class BaseModel(KittyObject):
         :return: a hash of the model object (used for notifying change in the model)
         '''
         return khash(type(self).__name__)
+
+    def get_stages(self):
+        '''
+        :return: dictionary of information regarding the stages in the fuzzing session
+
+        .. note::
+
+            structure: { current: ['stage1', 'stage2', 'stage3'], 'stages': {'source1': ['dest1', 'dest2'], 'source2': ['dest1', 'dest3']}}
+        '''
+        sequence = self.get_sequence()
+        return {
+            'current': [e.dst.get_name() for e in sequence],
+            'stages': {e.src.get_name(): [e.dst.get_name()] for e in sequence}
+        }
+
+    def set_notification_handler(self, handler):
+        '''
+        :param handler: handler for notifications from the data model
+
+        .. note::
+
+            The handler should support the following APIs:
+
+            - handle_stage_changed(data_model)
+        '''
+        self._notification_handler = handler

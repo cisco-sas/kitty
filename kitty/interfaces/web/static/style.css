@@ -1,17 +1,21 @@
 html, body {
-  height: 95%;
-  width: 95%;
-  /*position: fixed;*/
-  padding: 0;
+  padding-left: 1%;
+  padding-right: 1%;
   margin: 0;
 }
 
-h1, h2 {
-  text-align: center;
-}
+h1, h2 { text-align: center; }
 
 .progress {
     max-width: inherit;
+    height: 34px;
+    margin-bottom: 0px;
+}
+
+.progress-bar {
+  height: 100%;
+  font-size: 14px;
+  line-height: 34px;
 }
 
 td {
@@ -35,39 +39,91 @@ td {
      border-top: none !important; 
  }
 
-/*
-.info-table td:first-child + td{
-  width: 80%;
-}
-*/
-
 #stats_table {
   max-height: inherit;
   max-width: inherit;
-}
-
-.table {
-    max-height: inherit;
-    max-width: inherit;
 }
 
 .well {
   text-align: center;
 }
 
-#report-panel {
-  max-height: 80%;
-  min-width: 200px;
-  position: fixed;
-}
-
-.reportlist {
-  max-height: inherit;
-  min-width: inherit;
-  overflow: scroll;
-  position: fixed;
-}
-
 .value_cell {
   max-width: 100px;
+}
+
+.unknown-data-size {
+  /*height: 100%;*/
+  position: absolute;
+  overflow: auto;
+  left:0px; 
+  top: 41px;
+  bottom: 0px;
+  overflow: auto;
+  width: 100%;
+}
+
+.monospaced-text {
+  font-family: "Courier New", Courier, monospace;
+}
+
+.mutation-highlight {
+  background-color: pink;
+}
+
+.alert {
+  display:inline-block;
+  width: 50%;
+  margin: 0 auto;
+  margin-right: 0 auto;
+  margin-left: 0 auto;
+  text-align: center;
+  display: none;
+}
+
+.panel {
+  align-content: center;
+  text-align: left;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  margin-bottom: 0px;
+}
+
+.panel-heading {
+  text-align: center;
+}
+
+#stages-graph {
+  /*height: 320px;*/
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  display: block;
+  overflow: scroll;
+}
+
+.kitty-cell {
+position: relative;
+  height: 400px;
+}
+
+#fuzzer_name, #kitty_version { display: inline; }
+
+#progress_bar { width: 0%; }
+
+#progress_table { bottom: 0px; width:100%; position: absolute; left:0px; }
+
+#pause_button { position: relative; left: 25%; width: 50%; }
+
+#export_all { width:100%; position: absolute; left:0px; bottom: 0px; overflow: hidden;}
+
+#report-list {
+  width:100%; position: absolute; left:0px; bottom: 34px; top: 41px; overflow: auto;  
+}
+
+#stages-graph {
+  overflow: hidden;
+  max-height: 90%;
+  max-width: 100%;
 }

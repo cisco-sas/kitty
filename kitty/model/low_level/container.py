@@ -270,6 +270,14 @@ class Container(BaseField):
         ctx.pop()
         return result
 
+    def get_structure(self):
+        mine = super(Container, self).get_info()
+        fields = []
+        for field in self._fields:
+            fields.append(field.get_structure())
+        mine['fields'] = fields
+        return mine
+
     def get_info(self):
         '''
         Get info regarding the current fuzzed enclosed node
@@ -278,9 +286,11 @@ class Container(BaseField):
         '''
         field = self._get_current_field()
         if field:
-            return field.get_info()
+            info = field.get_info()
         else:
-            return super(Container, self).get_info()
+            info = super(Container, self).get_info()
+        info['path'] = '%s/%s' % (self.name if self.name else '<no name>', info['path'])
+        return info
 
     def get_tree(self, depth=0):
         '''
@@ -921,9 +931,13 @@ class Template(Container):
         info = super(Template, self).get_info()
         res = {'field/%s' % k: v for (k, v) in info.items()}
         res['name'] = self.get_name()
-        res['current mutation index'] = '%s/%s' % (self._current_index, self._last_index())
+        res['mutation/current index'] = self._current_index
+        res['mutation/total number'] = self._last_index()
         res['value/rendered/hex'] = self._current_rendered.tobytes().encode('hex')
+        res['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64')
         res['value/rendered/len'] = len(self._current_rendered.tobytes())
+        res['tree'] = self.get_tree().encode('base64')
+        res['hash'] = self.hash()
         return res
 
     def copy(self):

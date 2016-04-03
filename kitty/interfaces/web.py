@@ -155,16 +155,27 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             eta = average_test_time * tests_left
             return str(datetime.timedelta(seconds=int(eta)))
 
+    def _get_template_description(self):
+        resp_dict = self.dataman.get('template_info')
+        return json.dumps(resp_dict)
+
+    def _get_stages(self):
+        resp_dict = self.dataman.get('stages')
+        return json.dumps(resp_dict)
+
     def _get_stats(self):
         is_paused = self.server.interface.is_paused()
         session_info = self.dataman.get_session_info()
         eta_s = self._get_eta(session_info)
+        stats = session_info.as_dict()
+        stats['fuzzer_name'] = self.dataman.get('fuzzer_name')
+        stats['session_file_name'] = self.dataman.get('session_file_name')
         resp_dict = {
             'paused': is_paused,
             'eta': eta_s,
-            'stats': session_info.as_dict(),
-            'current_test': self.dataman.get_test_info(),
-            'reports': self.dataman.get_report_test_ids()
+            'stats': stats,
+            'current_test': self.dataman.get('test_info'),
+            'reports': self.dataman.get_report_test_ids(),
         }
         return json.dumps(resp_dict)
 
@@ -176,6 +187,10 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         data_type = 'text/json'
         if path == 'stats.json':
             response = self._get_stats()
+        elif path == 'template_description.json':
+            response = self._get_template_description()
+        elif path == 'stages.json':
+            response = self._get_stages()
         elif path.startswith('report'):
             response = self._get_report()
         elif path == 'action/pause':
