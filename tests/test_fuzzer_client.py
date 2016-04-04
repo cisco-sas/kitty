@@ -29,7 +29,7 @@ test_logger = None
 def get_test_logger():
     global test_logger
     if test_logger is None:
-        logger = logging.getLogger('TestServerFuzzer')
+        logger = logging.getLogger('TestClientFuzzer')
         logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] -> %(message)s')
         handler = logging.FileHandler('logs/test_client_fuzzer.log', mode='w')
