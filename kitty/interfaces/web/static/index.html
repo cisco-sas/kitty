@@ -414,6 +414,7 @@
         if(test_details['sequence/current'] != state.current_sequence)
         {
             updateStageGraph();
+            test_details['sequence/current'] = state.current_sequence;
         }
     }
 
