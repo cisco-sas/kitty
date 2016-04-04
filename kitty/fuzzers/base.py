@@ -306,6 +306,8 @@ class BaseFuzzer(KittyObject):
         if failure_detected:
             self.session_info.failure_count += 1
         self._store_session()
+        if self.config.delay_secs:
+            self.logger.debug('delaying for %f seconds', self.config.delay_secs)
         time.sleep(self.config.delay_secs)
         self.logger.debug('failure_detected=%d', failure_detected)
         return failure_detected
