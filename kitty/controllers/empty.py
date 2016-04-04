@@ -28,29 +28,6 @@ class EmptyController(ClientController):
     API
     '''
 
-    def __init__(self, name, logger=None):
-        '''
-        :param name: name of the object
-        :param logger: logger for the object (default: None)
-        '''
-        super(EmptyController, self).__init__(name, logger)
-
-    def pre_test(self, test_number):
-        '''
-        Called before a test is started
-
-        .. note:: Call super if overriden
-        '''
-        super(EmptyController, self).pre_test(test_number)
-
-    def post_test(self):
-        '''
-        Called when test is done
-
-        .. note:: Call super if overriden
-        '''
-        super(EmptyController, self).post_test()
-
     def trigger(self):
         '''
         Trigger a data exchange from the tested client

@@ -29,13 +29,6 @@ class ClientController(BaseController):
     Base class for client controllers.
     '''
 
-    def __init__(self, name, logger=None):
-        '''
-        :param name: name of the object
-        :param logger: logger for the object (default: None)
-        '''
-        super(ClientController, self).__init__(name, logger)
-
     def trigger(self):
         '''
         Trigger a data exchange from the tested client

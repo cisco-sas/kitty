@@ -11,6 +11,7 @@ Submodules
 
 .. toctree::
 
+   kitty.core.actor
    kitty.core.kassert
    kitty.core.kitty_object
    kitty.core.threading_utils
