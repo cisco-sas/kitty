@@ -48,7 +48,7 @@ target.set_controller(controller)
 model = GraphModel()
 model.connect(t1)
 
-fuzzer = ServerFuzzer(option_line=opts['--kitty-options'])
+fuzzer = ServerFuzzer(name="Example 1 - File Generator", option_line=opts['--kitty-options'])
 fuzzer.set_interface(WebInterface(port=26001))
 fuzzer.set_model(model)
 fuzzer.set_target(target)

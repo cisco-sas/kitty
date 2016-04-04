@@ -77,7 +77,7 @@ def main():
         ])
     ])
 
-    fuzzer = ClientFuzzer(name='BrowserFuzzer')
+    fuzzer = ClientFuzzer(name='Example 3 - Browser Fuzzer')
     fuzzer.set_interface(WebInterface(host='0.0.0.0', port=26000))
 
     target = ClientTarget(name='BrowserTarget')

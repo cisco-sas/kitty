@@ -40,7 +40,7 @@ target.set_controller(controller)
 model = GraphModel()
 model.connect(t1)
 
-fuzzer = ServerFuzzer()
+fuzzer = ServerFuzzer(name='Example 4 - File Generator(Remote Controller)')
 fuzzer.set_interface(WebInterface(port=26001))
 fuzzer.set_model(model)
 fuzzer.set_target(target)
