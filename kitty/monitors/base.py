@@ -19,32 +19,29 @@
 This module defines BaseMonitor - the base (abstract) monitor class
 '''
 
-import time
-from kitty.core.kitty_object import KittyObject
-from kitty.data.report import Report
+from kitty.core.actor import KittyActor
 from kitty.core.threading_utils import LoopFuncThread
 
 
-class BaseMonitor(KittyObject):
+class BaseMonitor(KittyActor):
     '''
     Base (abstract) monitor class
     '''
 
-    def __init__(self, name, logger=None):
+    def __init__(self, name, logger=None, victim_alive_check_delay=0.3):
         '''
-        :param name: name of the monitor
-        :param logger: logger for the monitor (default: None)
+        :param name: name of the actor
+        :param logger: logger for the actor (default: None)
+        :param victim_alive_check_delay: delay between checks if alive (default: 0.3)
         '''
-        super(BaseMonitor, self).__init__(name, logger)
-        self.report = Report(name)
+        super(BaseMonitor, self).__init__(name, logger, victim_alive_check_delay)
         self.monitor_thread = None
-        self.test_number = None
 
     def setup(self):
         '''
         Make sure the monitor is ready for fuzzing
         '''
-        self._cleanup()
+        super(BaseMonitor, self).setup()
         self.monitor_thread = LoopFuncThread(self._monitor_func)
         self.monitor_thread.start()
 
@@ -54,6 +51,7 @@ class BaseMonitor(KittyObject):
         '''
         self.monitor_thread.stop()
         self.monitor_thread = None
+        super(BaseMonitor, self).teardown()
 
     def pre_test(self, test_number):
         '''
@@ -63,39 +61,16 @@ class BaseMonitor(KittyObject):
         '''
         if not self._is_alive():
             self.setup()
-        self._cleanup()
-        self.test_number = test_number
-        self.report.add('state', 'STARTED')
-        self.report.add('start_time', time.time())
-        self.report.add('name', self.name)
-
-    def post_test(self):
-        '''
-        Called when a test is completed, prepare the report etc.
-        '''
-        self.report.add('state', 'STOPPED')
-        self.report.add('stop_time', time.time())
+        super(BaseMonitor, self).pre_test(test_number)
 
     def _is_alive(self):
         '''
-        Check if victim/monitor alive
+        Check if the monitor is alive
         '''
         if self.monitor_thread is not None:
             if self.monitor_thread.is_alive():
                 return True
         return False
-
-    def _cleanup(self):
-        '''
-        perform a monitor cleanup
-        '''
-        self.report = Report(self.name)
-
-    def get_report(self):
-        '''
-        :return: the monitor's report
-        '''
-        return self.report
 
     def _monitor_func(self):
         '''
