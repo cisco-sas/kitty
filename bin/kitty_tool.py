@@ -19,7 +19,7 @@
 Tools for testing and manipulating kitty templates.
 
 Usage:
-    kitty-tool generate [--verbose] [-s SKIP] [-c COUNT] [-o OUTDIR] [-f FILENAME_TEMPLATE] <FILE> <TEMPLATE>
+    kitty-tool generate [--verbose] [-s SKIP] [-c COUNT] [-o OUTDIR] [-f FORMAT] <FILE> <TEMPLATE>
     kitty-tool list <FILE>
     kitty-tool --version
 
@@ -35,12 +35,12 @@ Options:
     --skip -s SKIP          how many mutations to skip [default: 0]
     --count -c COUNT        end index to generate
     --verbose -v            verbose output
-    --filename-template -f TEMPLATE  name template of generated files [default: %(template)s.%(index)s.bin]
+    --filename-format -f FORMAT format for generated file names [default: %(template)s.%(index)s.bin]
     --version               print version and exit
     --help -h               print this help and exit
 
-File name templates:
-    You can control the name of an output file by giving a filename template,
+File name formats:
+    You can control the name of an output file by giving a filename format,
     it follows python's dictionary format string.
     The available keywords are:
         template - the template name
@@ -172,7 +172,6 @@ class ListHandler(Handler):
 
 def _main():
     opts = docopt.docopt(__doc__, version=get_distribution('kittyfuzzer').version)
-    print(opts)
     logger = get_logger(opts)
     try:
         if opts['generate']:
@@ -183,7 +182,7 @@ def _main():
                     opts['--skip'],
                     opts['--count'],
                     opts['<TEMPLATE>'],
-                    opts['--filename-template'],
+                    opts['--filename-format'],
                     logger
                 ),
                 logger
