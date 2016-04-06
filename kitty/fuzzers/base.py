@@ -75,7 +75,7 @@ class BaseFuzzer(KittyObject):
         self._fuzz_path = None
         self._fuzz_node = None
         self._last_payload = None
-        self._do_environment_test = True
+        self._skip_env_test = False
         self._in_environment_test = True
         self._handle_options(option_line)
 
@@ -116,7 +116,17 @@ class BaseFuzzer(KittyObject):
                 self.set_delay_between_tests(float(delay))
             skip_env_test = options['--no-env-test']
             if skip_env_test:
-                self._do_environment_test = False
+                self._skip_env_test = True
+
+    def set_skip_env_test(self, skip_env_test=True):
+        '''
+        Set whether to skip the environment test.
+        Call this if the environment test cannot pass
+        and you prefer to start the tests without it.
+
+        :param skip_env_test: skip the environment test (default: True)
+        '''
+        self._skip_env_test = skip_env_test
 
     def set_delay_duration(self, delay_duration):
         '''
@@ -241,11 +251,11 @@ class BaseFuzzer(KittyObject):
             self._start_message()
             self.target.setup()
             start_index = self.session_info.current_index
-            if self._do_environment_test:
+            if self._skip_env_test:
+                self.logger.info('Skipping environment test')
+            else:
                 self.logger.info('Performing environment test')
                 self._test_environment()
-            else:
-                self.logger.info('Skipping environment test')
             self._in_environment_test = False
             self.session_info.current_index = start_index
             self.model.skip(self.session_info.current_index)
