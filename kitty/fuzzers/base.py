@@ -293,9 +293,9 @@ class BaseFuzzer(KittyObject):
         self.dataman.set('template_info', template_info)
 
     def _pre_test(self):
+        self._update_test_info()
         self.session_info.current_index = self.model.current_index()
         self.target.pre_test(self.model.current_index())
-        self._update_test_info()
 
     def _post_test(self):
         '''
