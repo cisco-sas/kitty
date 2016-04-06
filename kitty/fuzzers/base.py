@@ -92,7 +92,7 @@ class BaseFuzzer(KittyObject):
             These are the options to the kitty fuzzer object, not the options to the runner.
 
             Usage:
-                fuzzer [--session=<session-file>] [--start=<start-index>] [--end=<end-index>] [--delay=<delay>] [--no-env-test]
+                fuzzer [options]
 
             Options:
                 -d --delay <delay>              delay between tests in secodes, float number
