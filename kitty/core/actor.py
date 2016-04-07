@@ -72,11 +72,14 @@ class KittyActor(KittyObject):
         self.report.add('start_time', time.time())
         self.report.add('test_number', self.test_number)
         self.report.add('state', 'pre_test')
+        last_log = 0
         while not self.is_victim_alive():
-            self.logger.warn('waiting for target to be alive')
+            if time.time() - last_log >= 10:
+                last_log = time.time()
+                self.logger.warn('waiting for target to be alive')
             time.sleep(self.victim_alive_check_delay)
         else:
-            self.logger.info('target is not alive')
+            self.logger.info('target is now alive')
 
     def post_test(self):
         '''
