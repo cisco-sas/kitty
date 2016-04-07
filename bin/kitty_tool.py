@@ -35,7 +35,7 @@ Options:
     --skip -s SKIP          how many mutations to skip [default: 0]
     --count -c COUNT        end index to generate
     --verbose -v            verbose output
-    --filename-format -f FORMAT format for generated file names [default: %(template)s.%(index)s.bin]
+    --filename-format -f FORMAT  format for generated file names [default: %(template)s.%(index)s.bin]
     --version               print version and exit
     --help -h               print this help and exit
 
