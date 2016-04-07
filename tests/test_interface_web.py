@@ -71,8 +71,8 @@ class WebInterfaceTest(BaseTestCase):
 
     def _webGetReportList(self):
         resp = self._webGetStats()
-        self.assertIn('reports', resp)
-        reports = resp['reports']
+        self.assertIn('reports_extended', resp)
+        reports = resp['reports_extended']
         return reports
 
     def _runFuzzerWithReportList(self, uut, report_list):
@@ -91,7 +91,7 @@ class WebInterfaceTest(BaseTestCase):
         uut = WebInterface(host=self.host, port=self.port)
         report_list.sort()
         self._runFuzzerWithReportList(uut, report_list)
-        actual_report_list = self._webGetReportList()
+        actual_report_list = [x[0] for x in self._webGetReportList()]
         self.assertListEqual(actual_report_list, report_list)
 
     def testStatsApiReportListEmpty(self):

@@ -31,6 +31,7 @@ class KittyObject(object):
     '''
 
     _logger = None
+    log_file_name = './kittylogs/kitty_%s.log' % (time.strftime("%Y%m%d-%H%M%S"),)
 
     @classmethod
     def get_logger(cls):
@@ -39,21 +40,37 @@ class KittyObject(object):
         '''
         if KittyObject._logger is None:
             logger = logging.getLogger('kitty')
-            formatter = logging.Formatter(
-                '[%(asctime)s] [%(levelname)s] [%(module)s.%(funcName)s] -> %(message)s'
-            )
-            logger.setLevel(logging.DEBUG)
+            logger.setLevel(logging.INFO)
             consolehandler = logging.StreamHandler()
-            consolehandler.setFormatter(formatter)
+            console_format = logging.Formatter('[%(levelname)-8s][%(module)s.%(funcName)s] %(message)s')
+            consolehandler.setFormatter(console_format)
             logger.addHandler(consolehandler)
             if not os.path.exists('./kittylogs'):
                 os.mkdir('./kittylogs')
-            timestr = time.strftime("%Y%m%d-%H%M%S")
-            filehandler = logging.FileHandler('./kittylogs/kitty_%s.log' % (timestr,))
-            filehandler.setFormatter(formatter)
+            filehandler = logging.FileHandler(KittyObject.log_file_name)
+            file_format = logging.Formatter('[%(asctime)s] [%(levelname)s] [%(module)s.%(funcName)s] -> %(message)s')
+            filehandler.setFormatter(file_format)
             logger.addHandler(filehandler)
             KittyObject._logger = logger
         return KittyObject._logger
+
+    @classmethod
+    def get_log_file_name(cls):
+        return KittyObject.log_file_name
+
+    @classmethod
+    def set_verbosity(cls, verbosity):
+        '''
+        Set verbosity of logger
+
+        :param verbosity: verbosity level. currently, we only support 1 (logging.DEBUG)
+        '''
+        if verbosity > 0:
+            # currently, we only toggle between INFO, DEBUG
+            logger = KittyObject.get_logger()
+            levels = [logging.DEBUG]
+            verbosity = min(verbosity, len(levels)) - 1
+            logger.setLevel(levels[verbosity])
 
     def __init__(self, name, logger=None):
         '''

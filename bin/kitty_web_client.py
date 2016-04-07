@@ -57,7 +57,7 @@ class KittyWebApi(object):
         '''
         Get list of report ids
         '''
-        return self.get_stats()['reports']
+        return self.get_stats()['reports_extended']
 
     def get_reports(self, report_ids):
         '''
@@ -87,7 +87,7 @@ def cmd_report_store(options, web):
     folder = './%s' % folder
     if not os.path.exists(folder):
         os.mkdir(folder)
-    ids = web.get_report_list()
+    ids = [x[0] for x in web.get_report_list()]
     reports = web.get_reports(ids)
     for (rid, report) in reports.items():
         with open('%s/report_%d.json' % (folder, rid), 'w') as f:
@@ -153,10 +153,10 @@ def cmd_info(options, web):
         pad = ' ' * (max_len - len(k))
         print('%s:%s %s' % (k, pad, v))
     if options['--verbose']:
-        reports = resp['reports']
+        reports = resp['reports_extended']
         print
         print('--- Report list ---')
-        print(','.join('%s' % i for i in reports))
+        print('\n'.join('%-10s %-10s %s' % tuple(report) for report in reports))
 
 
 def _main():

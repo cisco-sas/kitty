@@ -259,13 +259,13 @@
                 });    
             }
         }
-        reports = null;
     }
 
     function getAllReports() {
         /* Fetch all reports, return a dictionary - testname/report */
         var res = {};
-        $.each(state.reports, function(index, test_number){
+        $.each(state.reports, function(index, entry){
+            var test_number = entry[0];
             var report = $.ajax({
                 type: 'GET',
                 url: '../api/report?report_id=' + test_number,
@@ -291,7 +291,7 @@
         saveAs(content, filename);
     }
 
-    function setPauseState(paused) {
+    function updatePauseState(paused) {
         if(paused != state.paused)
         {
             var btn_text = (paused == true) ? 'Resume' : 'Pause';
@@ -310,7 +310,7 @@
             $('#' + field).text(state[field]);
         }
     }
-    function updateStatsTable(stats) {
+    function updateStats(stats) {
         if(stats.start_time != state.start_time)
         {
             updateFieldFromDict('kitty_version', stats)
@@ -399,7 +399,7 @@
         return res;
     }        
 
-    function setProgress(stats, eta) {
+    function updateProgress(stats, eta) {
         var start = stats.start_index;
         var end = stats.end_index;
         var current = stats.current_index;
@@ -437,9 +437,9 @@
     function processResponse(data) {
         if($('#error_message').is(":visible"))
             $('#error_message').hide({duration: 'fast', easing: 'linear'});
-        setPauseState(data.paused);
-        updateStatsTable(data.stats);
-        setProgress(data.stats, data.eta);
+        updatePauseState(data.paused);
+        updateStats(data.stats);
+        updateProgress(data.stats, data.eta);
         updateTemplateStructure(data.current_test);
         updateFuzzingStage(data.current_test);
         updateCurrentPayload(data.current_test);
@@ -457,7 +457,7 @@
         $.getJSON('api/stats.json', processResponse).fail(handleFailure);
     }
 
-    setPauseState(false);
+    updatePauseState(false);
     state.reports = new Array();
     performUpdate();
 
