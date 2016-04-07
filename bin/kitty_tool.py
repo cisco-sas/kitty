@@ -35,7 +35,7 @@ Options:
     --skip -s SKIP          how many mutations to skip [default: 0]
     --count -c COUNT        end index to generate
     --verbose -v            verbose output
-    --filename-format -f FORMAT format for generated file names [default: %(template)s.%(index)s.bin]
+    --filename-format -f FORMAT  format for generated file names [default: %(template)s.%(index)s.bin]
     --version               print version and exit
     --help -h               print this help and exit
 
@@ -150,7 +150,12 @@ class FileGeneratorHandler(Handler):
         if template_name == self.template_name:
             self.logger.info('Generating mutation files from template %s into %s' % (template_name, os.path.abspath(self.outdir)))
             template.skip(self.skip)
-            self.end_index = template.num_mutations() if not self.count else (self.skip + self.count - 1)
+            self.end_index = template.num_mutations() if not self.count else self.skip + self.count
+            self.end_index = min(self.end_index, template.num_mutations()) - 1
+            if self.end_index < 0:
+                raise Exception('No mutations to generate, are you sure about the count ??')
+            if self.skip > template.num_mutations():
+                raise Exception('No mutations to generate, you skipped over the entire template')
             self.logger.info('Mutation range: %s-%s' % (self.skip, self.end_index))
             while template.mutate():
                 template_filename = self.filename_template % {'template': template_name, 'index': template._current_index}
