@@ -182,6 +182,13 @@ class DataManager(Thread):
         return self._reports.get_report_test_ids()
 
     @synced
+    def get_report_list(self):
+        '''
+        :return: list of tuples [(report id, status, reason) ..]
+        '''
+        return self._reports.get_report_list()
+
+    @synced
     def get_report_by_id(self, report_id):
         '''
         :param report_id: if of report to get
@@ -318,6 +325,8 @@ class ReportsTable(Table):
         ('id', 'INTEGER PRIMARY KEY'),
         ('test_id', 'INT'),
         ('content', 'BLOB'),
+        ('status', 'BLOB'),
+        ('reason', 'BLOB'),
     ]
 
     def __init__(self, connection, cursor):
@@ -336,8 +345,8 @@ class ReportsTable(Table):
         report_d = report.to_dict()
         content = self._serialize_dict(report_d)
         report_id = self.insert(
-            ['test_id', 'content'],
-            [test_id, content]
+            ['test_id', 'content', 'status', 'reason'],
+            [test_id, content, report.get_status(), report.get('reason')],
         )
         return report_id
 
@@ -365,6 +374,16 @@ class ReportsTable(Table):
         res = []
         for row in self._cursor.fetchall():
             res.append(row[0])
+        return res
+
+    def get_report_list(self):
+        '''
+        :return: ids of test reports
+        '''
+        self.select('test_id, status, reason')
+        res = []
+        for row in self._cursor.fetchall():
+            res.append((row[0], row[1], row[2]))
         return res
 
     def _serialize_dict(self, data):

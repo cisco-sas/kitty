@@ -33,6 +33,10 @@ class Report(object):
             report.failed('target does not respont')
     '''
 
+    PASSED = 'passed'
+    FAILED = 'failed'
+    ERROR = 'error'
+
     def __init__(self, name, default_failed=False):
         '''
         :param name: name of the report (or the issuer)
@@ -52,7 +56,7 @@ class Report(object):
         '''
         self._data_fields = {}
         self._sub_reports = {}
-        self.add('failed', self._default_failed)
+        self.set_status(Report.FAILED if self._default_failed else Report.PASSED)
         self.add('name', self._name)
         self.add('sub_reports', [])
 
@@ -66,19 +70,32 @@ class Report(object):
         '''
         Set the failure status to False.
         '''
-        self.add('failed', False)
-        if 'failure_reason' in self._data_fields:
-            del self._data_fields['failure_reason']
+        self.set_status(Report.PASSED)
+        if 'reason' in self._data_fields:
+            del self._data_fields['reason']
 
     def failed(self, reason=None):
         '''
-        Set the failure status to True, and set the failure reason
+        Set the test status to Report.FAILED, and set the failure reason
 
         :param reason: failure reason (default: None)
         '''
-        self.add('failed', True)
+        self.set_status(Report.FAILED)
         if reason:
-            self.add('failure_reason', reason)
+            self.add('reason', reason)
+
+    def error(self, reason=None):
+        '''
+        Set the test status to Report.ERROR, and set the error reason
+
+        :param reason: failure reason (default: None)
+        '''
+        self.set_status(Report.ERROR)
+        if reason:
+            self.add('reason', reason)
+
+    def set_status(self, new_status):
+        self.add('status', new_status.lower())
 
     def add(self, key, value):
         '''
@@ -148,7 +165,7 @@ class Report(object):
         :return: Report object
         '''
         report = Report(Report._decode(d['name'], encoding))
-        report.add('failed', Report._decode(d['failed'], encoding))
+        report.set_status(Report._decode(d['status'], encoding))
         sub_reports = Report._decode(d['sub_reports'], encoding)
         del d['sub_reports']
         for k, v in d.items():
@@ -159,11 +176,31 @@ class Report(object):
 
         return report
 
+    def get_status(self):
+        '''
+        Get the status of the report and its sub-reports.
+
+        :rtype: str
+        :return: report status ('passed', 'failed' or 'error')
+        '''
+        status = self.get('status')
+        if status == Report.PASSED:
+            for sr_name in self._sub_reports:
+                sr = self._sub_reports[sr_name]
+                sr_status = sr.get_status()
+                reason = sr.get('reason')
+                if sr_status == Report.ERROR:
+                    self.error(reason)
+                    break
+                if sr_status == Report.FAILED:
+                    self.failed(reason)
+                    break
+            status = self.get('status')
+        return status
+
     def is_failed(self):
         '''
-        :return: True if the report or any sub report indicates failure.
+        .. deprecated::
+            use :func:`~kitty.data.report.Report.is_failed`
         '''
-        failed = self.get('failed')
-        for subreport in self._sub_reports.values():
-            failed |= subreport.is_failed()
-        return failed
+        raise NotImplementedError('API was changed, use get_status instead')

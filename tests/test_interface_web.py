@@ -78,7 +78,7 @@ class WebInterfaceTest(BaseTestCase):
     def _runFuzzerWithReportList(self, uut, report_list):
         config = {}
         for report_id in report_list:
-            config[str(report_id)] = {'report': {'failed': True}}
+            config[str(report_id)] = {'report': {'status': 'failed', 'reason': 'failure reason'}}
 
         self.fuzzer.set_interface(uut)
 

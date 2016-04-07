@@ -90,8 +90,15 @@
                                 Reports (<span id="failure_count" style="align:right;"></span>)
                             </div>
                             <!-- TODO: replace with actual implementation -->
-                            <div class="unknown-data-size" id="report-list">
-                                <lu id="reports" class="list-group"></lu>
+                            <div class="unknown-data-size" id="report-table">
+                                <table id="reports" class="table table-bordered table-striped">
+                                    <colgroup>
+                                        <col class="col-lg-2"/>
+                                    </colgroup>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                                <!--<lu id="reports" class="list-group"></lu>-->
                             </div>
                             <button id="export_all" type="button" class="btn btn-danger" onclick="exportAllReports()">Export All reports</button>
                         </div>
@@ -174,18 +181,20 @@
 
     };
 
-    function updateStageGraph() {
-        var resp = $.ajax({
-                type: 'GET',
-                url: '../api/stages.json',
-                async: false
-            }).responseJSON;
+    function triggerStageGraphUpdate() {
+        $.getJSON('../api/stages.json', updateStageGraph);
+    }
+    
+    function updateStageGraph(resp) {
         var curr_path = resp.current;
         var all_stages = resp.stages;
+        /* Gather a list of all nodes in current path */
+        if(state.current_path === curr_path.toString())
+            return;
+        state.current_path = curr_path.toString();
         var elements = {};
         elements.nodes = new Array();
         elements.edges = new Array();
-        /* Gather a list of all nodes in current path */
         curr_path.unshift('Start');
         $.each(curr_path, function(idx, value){
             elements.nodes.push({data: {id: value}, classes: 'highlighted'});
@@ -200,8 +209,6 @@
             $.each(v, function(idx, value){
                 /* highlight the edge if it is in current path */
                 var classes = '';
-
-
                 if(
                     (curr_path.indexOf(value) != -1) &&
                     (curr_path.indexOf(k) != -1) &&
@@ -234,14 +241,23 @@
     }
     
     function updateReports(reports) {
-        $('#reports a').remove();
-        if (reports.length > 0) {
-            reports.sort(function(a, b){return a-b});
-            $.each(reports, function(index, test_number) {
-                var link = '<a href="static/report.html?report_id=' + test_number + '" class="list-group-item list-group-item-danger">Report #' + test_number + '</a>';
-                $(link).appendTo('#reports');
-                state.reports.push(test_number);
-            });    
+        $('#reports tr').remove();
+        if(reports != state.reports) {
+            state.reports = reports;
+            if (reports.length > 0) {
+                reports.sort(function(a, b){return a[0]-b[0]});
+                var tbody = $('#reports').find('tbody');
+                $.each(reports, function(index, entry) {
+                    var test_number = entry[0];
+                    tbody.append($('<tr>')
+                        .append($('<td>').text(test_number))
+                        .append($('<td>').text(entry[1]))
+                        .append($('<td>').text(entry[2]))
+                        .attr('onclick', "document.location = '" + "static/report.html?report_id=" + test_number +"';")
+                        .attr('style', 'cursor: pointer;')
+                    );
+                });    
+            }
         }
         reports = null;
     }
@@ -413,8 +429,8 @@
     function updateFuzzingStage(test_details){
         if(test_details['sequence/current'] != state.current_sequence)
         {
-            updateStageGraph();
             test_details['sequence/current'] = state.current_sequence;
+            triggerStageGraphUpdate();
         }
     }
 
@@ -427,7 +443,7 @@
         updateTemplateStructure(data.current_test);
         updateFuzzingStage(data.current_test);
         updateCurrentPayload(data.current_test);
-        updateReports(data.reports);
+        updateReports(data.reports_extended);
         setTimeout(performUpdate, 3000);
     }
 
