@@ -181,18 +181,20 @@
 
     };
 
-    function updateStageGraph() {
-        var resp = $.ajax({
-                type: 'GET',
-                url: '../api/stages.json',
-                async: false
-            }).responseJSON;
+    function triggerStageGraphUpdate() {
+        $.getJSON('../api/stages.json', updateStageGraph);
+    }
+    
+    function updateStageGraph(resp) {
         var curr_path = resp.current;
         var all_stages = resp.stages;
+        /* Gather a list of all nodes in current path */
+        if(state.current_path === curr_path.toString())
+            return;
+        state.current_path = curr_path.toString();
         var elements = {};
         elements.nodes = new Array();
         elements.edges = new Array();
-        /* Gather a list of all nodes in current path */
         curr_path.unshift('Start');
         $.each(curr_path, function(idx, value){
             elements.nodes.push({data: {id: value}, classes: 'highlighted'});
@@ -427,8 +429,8 @@
     function updateFuzzingStage(test_details){
         if(test_details['sequence/current'] != state.current_sequence)
         {
-            updateStageGraph();
             test_details['sequence/current'] = state.current_sequence;
+            triggerStageGraphUpdate();
         }
     }
 
