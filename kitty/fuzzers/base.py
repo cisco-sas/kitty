@@ -20,6 +20,7 @@ import time
 import traceback
 import shlex
 import docopt
+import logging
 from threading import Event
 from kitty.core import KittyException, KittyObject
 from kitty.data.data_manager import DataManager, SessionInfo
@@ -92,7 +93,7 @@ class BaseFuzzer(KittyObject):
             These are the options to the kitty fuzzer object, not the options to the runner.
 
             Usage:
-                fuzzer [options]
+                fuzzer [options] [-v ...]
 
             Options:
                 -d --delay <delay>              delay between tests in secodes, float number
@@ -100,6 +101,7 @@ class BaseFuzzer(KittyObject):
                 -f --session <session-file>     session file name to use
                 -s --start <start-index>        fuzzing start index, ignored if session-file loaded
                 -n --no-env-test                don't perform environment test before the fuzzing session
+                -v --verbose                    be more verbose in the log
             '''
             options = docopt.docopt(usage, shlex.split(option_line))
             s = options['--start']
@@ -116,7 +118,9 @@ class BaseFuzzer(KittyObject):
                 self.set_delay_between_tests(float(delay))
             skip_env_test = options['--no-env-test']
             if skip_env_test:
-                self._skip_env_test = True
+                self.set_skip_env_test(True)
+            verbosity = options['--verbose']
+            self.set_verbosity(verbosity)
 
     def set_skip_env_test(self, skip_env_test=True):
         '''
@@ -332,6 +336,7 @@ class BaseFuzzer(KittyObject):
                  Starting fuzzing session
                  Target: %s
                  UI: %s
+                 Log: %s
 
                  Total possible mutation count: %d
                  Fuzzing the mutation range: %d to %d
@@ -341,6 +346,7 @@ class BaseFuzzer(KittyObject):
                          ''',
                          self.target.get_description(),
                          self.user_interface.get_description(),
+                         self.get_log_file_name(),
                          self.model.num_mutations(),
                          self.session_info.current_index,
                          self.session_info.end_index
@@ -367,9 +373,12 @@ class BaseFuzzer(KittyObject):
                          )
 
     def _test_info(self):
-        self.logger.info('----------------------------------------------')
         fuzz_node_info = self.model.get_test_info()
+        self.logger.info('Current test: %s' % self.model.current_index())
+        self.logger.debug('----------------------------------------------')
         keys = sorted(fuzz_node_info.keys())
+        keys = [k for k in keys if k.startswith('node/field')]
+        keys = [k for k in keys if type(fuzz_node_info[k]) != bool]
         key_max_len = 0
         for key in keys:
             if len(key) > key_max_len:
@@ -380,8 +389,8 @@ class BaseFuzzer(KittyObject):
             pad = ' ' * (key_max_len - len(k) + 1)
             if len(v) > 70:
                 v = v[:70] + '...'
-            self.logger.info('%s:%s%s' % (k, pad, v))
-        self.logger.info('----------------------------------------------')
+            self.logger.debug('%s:%s%s' % (k, pad, v))
+        self.logger.debug('----------------------------------------------')
 
     def _check_pause(self):
         if not self._continue_event.is_set():
@@ -446,6 +455,7 @@ class BaseFuzzer(KittyObject):
         self.dataman.start()
         if self.model:
             self.handle_stage_changed(self.model)
+        self.dataman.set('log_file_name', self.get_log_file_name())
         info = self._get_session_info()
         if info:
             self.logger.info('Loaded session from DB')
