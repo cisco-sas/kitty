@@ -118,7 +118,7 @@ position: relative;
 
 #export_all { width:100%; position: absolute; left:0px; bottom: 0px; overflow: hidden;}
 
-#report-list {
+#report-table {
   width:100%; position: absolute; left:0px; bottom: 34px; top: 41px; overflow: auto;  
 }
 

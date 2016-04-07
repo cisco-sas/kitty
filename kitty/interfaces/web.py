@@ -170,12 +170,14 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         stats = session_info.as_dict()
         stats['fuzzer_name'] = self.dataman.get('fuzzer_name')
         stats['session_file_name'] = self.dataman.get('session_file_name')
+        report_list = self.dataman.get_report_list()
         resp_dict = {
             'paused': is_paused,
             'eta': eta_s,
             'stats': stats,
             'current_test': self.dataman.get('test_info'),
-            'reports': self.dataman.get_report_test_ids(),
+            'reports': [r[0] for r in report_list],
+            'reports_extended': report_list,
         }
         return json.dumps(resp_dict)
 
