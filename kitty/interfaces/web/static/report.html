@@ -23,7 +23,8 @@
                     <div class="panel-heading">Main Report</div>
                     <table id="main_report_table" class="table table-hover table-striped table-bordered info-table">
                         <tr><td>Issuer</td><td id="main_report_name"></td></tr>
-                        <tr><td>Failed</td><td id="main_report_failed"></td></tr>
+                        <tr><td>Status</td><td id="main_report_status"></td></tr>
+                        <tr><td>Reason</td><td id="main_report_reason"></td></tr>
                         <tr><td>Fuzz Path</td><td id="main_report_fuzz_path"></td></tr>
                     </table>
                 </div>
@@ -92,8 +93,9 @@
 
         function create_table(name, title) {
             var row1 = '<tr><td>Issuer</td><td id="' + name +'_name"></td></tr>';
-            var row2 = '<tr><td>Failed</td><td id="' + name +'_failed"></td></tr>';
-            var table = '<table id="' + name + '_table" class="table table-hover table-striped table-bordered info-table">' + row1 + row2 + '</table>';
+            var row2 = '<tr><td>Status</td><td id="' + name +'_status"></td></tr>';
+            var row3 = '<tr><td>Reason</td><td id="' + name +'_reason"></td></tr>';
+            var table = '<table id="' + name + '_table" class="table table-hover table-striped table-bordered info-table">' + row1 + row2 + row3 + '</table>';
             var heading = '<div class="panel-heading">' + title + '</div>';
             var panel = '<div class="panel panel-danger">' + heading + table + '</div>';
             var wrap = '<tr><td>' + panel + '</td></tr>';
@@ -106,12 +108,12 @@
             var report = response.report;
             var sub_reports = report.sub_reports; //JSON.parse(window.atob(report.sub_reports));
             $('#report_name').text('Report for test #' + report_num);
-            fill_table('main_report', report, ['name', 'failed', 'fuzz_path']);
+            fill_table('main_report', report, ['name', 'status', 'reason', 'fuzz_path']);
             sub_reports.sort();
             $.each(sub_reports, function(idx, val){
                 subrep = report[val]
                 create_table(sanitizeName(val), toTitleCase(val));
-                fill_table(sanitizeName(val), subrep, ['name', 'failed']);
+                fill_table(sanitizeName(val), subrep, ['name', 'status', 'reason']);
             });
         }
 
