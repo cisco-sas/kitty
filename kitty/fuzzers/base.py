@@ -304,13 +304,14 @@ class BaseFuzzer(KittyObject):
         failure_detected = False
         self.target.post_test(self.model.current_index())
         report = self._get_report()
+        status = report.get_status()
         if self._in_environment_test:
-            return report.is_failed()
-        if report.is_failed():
-            self.logger.error('!! Failure detected !!')
+            return status != Report.PASSED
+        if status != Report.PASSED:
             self._store_report(report)
             self.user_interface.failure_detected()
             failure_detected = True
+            self.logger.warn('!! Failure detected !!')
         elif self.config.store_all_reports:
             self._store_report(report)
         if failure_detected:
@@ -318,8 +319,7 @@ class BaseFuzzer(KittyObject):
         self._store_session()
         if self.config.delay_secs:
             self.logger.debug('delaying for %f seconds', self.config.delay_secs)
-        time.sleep(self.config.delay_secs)
-        self.logger.debug('failure_detected=%d', failure_detected)
+            time.sleep(self.config.delay_secs)
         return failure_detected
 
     def _get_report(self):

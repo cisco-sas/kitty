@@ -160,7 +160,7 @@ class TestClientFuzzer(unittest.TestCase):
         config = {
             '13': {
                 'report': {
-                    'failed': True
+                    'status': 'failed', 'reason': 'failure reason'
                 }
             }
         }
@@ -176,10 +176,10 @@ class TestClientFuzzer(unittest.TestCase):
 
     def testAllFailedTestsHaveReports(self):
         config = {
-            '10': {'report': {'failed': True}},
-            '11': {'report': {'failed': True}},
-            '12': {'report': {'failed': True}},
-            '13': {'report': {'failed': True}}
+            '10': {'report': {'status': 'failed', 'reason': 'failure reason'}},
+            '11': {'report': {'status': 'failed', 'reason': 'failure reason'}},
+            '12': {'report': {'status': 'failed', 'reason': 'failure reason'}},
+            '13': {'report': {'status': 'failed', 'reason': 'failure reason'}}
         }
         config.update(self.default_config)
         target = ClientTargetMock(config, self.default_callback, logger=self.logger)

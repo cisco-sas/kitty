@@ -98,10 +98,11 @@ class BaseTarget(KittyObject):
         for monitor in self.monitors:
             current_report = monitor.get_report()
             self.report.add(current_report.get('name'), current_report)
-        if self.report.is_failed():
-            self.report.failed()
-        if self.report.is_failed():
-            self.logger.warning('!!! Test %d failed !!!' % (test_num))
+        status = self.report.get_status()
+        reason = self.report.get('reason')
+        if status != Report.PASSED:
+            self.logger.warning('Test %d status: %s' % (test_num, status))
+            self.logger.warning('Reason: %s' % (reason))
 
     def get_report(self):
         return self.report
