@@ -20,9 +20,10 @@
 Tests for complex, full templates.
 '''
 from kitty.model.low_level.field import Static, String, Delimiter, BitField, Group, Dynamic
-from kitty.model.low_level.field import RandomBits, RandomBytes, Calculated, CalculatedBits
-from kitty.model.low_level.field import Clone, CalculatedStr, Hash, CalculatedInt
-from kitty.model.low_level.field import ElementCount, IndexOf, Checksum, Size
+from kitty.model.low_level.field import RandomBits, RandomBytes
+from kitty.model.low_level.calculated import Calculated, CalculatedBits
+from kitty.model.low_level.calculated import Clone, CalculatedStr, Hash, CalculatedInt
+from kitty.model.low_level.calculated import ElementCount, IndexOf, Checksum, Size
 from kitty.model.low_level.container import Container, ForEach, Conditional, If, IfNot
 from kitty.model.low_level.container import Meta, Pad, Repeat, OneOf, TakeFrom, Template
 from kitty.model.low_level.container import Trunc
