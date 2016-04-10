@@ -12,7 +12,7 @@ AUTHOR = 'Cisco SAS team'
 EMAIL = 'kitty-fuzzer@googlegroups.com'
 URL = 'https://github.com/cisco-sas/kitty.git'
 DESCRIPTION = read('README.rst')
-
+KEYWORDS = 'fuzz,fuzzing,framework,sulley,kitty,kittyfuzzer,security'
 
 # python 3 - install only the remote package
 if sys.version_info >= (3,):
@@ -26,7 +26,7 @@ if sys.version_info >= (3,):
         url=URL,
         packages=['kitty/remote'],
         install_requires=['docopt', 'six', 'requests'],
-        keywords='fuzz framework sulley kitty remote',
+        keywords=KEYWORDS,
     )
 # python 2 - install full kitty framework
 else:
@@ -40,7 +40,7 @@ else:
         url=URL,
         packages=find_packages(),
         install_requires=['docopt', 'bitstring!=3.1.4', 'six', 'requests'],
-        keywords='fuzz framework sulley kitty',
+        keywords=KEYWORDS,
         entry_points={
             'console_scripts': [
                 'kitty-web-client=bin.kitty_web_client:_main',
