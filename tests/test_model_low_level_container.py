@@ -232,7 +232,7 @@ class ContainerTest(BaseTestCase):
                 self.assertEqual(container.get_rendered_fields(), [])
 
     @metaTest
-    def testSetOffsetPersist(self):
+    def _testSetOffsetPersist(self):
         offset = 1000
         uut = Container(name='uut', fields=[String('abc'), String('def')])
         uut.set_offset(offset)

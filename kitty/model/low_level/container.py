@@ -97,32 +97,6 @@ class Container(BaseField):
         res = super(Container, self).num_mutations()
         return res
 
-    def set_offset(self, offset=None, ctx=None):
-        '''
-        Set the offset of the container
-
-        :param offset: the offset to set
-        :param ctx: rendering context in which the method was called
-        :return: the length of the container
-        '''
-        if offset is None:
-            if self._enclosing is None:
-                offset = 0
-            else:
-                self._enclosing.set_offset(offset, ctx)
-                offset = self._offset
-        self._offset = offset
-        for field in self._fields:
-            offset += field.set_offset(offset, ctx)
-        return offset - self._offset
-
-    def get_length(self, ctx=None):
-        '''
-        :param ctx: rendering context in which the method was called
-        :return: the length of the field
-        '''
-        return self.set_offset(self._offset, ctx)
-
     def render(self, ctx=None):
         '''
         :param ctx: rendering context in which the method was called
@@ -133,20 +107,17 @@ class Container(BaseField):
         if ctx is None:
             ctx = RenderContext()
         ctx.push(self)
-        self.set_offset(self._offset, ctx)
         if self.is_default():
             self._current_rendered = self._default_rendered
             ctx.pop()
             return self._default_rendered
         rendered = BitArray()
-        offset = 0
         for field in self._fields:
             frendered = field.render(ctx)
             if not isinstance(frendered, Bits):
                 raise KittyException('the field %s:%s was rendered to type %s, you should probably wrap it with appropriate encoder' % (
                     field.get_name(), type(field), type(frendered)))
             rendered.append(frendered)
-            offset += len(frendered)
         self.set_current_value(rendered)
         ctx.pop()
         return self._current_rendered
@@ -541,20 +512,6 @@ class Conditional(Container):
             ctx.pop()
         return self._current_rendered
 
-    def set_offset(self, offset=None, ctx=None):
-        '''
-        Set the offset of the container
-
-        :param offset: the offset to set
-        :param ctx: rendering context in which the method was called
-        :return: the length of the container
-        '''
-        self._initialize()
-        if self._evaluate_condition(ctx):
-            return super(Conditional, self).set_offset(offset, ctx)
-        self._offset = offset
-        return 0
-
 
 class If(Conditional):
     '''
@@ -767,30 +724,6 @@ class OneOf(Container):
     def _initialize_default_buffer(self):
         self._default_rendered = self._fields[self._field_idx]._initialize_default_buffer()
         return self._default_rendered
-
-    def get_length(self, ctx):
-        return self._fields[self._field_idx].get_length(ctx)
-
-    def set_offset(self, offset, ctx=None):
-        '''
-        Set the offset of a field
-
-        :param offset: offset to set
-        :param ctx: rendering context in which the method was called
-        '''
-        if ctx is None:
-            ctx = RenderContext()
-        if offset is None:
-            if self._enclosing is None:
-                offset = 0
-            else:
-                self._enclosing.set_offset(offset, ctx)
-                offset = self._offset
-        self._offset = offset
-        ctx.push(self)
-        res = self._fields[self._field_idx].set_offset(offset, ctx)
-        ctx.pop()
-        return res
 
     def _calculate_mutations(self, num):
         '''

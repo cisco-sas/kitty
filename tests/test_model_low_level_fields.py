@@ -576,7 +576,7 @@ class ValueTestCase(BaseTestCase):
                 self.assertEqual(field.get_rendered_fields(), [])
 
     @metaTest
-    def testCorrectOffsetIsSetFirstFieldSingleLevel(self):
+    def _testCorrectOffsetIsSetFirstFieldSingleLevel(self):
         uut = self.get_default_field()
         con = Container(name='container', fields=[uut, String('abcd')])
         con.render()
@@ -586,7 +586,7 @@ class ValueTestCase(BaseTestCase):
             self.assertEqual(uut.get_offset(), 0)
 
     @metaTest
-    def testCorrectOffsetIsSetMiddleFieldSingleLevel(self):
+    def _testCorrectOffsetIsSetMiddleFieldSingleLevel(self):
         uut = self.get_default_field()
         first_field = String('Reykjavik', name='first_field')
         con = Container(name='container', fields=[first_field, uut])
@@ -597,7 +597,7 @@ class ValueTestCase(BaseTestCase):
             self.assertEqual(uut.get_offset(), len(first_field.render()))
 
     @metaTest
-    def testCorrectOffsetIsSetMiddleFieldMultiLevel(self):
+    def _testCorrectOffsetIsSetMiddleFieldMultiLevel(self):
         uut = self.get_default_field()
         first_field = String('Reykjavik', name='first_field')
         second_field = String('Kópavogur', name='second_field')
