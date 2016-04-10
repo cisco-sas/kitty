@@ -161,6 +161,8 @@ class Compare(FieldContidion):
         '<=': lambda x, y: x <= y,
         '==': lambda x, y: x == y,
         '!=': lambda x, y: x != y,
+        '&': lambda x, y: (x & y) == y,
+        '&=0': lambda x, y: (x & y) == 0,
     }
 
     def __init__(self, field, comp_type, comp_value):
@@ -183,7 +185,7 @@ class Compare(FieldContidion):
         super(Compare, self).__init__(field=field)
         self._comp_type = comp_type
         if comp_type in Compare._comparison_types:
-            if comp_type in ['<', '<=', '>', '>='] and isinstance(comp_value, str):
+            if comp_type not in ['==', '!='] and isinstance(comp_value, str):
                 raise KittyException('can\'t use comparison type "%s" with comparison value of type str' % comp_type)
             self._comp_fn = Compare._comparison_types[comp_type]
         else:

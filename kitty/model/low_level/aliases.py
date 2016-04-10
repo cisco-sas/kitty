@@ -88,6 +88,10 @@ Functions that provide simpler field creation API and name aliasing for convenie
     +-----------+-----------------------+
     | '<='      | LesserEqual, AtMost   |
     +-----------+-----------------------+
+    | '&'       | BitMaskSet            |
+    +-----------+-----------------------+
+    | '&=0'     | BitMaskNotSet         |
+    +-----------+-----------------------+
 '''
 from kitty.model.low_level.field import BitField
 from kitty.model.low_level.calculated import Size, Hash
@@ -308,6 +312,25 @@ def LesserEqual(field, comp_value):
     :rtype: :class:`~kitty.model.low_level.condition.Compare`
     '''
     return Compare(field, '<=', comp_value)
+
+
+def BitMaskSet(field, comp_value):
+    '''
+    Condition applies if the given bitmask is set in the value of the field
+
+    :rtype: :class:`~kitty.model.low_level.condition.Compare`
+    '''
+    return Compare(field, '&', comp_value)
+
+
+def BitMaskNotSet(field, comp_value):
+    '''
+    Condition applies if the given bitmask is equal to 0 in the value of the field
+
+    :rtype: :class:`~kitty.model.low_level.condition.Compare`
+    '''
+    return Compare(field, '&=0', comp_value)
+
 
 AtLeast = GreaterEqual
 AtMost = LesserEqual
