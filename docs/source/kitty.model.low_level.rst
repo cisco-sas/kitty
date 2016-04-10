@@ -12,6 +12,7 @@ Submodules
 .. toctree::
 
    kitty.model.low_level.aliases
+   kitty.model.low_level.calculated
    kitty.model.low_level.condition
    kitty.model.low_level.container
    kitty.model.low_level.encoder
