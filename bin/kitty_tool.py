@@ -157,6 +157,9 @@ class FileGeneratorHandler(Handler):
             if self.skip > template.num_mutations():
                 raise Exception('No mutations to generate, you skipped over the entire template')
             self.logger.info('Mutation range: %s-%s' % (self.skip, self.end_index))
+            total = (self.end_index - self.skip)
+            step = 100.0 / total
+#            step = max(step, 2)
             while template.mutate():
                 template_filename = self.filename_template % {'template': template_name, 'index': template._current_index}
                 with open(os.path.join(self.outdir, template_filename), 'wb') as f:
@@ -164,9 +167,13 @@ class FileGeneratorHandler(Handler):
                 metadata_filename = template_filename + '.metadata'
                 with open(os.path.join(self.outdir, metadata_filename), 'wb') as f:
                     f.write(dumps(template.get_info(), indent=4, sort_keys=True))
-                if self.count:
-                    if template._current_index >= self.end_index:
-                        break
+                sys.stdout.write('\r%d/%d' % (template._current_index, self.end_index))
+                sys.stdout.write('(%d%%)' % (int((total - (self.end_index - template._current_index)) * step)))
+                sys.stdout.flush()
+                if template._current_index >= self.end_index:
+                    break
+            sys.stdout.write('\n')
+            sys.stdout.flush()
 
 
 class ListHandler(Handler):
@@ -183,12 +190,12 @@ def _main():
             file_iter = FileIterator(
                 opts['<FILE>'],
                 FileGeneratorHandler(
-                    opts['--out'],
-                    opts['--skip'],
-                    opts['--count'],
-                    opts['<TEMPLATE>'],
-                    opts['--filename-format'],
-                    logger
+                    outdir=opts['--out'],
+                    skip=opts['--skip'],
+                    count=opts['--count'],
+                    template_name=opts['<TEMPLATE>'],
+                    filename_template=opts['--filename-format'],
+                    logger=logger
                 ),
                 logger
             )
