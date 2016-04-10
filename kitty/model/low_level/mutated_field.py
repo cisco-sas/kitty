@@ -356,7 +356,7 @@ class MutableField(OneOf):
         '''
         fields = []
         max_len_bytes = len(value)
-        fields.append(ByteFlips(value, bytes_range=filter(lambda x: x <= max_len_bytes, [1, 2, 4]), fuzzable=fuzzable, name='byteflips'))
+        fields.append(ByteFlips(value, bytes_range=[x for x in [1, 2, 4] if x <= max_len_bytes], fuzzable=fuzzable, name='byteflips'))
         fields.append(BitFlips(value, fuzzable=fuzzable, name='bitflips'))
         if max_len_bytes > 4:
             size = 4
