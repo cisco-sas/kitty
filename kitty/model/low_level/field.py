@@ -61,39 +61,11 @@ class BaseField(KittyObject):
         self._current_rendered = self._default_rendered
         self._current_index = -1
         self._enclosing = None
-        self._offset = None
         self._initialized = False
         self._hash = None
 
-    def set_offset(self, offset, ctx=None):
-        '''
-        Set the offset of the field
-
-        :param offset: the offset to set
-        :param ctx: rendering context in which the method was called
-        :return: the length of the container
-        '''
-        self._initialize()
-        self._offset = offset
-        return self.get_length(ctx)
-
     def _mutating(self):
         return self._current_index != -1
-
-    def get_offset(self):
-        '''
-        Get the offset of the field
-
-        :return: the length of the container
-        '''
-        return self._offset
-
-    def get_length(self, ctx):
-        '''
-        :param ctx: rendering context in which the method was called
-        :return: the length of the field
-        '''
-        return len(self.render(ctx))
 
     def set_current_value(self, value):
         '''
@@ -189,7 +161,6 @@ class BaseField(KittyObject):
         self._current_index = -1
         self._current_value = self._default_value
         self._current_rendered = self._default_rendered
-        self._offset = None if self._enclosing else 0
 
     def _mutate(self):
         '''
@@ -224,7 +195,6 @@ class BaseField(KittyObject):
         info['value/rendered/length/bits'] = len(self._current_rendered)
         info['value/rendered/length/bytes'] = len(self._current_rendered.tobytes())
         info['value/default'] = repr(self._default_value)
-        info['value/offset'] = self.get_offset()
         info['mutation/total number'] = self._num_mutations
         info['mutation/current index'] = self._current_index
         info['mutation/mutating'] = self._mutating()
