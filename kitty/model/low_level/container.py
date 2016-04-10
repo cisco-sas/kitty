@@ -284,7 +284,7 @@ class Container(BaseField):
 
         :return: info dictionary
         '''
-        field = self._get_current_field()
+        field = self._current_field()
         if field:
             info = field.get_info()
         else:
@@ -374,14 +374,6 @@ class Container(BaseField):
 
     def _calculate_mutations(self, num):
         self._num_mutations = num
-
-    def _get_current_field(self):
-        current_field = self._current_field()
-        if not current_field:
-            current_field = None
-        if isinstance(current_field, Container):
-            current_field = current_field._get_current_field()
-        return current_field
 
 
 class ForEach(Container):
