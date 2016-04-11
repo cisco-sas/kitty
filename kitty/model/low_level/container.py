@@ -104,21 +104,29 @@ class Container(BaseField):
         :return: rendered value of the container
         '''
         self._initialize()
+        render_count = 1
         if ctx is None:
             ctx = RenderContext()
+            if self._need_second_pass:
+                render_count = 2
         ctx.push(self)
         if self.is_default():
             self._current_rendered = self._default_rendered
-            ctx.pop()
-            return self._default_rendered
-        rendered = BitArray()
-        for field in self._fields:
-            frendered = field.render(ctx)
-            if not isinstance(frendered, Bits):
-                raise KittyException('the field %s:%s was rendered to type %s, you should probably wrap it with appropriate encoder' % (
-                    field.get_name(), type(field), type(frendered)))
-            rendered.append(frendered)
-        self.set_current_value(rendered)
+        else:
+            if self.offset is None:
+                self.offset = 0
+            for i in range(render_count):
+                offset = self.offset
+                rendered = BitArray()
+                for field in self._fields:
+                    field.set_offset(offset)
+                    frendered = field.render(ctx)
+                    if not isinstance(frendered, Bits):
+                        raise KittyException('the field %s:%s was rendered to type %s, you should probably wrap it with appropriate encoder' % (
+                            field.get_name(), type(field), type(frendered)))
+                    rendered.append(frendered)
+                    offset += len(rendered)
+                self.set_current_value(rendered)
         ctx.pop()
         return self._current_rendered
 
@@ -188,8 +196,10 @@ class Container(BaseField):
         Prepare to run (if not ready)
         '''
         num = 0
+        self._need_second_pass = False
         for field in self._fields:
             field._initialize()
+            self._need_second_pass |= field._need_second_pass
         for field in self._fields:
             num += field.num_mutations()
         self._calculate_mutations(num)
@@ -703,6 +713,8 @@ class OneOf(Container):
             ctx = RenderContext()
         ctx.push(self)
         self._initialize()
+        offset = self.offset if self.offset else 0
+        self._fields[self._field_idx].set_offset(offset)
         rendered = self._fields[self._field_idx].render(ctx)
         self.set_current_value(rendered)
         ctx.pop()

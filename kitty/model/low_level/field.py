@@ -63,6 +63,14 @@ class BaseField(KittyObject):
         self._enclosing = None
         self._initialized = False
         self._hash = None
+        self._need_second_pass = False
+        self.offset = None
+
+    def set_offset(self, offset):
+        self.offset = offset
+
+    def get_offset(self):
+        return self.offset
 
     def _mutating(self):
         return self._current_index != -1
@@ -161,6 +169,7 @@ class BaseField(KittyObject):
         self._current_index = -1
         self._current_value = self._default_value
         self._current_rendered = self._default_rendered
+        self.offset = None
 
     def _mutate(self):
         '''

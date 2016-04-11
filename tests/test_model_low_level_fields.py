@@ -27,8 +27,9 @@ from struct import unpack
 from kitty.model import String, Delimiter, RandomBits, RandomBytes, Dynamic, Static, Group
 from kitty.model import BitField, UInt8, UInt16, UInt32, UInt64, SInt8, SInt16, SInt32, SInt64
 from kitty.model import Clone, Size, SizeInBytes, Md5, Sha1, Sha224, Sha256, Sha384, Sha512
-from kitty.model import ElementCount, IndexOf
+from kitty.model import ElementCount, IndexOf, Offset, AbsoluteOffset
 from kitty.model import Container
+from kitty.model import ENC_INT_BE
 from kitty.core import KittyException
 import os
 
@@ -287,6 +288,124 @@ class SizeInBytesTest(CalculatedTestCase):
         value = field.render()
         self.bit_field.set_current_value(len(value.bytes))
         return self.bit_field.render()
+
+
+class OffsetTests(BaseTestCase):
+    __meta__ = False
+
+    def setUp(self):
+        super(OffsetTests, self).setUp(Offset)
+        self.frm = None
+        self.to = UInt32(name='to', value=1)
+        self.uut_len = 32
+        self.correction = 0
+        self.encoder = ENC_INT_BE
+        self.fuzzable = False
+        self.name = 'uut'
+
+    def get_uut(self):
+        return self.cls(
+            self.frm,
+            self.to,
+            self.uut_len,
+            correction=self.correction,
+            encoder=self.encoder,
+            fuzzable=self.fuzzable,
+            name=self.name
+        )
+
+    def testAbsoluteOffsetOfPostField(self):
+        uut = self.get_uut()
+        container = Container(name='container', fields=[uut, self.to])
+        container.render()
+        uut_rendered = uut.render()
+        uut_val = unpack('>I', uut_rendered.tobytes())[0]
+        self.assertEqual(len(uut_rendered), uut_val)
+        self.assertEqual(32, uut_val)
+
+    def testAbsoluteOffsetOfPostFieldFixed(self):
+        uut = self.get_uut()
+        container = Container(name='container', fields=[uut, self.to])
+        container.render()
+        uut_rendered = uut.render()
+        uut_val = unpack('>I', uut_rendered.tobytes())[0]
+        self.assertEqual(32, uut_val)
+
+    def testAbsoluteOffsetOfPreFieldAtTheBeginning(self):
+        uut = self.get_uut()
+        container = Container(name='container', fields=[self.to, uut])
+        container.render()
+        uut_rendered = uut.render()
+        uut_val = unpack('>I', uut_rendered.tobytes())[0]
+        self.assertEqual(0, uut_val)
+
+    def testAbsoluteOffsetOfPreFieldNotAtTheBeginning(self):
+        uut = self.get_uut()
+        pre_field = String(name='first', value='first')
+        container = Container(name='container', fields=[pre_field, self.to, uut])
+        while container.mutate():
+            container.render()
+            uut_rendered = uut.render()
+            uut_val = unpack('>I', uut_rendered.tobytes())[0]
+            self.assertEqual(len(pre_field.render()), uut_val)
+
+
+class AbsoluteOffsetTests(BaseTestCase):
+    __meta__ = False
+
+    def setUp(self):
+        super(AbsoluteOffsetTests, self).setUp(AbsoluteOffset)
+        self.to = UInt32(name='to', value=1)
+        self.uut_len = 32
+        self.correction = 0
+        self.encoder = ENC_INT_BE
+        self.fuzzable = False
+        self.name = 'uut'
+
+    def get_uut(self):
+        return self.cls(
+            self.to,
+            self.uut_len,
+            correction=self.correction,
+            encoder=self.encoder,
+            fuzzable=self.fuzzable,
+            name=self.name
+        )
+
+    def testAbsoluteOffsetOfPostField(self):
+        uut = self.get_uut()
+        container = Container(name='container', fields=[uut, self.to])
+        container.render()
+        uut_rendered = uut.render()
+        uut_val = unpack('>I', uut_rendered.tobytes())[0]
+        self.assertEqual(len(uut_rendered), uut_val)
+        self.assertEqual(32, uut_val)
+
+    def testAbsoluteOffsetOfPostFieldFixed(self):
+        uut = self.get_uut()
+        container = Container(name='container', fields=[uut, self.to])
+        container.render()
+        uut_rendered = uut.render()
+        uut_val = unpack('>I', uut_rendered.tobytes())[0]
+        self.assertEqual(32, uut_val)
+
+    def testAbsoluteOffsetOfPreFieldAtTheBeginning(self):
+        uut = self.get_uut()
+        container = Container(name='container', fields=[self.to, uut])
+        container.render()
+        uut_rendered = uut.render()
+        uut_val = unpack('>I', uut_rendered.tobytes())[0]
+        self.assertEqual(0, uut_val)
+
+    def testAbsoluteOffsetOfPreFieldNotAtTheBeginning(self):
+        uut = self.get_uut()
+        pre_field = String(name='first', value='first')
+        container = Container(name='container', fields=[pre_field, self.to, uut])
+        while container.mutate():
+            container.render()
+            uut_rendered = uut.render()
+            uut_val = unpack('>I', uut_rendered.tobytes())[0]
+            self.assertEqual(len(pre_field.render()), uut_val)
 
 
 class HashTests(CalculatedTestCase):
@@ -574,48 +693,6 @@ class ValueTestCase(BaseTestCase):
                 self.assertEqual(field.get_rendered_fields(), field_list)
             else:
                 self.assertEqual(field.get_rendered_fields(), [])
-
-    @metaTest
-    def _testCorrectOffsetIsSetFirstFieldSingleLevel(self):
-        uut = self.get_default_field()
-        con = Container(name='container', fields=[uut, String('abcd')])
-        con.render()
-        self.assertEqual(uut.get_offset(), 0)
-        while con.mutate():
-            con.render()
-            self.assertEqual(uut.get_offset(), 0)
-
-    @metaTest
-    def _testCorrectOffsetIsSetMiddleFieldSingleLevel(self):
-        uut = self.get_default_field()
-        first_field = String('Reykjavik', name='first_field')
-        con = Container(name='container', fields=[first_field, uut])
-        con.render()
-        self.assertEqual(uut.get_offset(), len(first_field.render()))
-        while con.mutate():
-            con.render()
-            self.assertEqual(uut.get_offset(), len(first_field.render()))
-
-    @metaTest
-    def _testCorrectOffsetIsSetMiddleFieldMultiLevel(self):
-        uut = self.get_default_field()
-        first_field = String('Reykjavik', name='first_field')
-        second_field = String('Kópavogur', name='second_field')
-        con = Container(
-            name='container',
-            fields=[
-                first_field,
-                Container(
-                    fields=[
-                        second_field,
-                        uut
-                    ]),
-            ])
-        con.render()
-        self.assertEqual(uut.get_offset(), len(first_field.render() + second_field.render()))
-        while con.mutate():
-            con.render()
-            self.assertEqual(uut.get_offset(), len(first_field.render() + second_field.render()))
 
     def _check_skip(self, field, to_skip, expected_skipped, expected_mutated):
         # print('_check_skip(%s, %s, %s, %s)' % (field, to_skip, expected_skipped, expected_mutated))

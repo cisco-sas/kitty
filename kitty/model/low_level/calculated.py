@@ -36,12 +36,19 @@ from kitty.core import KittyException, khash, kassert
 empty_bits = Bits()
 
 
+def num_bits_to_bytes(x):
+    return x / 8
+
+
 class Calculated(BaseField):
     '''
     A base type for fields that are calculated based on other fields
     '''
     _encoder_type_ = BitsEncoder
     _default_value_ = empty_bits
+    VALUE_BASED = 'value'
+    LENGTH_BASED = 'length'
+    FIELD_PROP_BASED = 'field property'
 
     def __init__(self, depends_on, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
@@ -52,6 +59,7 @@ class Calculated(BaseField):
         :param name: (unique) name of the container
         '''
         self._rendered_field = None
+        self.dependency_type = Calculated.VALUE_BASED
         super(Calculated, self).__init__(value=self.__class__._default_value_, encoder=encoder, fuzzable=fuzzable, name=name)
         if isinstance(depends_on, types.StringTypes):
             self._field_name = depends_on
@@ -96,7 +104,8 @@ class Calculated(BaseField):
             self._current_rendered = self._in_render_value()
         else:
             ctx.push(self)
-            self._rendered_field = self._field.render(ctx)
+            if self.dependency_type == Calculated.VALUE_BASED:
+                self._rendered_field = self._field.render(ctx)
             self._render()
             ctx.pop()
         return self._current_rendered
@@ -324,8 +333,6 @@ class FieldIntProperty(CalculatedInt):
         :param length: length of the FieldIntProperty field (in bits)
         :type corrention: int or func(int) -> int
         :param correction: correction function, or value for the index
-        :type calc_func: func(field) -> int
-        :param calc_func: function to calculate the value of the field.
         :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
         :param encoder: encoder for the field (default: ENC_INT_DEFAULT)
         :param fuzzable: is container fuzzable
@@ -338,6 +345,7 @@ class FieldIntProperty(CalculatedInt):
         self._correction = correction
         bit_field = BitField(value=0, length=length, encoder=encoder)
         super(FieldIntProperty, self).__init__(depends_on=depends_on, bit_field=bit_field, calc_func=None, fuzzable=fuzzable, name=name)
+        self.dependency_type = Calculated.FIELD_PROP_BASED
 
     def _calculate_value(self):
         calculated = self._calculate(self._field)
@@ -442,3 +450,62 @@ class Size(CalculatedInt):
         '''
         bit_field = BitField(value=0, length=length, encoder=encoder)
         super(Size, self).__init__(depends_on=sized_field, bit_field=bit_field, calc_func=calc_func, fuzzable=fuzzable, name=name)
+
+
+class Offset(FieldIntProperty):
+    '''
+    A relative offset of a field from another field
+    '''
+
+    def __init__(self, base_field, target_field, length, correction=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None):
+        '''
+        :param base_field: (name of) field to calculate offset from
+        :param target_field: (name of) field to calculate offset to
+        :param length: length of the FieldIntProperty field (in bits)
+        :type corrention: int or func(int) -> int
+        :param correction: correction function, or value for the index, (default: divide by 8 (bytes))
+        :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
+        :param encoder: encoder for the field (default: ENC_INT_DEFAULT)
+        :param fuzzable: is container fuzzable
+        :param name: (unique) name of the container (default: None)
+        '''
+        if correction is None:
+            correction = num_bits_to_bytes
+        super(Offset, self).__init__(depends_on=target_field, length=length, correction=correction, encoder=encoder, fuzzable=fuzzable, name=name)
+        self.base_field = base_field
+        self.target_field = target_field
+        self._need_second_pass = True
+
+    def _calculate(self, field):
+        '''
+        If the offset is unknown, return 0
+        '''
+        base_offset = 0
+        if self.base_field is not None:
+            base_offset = self.base_field.get_offset()
+        target_offset = self.target_field.get_offset()
+        if (target_offset is None) or (base_offset is None):
+            return 0
+        return target_offset - base_offset
+
+
+class AbsoluteOffset(Offset):
+    '''
+    An absolute offset of a field from the beginning of the payload
+    '''
+
+    def __init__(self, target_field, length, correction=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None):
+        '''
+        :param target_field: (name of) field to calculate offset to
+        :param length: length of the FieldIntProperty field (in bits)
+        :type corrention: int or func(int) -> int
+        :param correction: correction function, or value for the index, (default: divide by 8 (bytes))
+        :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
+        :param encoder: encoder for the field (default: ENC_INT_DEFAULT)
+        :param fuzzable: is container fuzzable
+        :param name: (unique) name of the container (default: None)
+        '''
+        super(AbsoluteOffset, self).__init__(
+            base_field=None, target_field=target_field, length=length,
+            correction=correction, encoder=encoder, fuzzable=fuzzable, name=name
+        )
