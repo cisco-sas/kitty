@@ -43,7 +43,7 @@ class Condition(object):
         return khash(type(self).__name__)
 
 
-class FieldContidion(Condition):
+class FieldCondition(Condition):
     '''
     Base class for field-based conditions (if field meets condition return true)
     '''
@@ -53,7 +53,7 @@ class FieldContidion(Condition):
         :type field: :class:`~kitty.model.low_level.field.BaseField` or ``str``
         :param field: (name of, or) field that should meet the condition
         '''
-        super(FieldContidion, self).__init__()
+        super(FieldCondition, self).__init__()
         if isinstance(field, types.StringTypes):
             self._field_name = field
             self._field = None
@@ -95,11 +95,11 @@ class FieldContidion(Condition):
         raise NotImplementedError('_applies')
 
     def hash(self):
-        hashed = super(FieldContidion, self).hash()
+        hashed = super(FieldCondition, self).hash()
         return khash(hashed, self._field_name)
 
 
-class ListCondition(FieldContidion):
+class ListCondition(FieldCondition):
     '''
     Base class for comparison between field and list. can't be instantiated
     '''
@@ -138,7 +138,7 @@ class InList(ListCondition):
         return value in self._value_list
 
 
-class FieldMutating(FieldContidion):
+class FieldMutating(FieldCondition):
     '''
     Condition applies if the field is currently mutating
     '''
@@ -147,7 +147,7 @@ class FieldMutating(FieldContidion):
         return self._field._mutating
 
 
-class Compare(FieldContidion):
+class Compare(FieldCondition):
     '''
     Condition applies if the comparison between the value of the field and the comp_value evaluates to True
 
