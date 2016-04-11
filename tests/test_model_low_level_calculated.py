@@ -295,6 +295,7 @@ class OffsetTests(BaseTestCase):
         super(OffsetTests, self).setUp(Offset)
         self.frm = None
         self.to = UInt32(name='to', value=1)
+        self.target_field = self.to
         self.uut_len = 32
         self.correction = 0
         self.encoder = ENC_INT_BE
@@ -304,7 +305,7 @@ class OffsetTests(BaseTestCase):
     def get_uut(self):
         return self.cls(
             self.frm,
-            self.to,
+            self.target_field,
             self.uut_len,
             correction=self.correction,
             encoder=self.encoder,
@@ -369,6 +370,16 @@ class OffsetTests(BaseTestCase):
             uut_val = unpack('>I', uut_rendered.tobytes())[0]
             self.assertEqual(len(pre_field.render()) + 5, uut_val)
 
+    def testResolveTargetFieldByName(self):
+        self.target_field = 'to'
+        uut = self.get_uut()
+        container = Container(name='container', fields=[uut, self.to])
+        container.render()
+        uut_rendered = uut.render()
+        uut_val = unpack('>I', uut_rendered.tobytes())[0]
+        self.assertEqual(len(uut_rendered), uut_val)
+        self.assertEqual(32, uut_val)
+
 
 class AbsoluteOffsetTests(BaseTestCase):
     __meta__ = False
@@ -376,6 +387,7 @@ class AbsoluteOffsetTests(BaseTestCase):
     def setUp(self):
         super(AbsoluteOffsetTests, self).setUp(AbsoluteOffset)
         self.to = UInt32(name='to', value=1)
+        self.target_field = self.to
         self.uut_len = 32
         self.correction = 0
         self.encoder = ENC_INT_BE
@@ -384,7 +396,7 @@ class AbsoluteOffsetTests(BaseTestCase):
 
     def get_uut(self):
         return self.cls(
-            self.to,
+            self.target_field,
             self.uut_len,
             correction=self.correction,
             encoder=self.encoder,

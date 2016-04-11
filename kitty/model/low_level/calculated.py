@@ -472,8 +472,21 @@ class Offset(FieldIntProperty):
         if correction is None:
             correction = num_bits_to_bytes
         super(Offset, self).__init__(depends_on=target_field, length=length, correction=correction, encoder=encoder, fuzzable=fuzzable, name=name)
-        self.base_field = base_field
-        self.target_field = target_field
+        if isinstance(base_field, types.StringTypes):
+            self.base_field_name = base_field
+            self.base_field = None
+        elif isinstance(base_field, BaseField):
+            self.base_field_name = None
+            self.base_field = base_field
+        else:
+            self.base_field_name = None
+            self.base_field = None
+        if isinstance(target_field, types.StringTypes):
+            self.target_field_name = target_field
+            self.target_field = None
+        elif isinstance(target_field, BaseField):
+            self.target_field_name = None
+            self.target_field = target_field
         self._need_second_pass = True
 
     def _calculate(self, field):
@@ -487,6 +500,16 @@ class Offset(FieldIntProperty):
         if (target_offset is None) or (base_offset is None):
             return 0
         return target_offset - base_offset
+
+    def _initialize(self):
+        super(Offset, self)._initialize()
+        # now resolve the actual fields ...
+        if self.base_field_name:
+            self.base_field = self.resolve_field(self.base_field_name)
+        if self.target_field_name:
+            self.target_field = self.resolve_field(self.target_field_name)
+        if not self.target_field:
+            raise KittyException('Could not resolve field name %s' % self.target_field_name)
 
 
 class AbsoluteOffset(Offset):
