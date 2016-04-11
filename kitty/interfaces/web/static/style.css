@@ -55,12 +55,12 @@ td {
 .unknown-data-size {
   /*height: 100%;*/
   position: absolute;
-  overflow: auto;
   left:0px; 
   top: 41px;
   bottom: 0px;
-  overflow: auto;
+  overflow: scroll;
   width: 100%;
+  white-space: nowrap;
 }
 
 .monospaced-text {
