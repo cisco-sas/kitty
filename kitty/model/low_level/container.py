@@ -226,6 +226,16 @@ class Container(BaseField):
             self._current_field().reset()
         return False
 
+    def get_field_by_name(self, name):
+        '''
+        :param name: name of field to get
+        :return: direct sub-field with the given name
+        :raises: :class:`~kitty.core.KittyException` if no direct subfield with this name
+        '''
+        if name in self._fields_dict:
+            return self._fields_dict[name]
+        raise KittyException('field named (%s) was not found in (%s)' % (self, name))
+
     # Container's API methods
     def append_fields(self, new_fields):
         '''
@@ -830,6 +840,15 @@ class TakeFrom(OneOf):
         '''
         hashed = super(TakeFrom, self).hash()
         return khash(hashed, self.min_elements, self.max_elements, self.seed)
+
+    def get_field_by_name(self, name):
+        '''
+        Since TakeFrom constructs sub-containers and excercises OneOf,
+        It needs to skip this sub-container when looking for field by name.
+
+        :param name: name of field to get
+        '''
+        return self._fields[self._field_idx].get_field_by_name(name)
 
 
 class Template(Container):

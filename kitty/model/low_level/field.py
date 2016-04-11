@@ -50,6 +50,8 @@ class BaseField(KittyObject):
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
         '''
+        if name and '/' in name:
+            raise KittyException('Name (%s) includes invalid chars /' % (name))
         super(BaseField, self).__init__(name, logger=logging.getLogger('DataModel'))
         kassert.is_of_types(encoder, self.__class__._encoder_type_)
         self._encoder = encoder
@@ -230,14 +232,46 @@ class BaseField(KittyObject):
         '''
         if isinstance(field, BaseField):
             return field
-        resolved_field = self.scan_for_field(field)
+        name = field
+        if name.startswith('/'):
+            return self.resolve_absolute_name(name)
+        resolved_field = self.scan_for_field(name)
         if not resolved_field:
             container = self._enclosing
             if container:
-                resolved_field = container.resolve_field(field)
+                resolved_field = container.resolve_field(name)
         if not resolved_field:
-            raise Exception('Could not resolve field %s' % field)
+            raise KittyException('Could not resolve field by name (%s)' % name)
         return resolved_field
+
+    def resolve_absolute_name(self, name):
+        '''
+        Resolve a field from an absolute name.
+        An absolute name is just like unix absolute path,
+        starts with '/' and each name component is separated by '/'.
+
+        :param name: absolute name, e.g. "/container/subcontainer/field"
+        :return: field with this absolute name
+        :raises: KittyException if field could not be resolved
+        '''
+        current = self._get_root()
+        components = name.split('/')[2:]
+        for component in components:
+            current = current.get_field_by_name(component)
+        return current
+
+    def get_field_by_name(self, name):
+        '''
+        :param name: name of field to get
+        :raises: :class:`~kitty.core.KittyException` if no direct subfield with this name
+        '''
+        raise KittyException('Basic field (%s) does not contain any fields inside (looked for "%s")' % (self, name))
+
+    def _get_root(self):
+        root = self
+        while root._enclosing:
+            root = root._enclosing
+        return root
 
     def _set_enclosing(self, container):
         '''
