@@ -20,6 +20,7 @@ from test_fuzzer_server import *
 from test_fuzzer_client import *
 from test_interface_web import *
 from test_model_high_level import *
+from test_model_low_level_condition import *
 from test_model_low_level_container import *
 from test_model_low_level_fields import *
 from test_model_low_level_mutated import *
