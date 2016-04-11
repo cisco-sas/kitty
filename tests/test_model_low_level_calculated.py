@@ -380,6 +380,26 @@ class OffsetTests(BaseTestCase):
         self.assertEqual(len(uut_rendered), uut_val)
         self.assertEqual(32, uut_val)
 
+    def testResolveFieldByAbsoluteName(self):
+        self.target_field = '/A/B/C/to'
+        uut = self.get_uut()
+        container = Container(name='A', fields=[
+            uut,
+            Container(name='B', fields=[
+                Container(name='C', fields=[
+                    self.to,
+                    Container(name='D', fields=[
+                        UInt32(name='E', value=1)
+                    ]),
+                ]),
+            ]),
+        ])
+        container.render()
+        uut_rendered = uut.render()
+        uut_val = unpack('>I', uut_rendered.tobytes())[0]
+        self.assertEqual(len(uut_rendered), uut_val)
+        self.assertEqual(32, uut_val)
+
 
 class AbsoluteOffsetTests(BaseTestCase):
     __meta__ = False
@@ -461,6 +481,26 @@ class AbsoluteOffsetTests(BaseTestCase):
             uut_val = unpack('>I', uut_rendered.tobytes())[0]
             self.assertEqual(len(pre_field.render()) + 5, uut_val)
 
+    def testResolveFieldByAbsoluteName(self):
+        self.target_field = '/A/B/C/to'
+        uut = self.get_uut()
+        container = Container(name='A', fields=[
+            uut,
+            Container(name='B', fields=[
+                Container(name='C', fields=[
+                    self.to,
+                    Container(name='D', fields=[
+                        UInt32(name='E', value=1)
+                    ]),
+                ]),
+            ]),
+        ])
+        container.render()
+        uut_rendered = uut.render()
+        uut_val = unpack('>I', uut_rendered.tobytes())[0]
+        self.assertEqual(len(uut_rendered), uut_val)
+        self.assertEqual(32, uut_val)
+
 
 class HashTests(CalculatedTestCase):
     __meta__ = True
@@ -515,5 +555,3 @@ class Sha512Tests(HashTests):
 
     def setUp(self):
         super(Sha512Tests, self).setUp(Sha512, hashlib.sha512)
-
-
