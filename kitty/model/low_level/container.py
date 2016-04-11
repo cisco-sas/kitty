@@ -153,18 +153,6 @@ class Container(BaseField):
             field.reset()
         self._field_idx = 0
 
-    def resolve_field(self, field):
-        '''
-        Resolve a field from name
-
-        :param field: name of the field to resolve
-        :rtype: BaseField
-        :return: the resolved field
-        :raises: KittyException if field could not be resolved
-        '''
-        resolved_field = super(Container, self).resolve_field(field)
-        return resolved_field
-
     def scan_for_field(self, field_key):
         '''
         Scan for a field in the container and its enclosed fields
