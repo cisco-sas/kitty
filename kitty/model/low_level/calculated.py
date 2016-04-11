@@ -339,7 +339,7 @@ class FieldIntProperty(CalculatedInt):
         :param name: (unique) name of the container (default: None)
         '''
         if correction:
-            if not isinstance(correction, types.FunctionType):
+            if not callable(correction):
                 if not isinstance(correction, types.IntType):
                     raise KittyException('correction must be int, function or None!')
         self._correction = correction
@@ -349,7 +349,7 @@ class FieldIntProperty(CalculatedInt):
 
     def _calculate_value(self):
         calculated = self._calculate(self._field)
-        if isinstance(self._correction, types.FunctionType):
+        if callable(self._correction):
             calculated = self._correction(calculated)
         elif isinstance(self._correction, types.IntType):
             calculated += self._correction
@@ -461,7 +461,7 @@ class Offset(FieldIntProperty):
         '''
         :param base_field: (name of) field to calculate offset from
         :param target_field: (name of) field to calculate offset to
-        :param length: length of the FieldIntProperty field (in bits)
+        :param length: length of the Offset field (in bits)
         :type corrention: int or func(int) -> int
         :param correction: correction function, or value for the index, (default: divide by 8 (bytes))
         :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
@@ -497,7 +497,7 @@ class AbsoluteOffset(Offset):
     def __init__(self, target_field, length, correction=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None):
         '''
         :param target_field: (name of) field to calculate offset to
-        :param length: length of the FieldIntProperty field (in bits)
+        :param length: length of the AbsoluteOffset field (in bits)
         :type corrention: int or func(int) -> int
         :param correction: correction function, or value for the index, (default: divide by 8 (bytes))
         :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`

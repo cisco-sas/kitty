@@ -347,6 +347,28 @@ class OffsetTests(BaseTestCase):
             uut_val = unpack('>I', uut_rendered.tobytes())[0]
             self.assertEqual(len(pre_field.render()), uut_val)
 
+    def testDefaultCorrectionFunctionIsBytes(self):
+        self.correction = None
+        uut = self.get_uut()
+        pre_field = String(name='first', value='first')
+        container = Container(name='container', fields=[pre_field, self.to, uut])
+        while container.mutate():
+            container.render()
+            uut_rendered = uut.render()
+            uut_val = unpack('>I', uut_rendered.tobytes())[0]
+            self.assertEqual(len(pre_field.render().tobytes()), uut_val)
+
+    def testCorrectionInt(self):
+        self.correction = 5
+        uut = self.get_uut()
+        pre_field = String(name='first', value='first')
+        container = Container(name='container', fields=[pre_field, self.to, uut])
+        while container.mutate():
+            container.render()
+            uut_rendered = uut.render()
+            uut_val = unpack('>I', uut_rendered.tobytes())[0]
+            self.assertEqual(len(pre_field.render()) + 5, uut_val)
+
 
 class AbsoluteOffsetTests(BaseTestCase):
     __meta__ = False
@@ -404,6 +426,28 @@ class AbsoluteOffsetTests(BaseTestCase):
             uut_rendered = uut.render()
             uut_val = unpack('>I', uut_rendered.tobytes())[0]
             self.assertEqual(len(pre_field.render()), uut_val)
+
+    def testDefaultCorrectionFunctionIsBytes(self):
+        self.correction = None
+        uut = self.get_uut()
+        pre_field = String(name='first', value='first')
+        container = Container(name='container', fields=[pre_field, self.to, uut])
+        while container.mutate():
+            container.render()
+            uut_rendered = uut.render()
+            uut_val = unpack('>I', uut_rendered.tobytes())[0]
+            self.assertEqual(len(pre_field.render().tobytes()), uut_val)
+
+    def testCorrectionInt(self):
+        self.correction = 5
+        uut = self.get_uut()
+        pre_field = String(name='first', value='first')
+        container = Container(name='container', fields=[pre_field, self.to, uut])
+        while container.mutate():
+            container.render()
+            uut_rendered = uut.render()
+            uut_val = unpack('>I', uut_rendered.tobytes())[0]
+            self.assertEqual(len(pre_field.render()) + 5, uut_val)
 
 
 class HashTests(CalculatedTestCase):
