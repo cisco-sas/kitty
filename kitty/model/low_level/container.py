@@ -130,6 +130,20 @@ class Container(BaseField):
         ctx.pop()
         return self._current_rendered
 
+    def set_offset(self, offset):
+        '''
+        Set the absolute offset of current field,
+        if the field should have default value,
+        set the offset of the sub fields as well.
+
+        :param offset: absolute offset of this field (in bits)
+        '''
+        super(Container, self).set_offset(offset)
+        if self.is_default():
+            for field in self._fields:
+                field.set_offset(offset)
+                offset += len(field._current_rendered)
+
     def reset(self):
         '''
         Reset the state of the container and its internal fields

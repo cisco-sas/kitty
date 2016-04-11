@@ -67,9 +67,15 @@ class BaseField(KittyObject):
         self.offset = None
 
     def set_offset(self, offset):
+        '''
+        :param offset: absolute offset of this field (in bits)
+        '''
         self.offset = offset
 
     def get_offset(self):
+        '''
+        :return: absolute offset of this field (in bits)
+        '''
         return self.offset
 
     def _mutating(self):
