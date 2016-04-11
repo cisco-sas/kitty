@@ -239,8 +239,8 @@
     }
     
     function updateReports(reports) {
-        $('#reports tr').remove();
         if(reports != state.reports) {
+            $('#reports tbody tr').remove();
             state.reports = reports;
             if (reports.length > 0) {
                 reports.sort(function(a, b){return a[0]-b[0]});
