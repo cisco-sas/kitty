@@ -36,7 +36,7 @@ class MyHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         resp = None
         if self.path == '/fuzzed':
-            resp = self.server.fuzzer.get_mutation(stage="GET /fuzzed", data={})
+            resp = self.server.fuzzer.get_mutation(stage="GET fuzzed", data={})
         if resp is None:
             resp = self.default_response()
         self.send_response(200)
@@ -57,6 +57,7 @@ class MyHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             <body>This system is under test</body>
         </html>
         """
+
 
 def main():
     #

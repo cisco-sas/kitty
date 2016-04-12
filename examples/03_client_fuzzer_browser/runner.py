@@ -44,7 +44,7 @@ class MyHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         resp = None
         if self.path == '/fuzzed':
-            resp = self.server.fuzzer.get_mutation(stage="GET /fuzzed", data={})
+            resp = self.server.fuzzer.get_mutation(stage="GET fuzzed", data={})
         if resp is None:
             resp = self.default_response()
         self.send_response(200)
@@ -69,7 +69,7 @@ class MyHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 def main():
-    test_name = 'GET /fuzzed'
+    test_name = 'GET fuzzed'
     get_template = Template(name=test_name, fields=[
         XmlElement(name='html', element_name='html', content=[
             XmlElement(name='head', element_name='head', content='<meta http-equiv="refresh" content="5; url=/">'),

@@ -28,7 +28,7 @@ from katnip.legos.xml import XmlElement
 
 
 def main():
-    test_name = 'GET /fuzzed'
+    test_name = 'GET fuzzed'
     get_template = Template(name=test_name, fields=[
         XmlElement(name='html', element_name='html', content=[
             XmlElement(name='head', element_name='head', content='<meta http-equiv="refresh" content="5; url=/">'),
