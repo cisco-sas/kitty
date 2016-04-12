@@ -280,9 +280,9 @@ class Container(BaseField):
         field = self._current_field()
         if field:
             info = field.get_info()
+            info['path'] = '%s/%s' % (self.name if self.name else '<no name>', info['path'])
         else:
             info = super(Container, self).get_info()
-        info['path'] = '%s/%s' % (self.name if self.name else '<no name>', info['path'])
         return info
 
     def get_tree(self, depth=0):
