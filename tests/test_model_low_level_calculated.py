@@ -118,6 +118,15 @@ class CalculatedTestCase(BaseTestCase):
         with self.assertRaises(KittyException):
             container.render()
 
+    @metaTest
+    def testNameDoesNotExist(self):
+        original_field = self.get_original_field()
+        self.depends_on_name = 'not really'
+        calculated_field = self.get_default_field()
+        container = Container([original_field, calculated_field])
+        with self.assertRaises(KittyException):
+            container.render()
+
 
 class CloneTests(CalculatedTestCase):
     __meta__ = False
