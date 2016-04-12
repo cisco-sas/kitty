@@ -481,12 +481,6 @@ class Offset(FieldIntProperty):
         else:
             self.base_field_name = None
             self.base_field = None
-        if isinstance(target_field, types.StringTypes):
-            self.target_field_name = target_field
-            self.target_field = None
-        elif isinstance(target_field, BaseField):
-            self.target_field_name = None
-            self.target_field = target_field
         self._need_second_pass = True
 
     def _calculate(self, field):
@@ -496,7 +490,7 @@ class Offset(FieldIntProperty):
         base_offset = 0
         if self.base_field is not None:
             base_offset = self.base_field.get_offset()
-        target_offset = self.target_field.get_offset()
+        target_offset = self._field.get_offset()
         if (target_offset is None) or (base_offset is None):
             return 0
         return target_offset - base_offset
@@ -506,10 +500,6 @@ class Offset(FieldIntProperty):
         # now resolve the actual fields ...
         if self.base_field_name:
             self.base_field = self.resolve_field(self.base_field_name)
-        if self.target_field_name:
-            self.target_field = self.resolve_field(self.target_field_name)
-        if not self.target_field:
-            raise KittyException('Could not resolve field name %s' % self.target_field_name)
 
 
 class AbsoluteOffset(Offset):
