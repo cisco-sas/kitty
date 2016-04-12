@@ -86,8 +86,9 @@ class ServerTarget(BaseTarget):
             trans_report.add('request length', len(payload))
             trans_report.add('request time', time.time())
 
-            request = payload if len(payload) < 100 else payload[:100]
-            self.logger.info('request(%d): %s' % (len(payload), request.encode('hex')))
+            request = payload.encode('hex')
+            request = request if len(request) < 100 else (request[:100] + ' ...')
+            self.logger.info('request(%d): %s' % (len(payload), request))
             self._send_to_target(payload)
             trans_report.success()
 
@@ -98,8 +99,9 @@ class ServerTarget(BaseTarget):
                     trans_report.add('response (hex)', response.encode('hex'))
                     trans_report.add('response (raw)', '%s' % response)
                     trans_report.add('response length', len(response))
-                    payload = response if len(response) < 100 else response[:100]
-                    self.logger.info('response(%d): %s' % (len(response), payload.encode('hex')))
+                    printed_response = response.encode('hex')
+                    printed_response = printed_response if len(printed_response) < 100 else (printed_response[:100] + ' ...')
+                    self.logger.info('response(%d): %s' % (len(response), printed_response))
                 except Exception as ex2:
                     trans_report.failed('failed to receive response: %s' % ex2)
                     trans_report.add('traceback', traceback.format_exc())
