@@ -33,9 +33,10 @@ class ContainerTest(BaseTestCase):
 
     def setUp(self, cls=Container):
         super(ContainerTest, self).setUp(cls)
+        self.uut_name = 'uut'
 
     def get_default_container(self, fields=[], fuzzable=True):
-        return self.cls(fields=fields, fuzzable=fuzzable, name='uut')
+        return self.cls(fields=fields, fuzzable=fuzzable, name=self.uut_name)
 
     def _test_fields(self, init_fields=[], push_fields=[]):
         all_fields = init_fields + push_fields
@@ -234,7 +235,7 @@ class ContainerTest(BaseTestCase):
     @metaTest
     def _testSetOffsetPersist(self):
         offset = 1000
-        uut = Container(name='uut', fields=[String('abc'), String('def')])
+        uut = Container(name=self.uut_name, fields=[String('abc'), String('def')])
         uut.set_offset(offset)
         self.assertEqual(uut.get_offset(), offset)
 
@@ -263,7 +264,7 @@ class ConditionTest(ContainerTest):
             return False
 
     def get_default_container(self, fields=[], fuzzable=True):
-        return self.cls(condition=self.get_applies_always_condition(), fields=fields, fuzzable=fuzzable, name='uut')
+        return self.cls(condition=self.get_applies_always_condition(), fields=fields, fuzzable=fuzzable, name=self.uut_name)
 
     def get_applies_first_condition(self):
         return None
@@ -380,7 +381,7 @@ class ForEachTests(ContainerTest):
     def get_default_container(self, fields=[], fuzzable=True, mutated_field=None):
         if mutated_field is None:
             mutated_field = Static('static field')
-        return ForEach(mutated_field=mutated_field, fields=fields, fuzzable=fuzzable, name='uut')
+        return ForEach(mutated_field=mutated_field, fields=fields, fuzzable=fuzzable, name=self.uut_name)
 
     def _test_basic(self, mutated, field):
         container = ForEach(mutated_field=mutated, fields=[field])
@@ -457,7 +458,7 @@ class RepeatTest(ContainerTest):
         super(RepeatTest, self).setUp(cls)
 
     def get_default_container(self, fields=[], fuzzable=True):
-        return Repeat(fields=fields, fuzzable=fuzzable, name='uut')
+        return Repeat(fields=fields, fuzzable=fuzzable, name=self.uut_name)
 
     def _test_mutations(self, repeater, fields, min_times=1, max_times=1, step=1):
         repeats = max_times - min_times / step
@@ -504,10 +505,11 @@ class MetaTest(BaseTestCase):
 
     def setUp(self):
         super(MetaTest, self).setUp(Meta)
+        self.uut_name = 'uut'
 
     def testIsFuzzable(self):
         field = String('abc')
-        uut = Meta(name='uut', fields=[field], fuzzable=True)
+        uut = Meta(name=self.uut_name, fields=[field], fuzzable=True)
         num_mutations = uut.num_mutations()
         self.assertGreater(num_mutations, 0)
         self.assertGreaterEqual(num_mutations, field.num_mutations())
@@ -518,19 +520,19 @@ class MetaTest(BaseTestCase):
 
     def testIsNotRenderedWhenFuzzable(self):
         field = String('abc')
-        uut = Meta(name='uut', fields=[field], fuzzable=True)
+        uut = Meta(name=self.uut_name, fields=[field], fuzzable=True)
         while uut.mutate():
             self.assertEqual(len(uut.render()), 0)
 
     def testIsNotFuzzable(self):
         field = String('abc')
-        uut = Meta(name='uut', fields=[field], fuzzable=False)
+        uut = Meta(name=self.uut_name, fields=[field], fuzzable=False)
         self.assertEqual(uut.num_mutations(), 0)
         self.assertFalse(uut.mutate())
 
     def testIsNotRenderedWhenNotFuzzable(self):
         field = String('abc')
-        uut = Meta(name='uut', fields=[field], fuzzable=False)
+        uut = Meta(name=self.uut_name, fields=[field], fuzzable=False)
         self.assertEqual(len(uut.render()), 0)
 
 
@@ -541,6 +543,7 @@ class PadTest(BaseTestCase):
     def setUp(self, cls=Pad):
         super(PadTest, self).setUp(cls)
         self.pad_length = 10 * 8
+        self.uut_name = 'uut'
 
     def _testValuePadded(self, field, uut, pad_length, pad_data):
         fdata = field.render()
@@ -552,19 +555,19 @@ class PadTest(BaseTestCase):
 
     def testPadWhenFuzzable(self):
         field = String(name='padded', value='abc')
-        uut = Pad(self.pad_length, fields=field, name='uut')
+        uut = Pad(self.pad_length, fields=field, name=self.uut_name)
         self._testValuePadded(field, uut, self.pad_length, '\x00')
         while uut.mutate():
             self._testValuePadded(field, uut, self.pad_length, '\x00')
 
     def testPadWhenNotFuzzable(self):
         field = String(name='padded', value='abc')
-        uut = Pad(self.pad_length, fields=field, name='uut', fuzzable=False)
+        uut = Pad(self.pad_length, fields=field, name=self.uut_name, fuzzable=False)
         self._testValuePadded(field, uut, self.pad_length, '\x00')
 
     def testNumMutations(self):
         field = String(name='padded', value='abc')
-        uut = Pad(self.pad_length, fields=field, name='uut')
+        uut = Pad(self.pad_length, fields=field, name=self.uut_name)
         field_num_mutations = field.num_mutations()
         uut_num_mutations = uut.num_mutations()
         self.assertEqual(uut_num_mutations, field_num_mutations)
@@ -637,6 +640,7 @@ class TruncTest(BaseTestCase):
     def setUp(self, cls=Trunc):
         super(TruncTest, self).setUp(cls)
         self.trunc_size = 10 * 8
+        self.uut_name = 'uut'
 
     def _testValueTrunced(self, field, uut, trunc_size):
         fdata = field.render()
@@ -662,7 +666,7 @@ class TruncTest(BaseTestCase):
 
     def testNumMutations(self):
         field = String(name='trunced', value='abc')
-        uut = Trunc(self.trunc_size, fields=field, name='uut')
+        uut = Trunc(self.trunc_size, fields=field, name=self.uut_name)
         field_num_mutations = field.num_mutations()
         uut_num_mutations = uut.num_mutations()
         self.assertEqual(uut_num_mutations, field_num_mutations)

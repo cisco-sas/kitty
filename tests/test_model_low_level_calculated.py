@@ -39,6 +39,7 @@ class CalculatedTestCase(BaseTestCase):
         super(CalculatedTestCase, self).setUp(cls)
         self.depends_on_name = 'depends_on'
         self.depends_on_value = 'the_value'
+        self.uut_name = 'uut'
 
     def calculate(self, field):
         '''
@@ -48,7 +49,7 @@ class CalculatedTestCase(BaseTestCase):
         raise NotImplemented
 
     def get_default_field(self, fuzzable=False):
-        return self.cls(self.depends_on_name, fuzzable=fuzzable, name='uut')
+        return self.cls(self.depends_on_name, fuzzable=fuzzable, name=self.uut_name)
 
     def get_original_field(self):
         return String(self.depends_on_value, name=self.depends_on_name)
@@ -127,6 +128,12 @@ class CalculatedTestCase(BaseTestCase):
         with self.assertRaises(KittyException):
             container.render()
 
+    @metaTest
+    def testInvalidFieldNameRaisesException(self):
+        with self.assertRaises(KittyException):
+            self.uut_name = 'invalid/name'
+            self.get_default_field()
+
 
 class CloneTests(CalculatedTestCase):
     __meta__ = False
@@ -148,7 +155,7 @@ class ElementCountTests(CalculatedTestCase):
         self.bit_field = BitField(value=0, length=self.length)
 
     def get_default_field(self, fuzzable=False):
-        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable, name='uut')
+        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable, name=self.uut_name)
 
     def calculate(self, field):
         self.bit_field.set_current_value(len(field.get_rendered_fields()))
@@ -204,7 +211,7 @@ class IndexOfTestCase(CalculatedTestCase):
         self.bit_field = BitField(value=0, length=self.length)
 
     def get_default_field(self, fuzzable=False):
-        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable, name='uut')
+        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable, name=self.uut_name)
 
     def calculate(self, field):
         rendered = field._enclosing.get_rendered_fields()
@@ -272,9 +279,9 @@ class SizeTests(CalculatedTestCase):
         if length is None:
             length = self.length
         if calc_func is None:
-            return self.cls(self.depends_on_name, length=length, fuzzable=fuzzable, name='uut')
+            return self.cls(self.depends_on_name, length=length, fuzzable=fuzzable, name=self.uut_name)
         else:
-            return self.cls(self.depends_on_name, length=length, calc_func=calc_func, fuzzable=fuzzable, name='uut')
+            return self.cls(self.depends_on_name, length=length, calc_func=calc_func, fuzzable=fuzzable, name=self.uut_name)
 
     def calculate(self, field, calc_func=None):
         value = field.render()
@@ -328,7 +335,7 @@ class SizeInBytesTest(CalculatedTestCase):
         self.length = length
 
     def get_default_field(self, fuzzable=False):
-        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable, name='uut')
+        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable, name=self.uut_name)
 
     def calculate(self, field):
         value = field.render()
@@ -348,21 +355,23 @@ class OffsetTests(BaseTestCase):
         self.correction = 0
         self.encoder = ENC_INT_BE
         self.fuzzable = False
-        self.name = 'uut'
+        self.uut_name = 'uut'
 
-    def get_uut(self):
+    def get_default_field(self, fuzzable=False):
+        if fuzzable is None:
+            fuzzable = self.fuzzable
         return self.cls(
             self.frm,
             self.target_field,
             self.uut_len,
             correction=self.correction,
             encoder=self.encoder,
-            fuzzable=self.fuzzable,
-            name=self.name
+            fuzzable=fuzzable,
+            name=self.uut_name
         )
 
     def testAbsoluteOffsetOfPostField(self):
-        uut = self.get_uut()
+        uut = self.get_default_field()
         container = Container(name='container', fields=[uut, self.to])
         container.render()
         uut_rendered = uut.render()
@@ -371,7 +380,7 @@ class OffsetTests(BaseTestCase):
         self.assertEqual(32, uut_val)
 
     def testAbsoluteOffsetOfPostFieldFixed(self):
-        uut = self.get_uut()
+        uut = self.get_default_field()
         container = Container(name='container', fields=[uut, self.to])
         container.render()
         uut_rendered = uut.render()
@@ -379,7 +388,7 @@ class OffsetTests(BaseTestCase):
         self.assertEqual(32, uut_val)
 
     def testAbsoluteOffsetOfPreFieldAtTheBeginning(self):
-        uut = self.get_uut()
+        uut = self.get_default_field()
         container = Container(name='container', fields=[self.to, uut])
         container.render()
         uut_rendered = uut.render()
@@ -387,7 +396,7 @@ class OffsetTests(BaseTestCase):
         self.assertEqual(0, uut_val)
 
     def testAbsoluteOffsetOfPreFieldNotAtTheBeginning(self):
-        uut = self.get_uut()
+        uut = self.get_default_field()
         pre_field = String(name='first', value='first')
         container = Container(name='container', fields=[pre_field, self.to, uut])
         while container.mutate():
@@ -398,7 +407,7 @@ class OffsetTests(BaseTestCase):
 
     def testDefaultCorrectionFunctionIsBytes(self):
         self.correction = None
-        uut = self.get_uut()
+        uut = self.get_default_field()
         pre_field = String(name='first', value='first')
         container = Container(name='container', fields=[pre_field, self.to, uut])
         while container.mutate():
@@ -409,7 +418,7 @@ class OffsetTests(BaseTestCase):
 
     def testCorrectionInt(self):
         self.correction = 5
-        uut = self.get_uut()
+        uut = self.get_default_field()
         pre_field = String(name='first', value='first')
         container = Container(name='container', fields=[pre_field, self.to, uut])
         while container.mutate():
@@ -420,7 +429,7 @@ class OffsetTests(BaseTestCase):
 
     def testResolveTargetFieldByName(self):
         self.target_field = 'to'
-        uut = self.get_uut()
+        uut = self.get_default_field()
         container = Container(name='container', fields=[uut, self.to])
         container.render()
         uut_rendered = uut.render()
@@ -430,7 +439,7 @@ class OffsetTests(BaseTestCase):
 
     def testResolveFieldByAbsoluteName(self):
         self.target_field = '/A/B/C/to'
-        uut = self.get_uut()
+        uut = self.get_default_field()
         container = Container(name='A', fields=[
             uut,
             Container(name='B', fields=[
@@ -447,6 +456,12 @@ class OffsetTests(BaseTestCase):
         uut_val = unpack('>I', uut_rendered.tobytes())[0]
         self.assertEqual(len(uut_rendered), uut_val)
         self.assertEqual(32, uut_val)
+
+    @metaTest
+    def testInvalidFieldNameRaisesException(self):
+        with self.assertRaises(KittyException):
+            self.uut_name = 'invalid/name'
+            self.get_default_field()
 
 
 class AbsoluteOffsetTests(BaseTestCase):
@@ -460,20 +475,20 @@ class AbsoluteOffsetTests(BaseTestCase):
         self.correction = 0
         self.encoder = ENC_INT_BE
         self.fuzzable = False
-        self.name = 'uut'
+        self.uut_name = 'uut'
 
-    def get_uut(self):
+    def get_default_field(self):
         return self.cls(
             self.target_field,
             self.uut_len,
             correction=self.correction,
             encoder=self.encoder,
             fuzzable=self.fuzzable,
-            name=self.name
+            name=self.uut_name
         )
 
     def testAbsoluteOffsetOfPostField(self):
-        uut = self.get_uut()
+        uut = self.get_default_field()
         container = Container(name='container', fields=[uut, self.to])
         container.render()
         uut_rendered = uut.render()
@@ -482,7 +497,7 @@ class AbsoluteOffsetTests(BaseTestCase):
         self.assertEqual(32, uut_val)
 
     def testAbsoluteOffsetOfPostFieldFixed(self):
-        uut = self.get_uut()
+        uut = self.get_default_field()
         container = Container(name='container', fields=[uut, self.to])
         container.render()
         uut_rendered = uut.render()
@@ -490,7 +505,7 @@ class AbsoluteOffsetTests(BaseTestCase):
         self.assertEqual(32, uut_val)
 
     def testAbsoluteOffsetOfPreFieldAtTheBeginning(self):
-        uut = self.get_uut()
+        uut = self.get_default_field()
         container = Container(name='container', fields=[self.to, uut])
         container.render()
         uut_rendered = uut.render()
@@ -498,7 +513,7 @@ class AbsoluteOffsetTests(BaseTestCase):
         self.assertEqual(0, uut_val)
 
     def testAbsoluteOffsetOfPreFieldNotAtTheBeginning(self):
-        uut = self.get_uut()
+        uut = self.get_default_field()
         pre_field = String(name='first', value='first')
         container = Container(name='container', fields=[pre_field, self.to, uut])
         while container.mutate():
@@ -509,7 +524,7 @@ class AbsoluteOffsetTests(BaseTestCase):
 
     def testDefaultCorrectionFunctionIsBytes(self):
         self.correction = None
-        uut = self.get_uut()
+        uut = self.get_default_field()
         pre_field = String(name='first', value='first')
         container = Container(name='container', fields=[pre_field, self.to, uut])
         while container.mutate():
@@ -520,7 +535,7 @@ class AbsoluteOffsetTests(BaseTestCase):
 
     def testCorrectionInt(self):
         self.correction = 5
-        uut = self.get_uut()
+        uut = self.get_default_field()
         pre_field = String(name='first', value='first')
         container = Container(name='container', fields=[pre_field, self.to, uut])
         while container.mutate():
@@ -531,7 +546,7 @@ class AbsoluteOffsetTests(BaseTestCase):
 
     def testResolveFieldByAbsoluteName(self):
         self.target_field = '/A/B/C/to'
-        uut = self.get_uut()
+        uut = self.get_default_field()
         container = Container(name='A', fields=[
             uut,
             Container(name='B', fields=[
@@ -548,6 +563,12 @@ class AbsoluteOffsetTests(BaseTestCase):
         uut_val = unpack('>I', uut_rendered.tobytes())[0]
         self.assertEqual(len(uut_rendered), uut_val)
         self.assertEqual(32, uut_val)
+
+    @metaTest
+    def testInvalidFieldNameRaisesException(self):
+        with self.assertRaises(KittyException):
+            self.uut_name = 'invalid/name'
+            self.get_default_field()
 
 
 class HashTests(CalculatedTestCase):

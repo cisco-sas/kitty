@@ -39,12 +39,13 @@ class ValueTestCase(BaseTestCase):
         self.default_value = self.__class__.default_value
         self.default_value_rendered = self.__class__.default_value_rendered
         self.rendered_type = self.get_rendered_type()
+        self.uut_name = 'uut'
 
     def get_rendered_type(self):
         return Bits
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(value=self.default_value, fuzzable=fuzzable, name='uut')
+        return self.cls(value=self.default_value, fuzzable=fuzzable, name=self.uut_name)
 
     def bits_to_value(self, bits):
         '''
@@ -259,6 +260,12 @@ class ValueTestCase(BaseTestCase):
             else:
                 self.assertEqual(field.get_rendered_fields(), [])
 
+    @metaTest
+    def testInvalidFieldNameRaisesException(self):
+        with self.assertRaises(KittyException):
+            self.uut_name = 'invalid/name'
+            self.get_default_field()
+
     def _check_skip(self, field, to_skip, expected_skipped, expected_mutated):
         # print('_check_skip(%s, %s, %s, %s)' % (field, to_skip, expected_skipped, expected_mutated))
         skipped = field.skip(to_skip)
@@ -333,7 +340,7 @@ class StringTests(ValueTestCase):
         filename = './kitty_strings.txt'
         with open(filename, 'wb') as f:
             f.write('\n'.join(values))
-        uut = String(name='uut', value='streetlight')
+        uut = String(name=self.uut_name, value='streetlight')
         all_mutations = self.get_all_mutations(uut)
         for value in values:
             self.assertIn(Bits(bytes=value), all_mutations)
@@ -366,7 +373,7 @@ class DynamicTests(ValueTestCase):
         }
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(key='my_key', default_value=self.default_value, length=len(self.default_value), fuzzable=fuzzable, name='uut')
+        return self.cls(key='my_key', default_value=self.default_value, length=len(self.default_value), fuzzable=fuzzable, name=self.uut_name)
 
     def testSessionDataNotFuzzable(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
@@ -439,7 +446,7 @@ class RandomBitsTests(ValueTestCase):
         super(RandomBitsTests, self).setUp(cls)
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(value=self.default_value, min_length=5, max_length=10, unused_bits=self.default_unused_bits, fuzzable=fuzzable, name='uut')
+        return self.cls(value=self.default_value, min_length=5, max_length=10, unused_bits=self.default_unused_bits, fuzzable=fuzzable, name=self.uut_name)
 
     def testNotFuzzable(self):
         field = self.get_default_field(fuzzable=False)
@@ -565,7 +572,7 @@ class RandomBytesTests(ValueTestCase):
         super(RandomBytesTests, self).setUp(cls)
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(value=self.default_value, min_length=5, max_length=10, fuzzable=fuzzable, name='uut')
+        return self.cls(value=self.default_value, min_length=5, max_length=10, fuzzable=fuzzable, name=self.uut_name)
 
     def testNoStepNumMutations(self):
         param_num_mutations = 100
@@ -683,7 +690,7 @@ class StaticTests(ValueTestCase):
         self._check_mutation_count(field, num_mutations)
 
     def get_default_field(self, fuzzable=True):
-        return Static(value=self.default_value, name='uut')
+        return Static(value=self.default_value, name=self.uut_name)
 
 
 class GroupTests(ValueTestCase):
@@ -698,7 +705,7 @@ class GroupTests(ValueTestCase):
         self.default_values = self.__class__.default_values
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(values=self.default_values, fuzzable=fuzzable, name='uut')
+        return self.cls(values=self.default_values, fuzzable=fuzzable, name=self.uut_name)
 
     def testMutations(self):
         field = self.get_default_field()
@@ -723,7 +730,7 @@ class BitFieldTests(ValueTestCase):
         return Bits
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(value=self.default_value, length=self.default_length, fuzzable=fuzzable, name='uut')
+        return self.cls(value=self.default_value, length=self.default_length, fuzzable=fuzzable, name=self.uut_name)
 
     def bits_to_value(self, bits):
         '''
@@ -791,7 +798,7 @@ class BitFieldTests(ValueTestCase):
         filename = './kitty_integers.txt'
         with open(filename, 'wb') as f:
             f.write('\n'.join(values))
-        self._base_check(BitField(name='uut', value=1, length=12))
+        self._base_check(BitField(name=self.uut_name, value=1, length=12))
         os.remove(filename)
 
 
@@ -812,7 +819,7 @@ class AlignedBitTests(ValueTestCase):
         return Bits
 
     def get_default_field(self, fuzzable=True):
-        return self.cls(value=self.default_value, fuzzable=fuzzable, name='uut')
+        return self.cls(value=self.default_value, fuzzable=fuzzable, name=self.uut_name)
 
     def bits_to_value(self, bits):
         return bits.uint
