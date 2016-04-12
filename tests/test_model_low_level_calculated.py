@@ -79,6 +79,45 @@ class CalculatedTestCase(BaseTestCase):
             actual = calculated_field.render()
             self.assertEqual(expected, actual)
 
+    @metaTest
+    def testAbsoluteNameExists(self):
+        original_field = self.get_original_field()
+        absolute_name = '/A/B/C/' + original_field.get_name()
+        self.depends_on_name = absolute_name
+        calculated_field = self.get_default_field()
+        container = Container(name='A', fields=[
+            Container(name='B', fields=[
+                Container(name='C', fields=[
+                    original_field
+                ]),
+                calculated_field
+            ])
+        ])
+        expected = self.calculate(original_field)
+        actual = calculated_field.render()
+        self.assertEqual(expected, actual)
+        while container.mutate():
+            expected = self.calculate(original_field)
+            actual = calculated_field.render()
+            self.assertEqual(expected, actual)
+
+    @metaTest
+    def testAbsoluteNameDoesNotExist(self):
+        original_field = self.get_original_field()
+        absolute_name = '/A/B/' + original_field.get_name()
+        self.depends_on_name = absolute_name
+        calculated_field = self.get_default_field()
+        container = Container(name='A', fields=[
+            Container(name='B', fields=[
+                Container(name='C', fields=[
+                    original_field
+                ]),
+                calculated_field
+            ])
+        ])
+        with self.assertRaises(KittyException):
+            container.render()
+
 
 class CloneTests(CalculatedTestCase):
     __meta__ = False
