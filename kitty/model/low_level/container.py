@@ -668,11 +668,14 @@ class Repeat(Container):
         if not((min_times >= 0) and (max_times > 0) and (max_times >= min_times) and (step > 0)):
             raise KittyException('one of the checks failed: min_times(%d)>=0, max_times(%d)>0, max_times>=min_times, step > 0' % (min_times, max_times))
 
+    def _in_repeat_stage(self):
+        return self._current_index < self._repeats
+
     def _calculate_mutations(self, num):
         self._num_mutations = num + self._repeats
 
     def _mutate(self):
-        if self._current_index >= self._repeats:
+        if not self._in_repeat_stage():
             super(Repeat, self)._mutate()
 
     def render(self, ctx=None):
@@ -683,7 +686,7 @@ class Repeat(Container):
         '''
         self._initialize()
         times = self._min_times
-        if self._mutating() and (self._current_index < self._repeats):
+        if self._mutating() and self._in_repeat_stage():
             times += (self._current_index) * self._step
         rendered = super(Repeat, self).render(ctx)
         self.set_current_value(rendered * times)
@@ -695,9 +698,14 @@ class Repeat(Container):
         :return: ordered list of the fields that will be rendered
         '''
         times = self._min_times
-        if self._mutating() and (self._current_index < self._repeats):
+        if self._mutating() and self._in_repeat_stage():
             times += (self._current_index) * self._step
         return super(Repeat, self).get_rendered_fields(ctx) * times
+
+    def _current_field(self):
+        if self._in_repeat_stage():
+            return None
+        return super(Repeat, self)._current_field()
 
     def hash(self):
         '''
