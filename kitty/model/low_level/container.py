@@ -125,7 +125,7 @@ class Container(BaseField):
                         raise KittyException('the field %s:%s was rendered to type %s, you should probably wrap it with appropriate encoder' % (
                             field.get_name(), type(field), type(frendered)))
                     rendered.append(frendered)
-                    offset += len(rendered)
+                    offset += len(frendered)
                 self.set_current_value(rendered)
         ctx.pop()
         return self._current_rendered
