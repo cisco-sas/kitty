@@ -450,6 +450,11 @@ class Size(CalculatedInt):
         '''
         bit_field = BitField(value=0, length=length, encoder=encoder)
         super(Size, self).__init__(depends_on=sized_field, bit_field=bit_field, calc_func=calc_func, fuzzable=fuzzable, name=name)
+        self.dependency_type = Calculated.LENGTH_BASED
+        self._need_second_pass = True
+
+    def _calculate_value(self):
+        return self._calc_func(self._field._current_rendered)
 
 
 class Offset(FieldIntProperty):

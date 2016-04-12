@@ -19,6 +19,8 @@
 '''
 Tests for complex, full templates.
 '''
+from struct import unpack
+import hashlib
 from kitty.model.low_level.field import Static, String, Delimiter, BitField, Group, Dynamic
 from kitty.model.low_level.field import RandomBits, RandomBytes
 from kitty.model.low_level.calculated import Calculated, CalculatedBits
@@ -27,7 +29,7 @@ from kitty.model.low_level.calculated import ElementCount, IndexOf, Checksum, Si
 from kitty.model.low_level.container import Container, ForEach, Conditional, If, IfNot
 from kitty.model.low_level.container import Meta, Pad, Repeat, OneOf, TakeFrom, Template
 from kitty.model.low_level.container import Trunc
-from kitty.model.low_level.encoder import ENC_INT_DEC, ENC_STR_BASE64_NO_NL
+from kitty.model.low_level.encoder import ENC_INT_DEC, ENC_STR_BASE64_NO_NL, ENC_INT_BE
 from kitty.model.low_level.aliases import SizeInBytes, Sha256
 from common import BaseTestCase
 
@@ -85,3 +87,23 @@ class ComplexTest(BaseTestCase):
         uut.mutate()
         uut.reset()
         self.assertEqual(uut.render().tobytes(), expected_data)
+
+    def testInclusiveSizeOfPacketWithHashAtTheEnd(self):
+        container = Container(name='full packet', fields=[
+            Container(name='hashed part', fields=[
+                SizeInBytes(name='packet size', sized_field='/full_packet', length=32, fuzzable=False, encoder=ENC_INT_BE),
+                String(name='some string', value='aaa'),
+            ]),
+            Sha256(name='hash', depends_on='hashed part', fuzzable=False)
+        ])
+        while True:
+            rendered = container.render().tobytes()
+            rendered_len = len(rendered)
+            # first 4 bytes are the packet size
+            size_in_packet = unpack('>I', rendered[:4])[0]
+            hashed_buffer = rendered[:-32]
+            hash_buffer = rendered[-32:]
+            self.assertEqual(size_in_packet, rendered_len)
+            self.assertEqual(hashlib.sha256(hashed_buffer).digest(), hash_buffer)
+            if not container.mutate():
+                break
