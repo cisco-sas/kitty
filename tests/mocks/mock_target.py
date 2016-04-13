@@ -51,7 +51,10 @@ class ServerTargetMock(ServerTarget):
         if config_report:
             self.logger.debug('found matching config: %s', repr(config_report))
             for k, v in config_report.iteritems():
-                report.add(k, v)
+                if k.lower() == 'status':
+                    report.set_status(v)
+                else:
+                    report.add(k, v)
         return report
 
     def setup(self):
@@ -91,7 +94,10 @@ class ClientTargetMock(ClientTarget):
         if config_report:
             self.logger.debug('found matching config: %s', repr(config_report))
             for k, v in config_report.iteritems():
-                report.add(k, v)
+                if k.lower() == 'status':
+                    report.set_status(v)
+                else:
+                    report.add(k, v)
         return report
 
     def setup(self):

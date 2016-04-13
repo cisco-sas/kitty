@@ -37,6 +37,13 @@ class Report(object):
     FAILED = 'failed'
     ERROR = 'error'
 
+    allowed_statuses = [PASSED, FAILED, ERROR]
+
+    reserved_keys = {
+        'status': 'set_status(status), success(), failed(reason) or error(reason)',
+        'failed': 'failed(reason)'
+    }
+
     def __init__(self, name, default_failed=False):
         '''
         :param name: name of the report (or the issuer)
@@ -79,7 +86,7 @@ class Report(object):
         Set the report status to PASSED.
 
         .. deprecated:: 0.6.7
-           Use :func:`passed` instead
+            use :func:`~kitty.data.report.Report.passed`
         '''
         self.passed()
 
@@ -104,7 +111,14 @@ class Report(object):
             self.add('reason', reason)
 
     def set_status(self, new_status):
-        self.add('status', new_status.lower())
+        '''
+        Set the status of the report.
+
+        :param new_status: the new status of the report (either PASSED, FAILED or ERROR)
+        '''
+        if new_status not in Report.allowed_statuses:
+            raise Exception('status must be one of: %s' % (', '.join(Report.allowed_statuses)))
+        self._data_fields['status'] = new_status.lower()
 
     def add(self, key, value):
         '''
@@ -119,6 +133,8 @@ class Report(object):
 
                 my_report.add('retriy count', 3)
         '''
+        if key in self.reserved_keys:
+            raise Exception('You cannot add the key %s directly, use %s' % (key, self.reserved_keys[key]))
         if isinstance(value, Report):
             self._sub_reports[key] = value
             self._data_fields['sub_reports'].append(key)
@@ -181,7 +197,10 @@ class Report(object):
             if k in sub_reports:
                 report.add(k, Report.from_dict(v))
             else:
-                report.add(k, Report._decode(v, encoding))
+                if k.lower() == 'status':
+                    report.set_status(Report._decode(v, encoding))
+                else:
+                    report.add(k, Report._decode(v, encoding))
 
         return report
 

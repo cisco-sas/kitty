@@ -16,6 +16,7 @@
 # along with Kitty.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import unittest
+from test_data_report import *
 from test_fuzzer_client import *
 from test_fuzzer_server import *
 from test_interface_web import *
