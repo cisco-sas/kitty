@@ -23,6 +23,7 @@ from kitty.model.low_level.aliases import *
 from kitty.model.low_level.calculated import *
 from kitty.model.low_level.condition import *
 from kitty.model.low_level.container import *
+from kitty.model.low_level.container_mutator import *
 from kitty.model.low_level.encoder import *
 from kitty.model.low_level.field import *
 from kitty.model.low_level.mutated_field import *
