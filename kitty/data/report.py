@@ -30,7 +30,7 @@ class Report(object):
 
             report = Report('Controller')
             report.add('generation time', 0)
-            report.failed('target does not respont')
+            report.failed('target does not respond')
     '''
 
     PASSED = 'passed'
@@ -104,7 +104,7 @@ class Report(object):
         '''
         Set the test status to Report.ERROR, and set the error reason
 
-        :param reason: failure reason (default: None)
+        :param reason: error reason (default: None)
         '''
         self.set_status(Report.ERROR)
         if reason:
@@ -131,7 +131,7 @@ class Report(object):
 
             ::
 
-                my_report.add('retriy count', 3)
+                my_report.add('retry count', 3)
         '''
         if key in self.reserved_keys:
             raise Exception('You cannot add the key %s directly, use %s' % (key, self.reserved_keys[key]))
@@ -229,6 +229,6 @@ class Report(object):
     def is_failed(self):
         '''
         .. deprecated::
-            use :func:`~kitty.data.report.Report.is_failed`
+            use :func:`~kitty.data.report.Report.get_status`
         '''
         raise NotImplementedError('API was changed, use get_status instead')
