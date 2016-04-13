@@ -43,12 +43,12 @@ class _WebInterfaceServer(BaseHTTPServer.HTTPServer):
         self.RequestHandlerClass.logger = interface.logger
         self.RequestHandlerClass.dataman = interface.dataman
 
-    def log_message(self, fmt, *args):
+    @classmethod
+    def log_message(cls, dummy1, *dummy2):
         '''
-        :param format: message format
-        :param args: message arguments
+        Used to silence the direct logging to stdout/stderr
         '''
-        # self.logger.info(format, *args)
+        # self.logger.info(dummy1, *dummy2)
         return
 
 
@@ -66,12 +66,12 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self, request, client_address, server)
         self.dataman = None
 
-    def log_message(self, fmt, *args):
+    @classmethod
+    def log_message(cls, dummy1, *dummy2):
         '''
-        :param format: message format
-        :param args: message arguments
+        Used to silence the direct logging to stdout/stderr
         '''
-        # self.logger.info(fmt, *args)
+        # self.logger.info(dummy1, *dummy2)
         return
 
     def _pause_fuzzer(self):

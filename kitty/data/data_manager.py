@@ -22,6 +22,8 @@ interface, and persistent storage of the fuzzing session results.
 import sqlite3
 import cPickle
 import zlib
+import traceback
+from kitty.core import KittyObject
 from kitty.data.report import Report
 from threading import Event, Thread
 from Queue import Queue
@@ -54,8 +56,14 @@ class DataManagerTask(object):
         self._event.clear()
         try:
             self._result = self._task(dataman, *self._args)
-        except Exception as ex:
+        #
+        # We are going to re-throw this exception from get_results,
+        # so we are doing such a general eception handling at the point.
+        # however, we do want to print it here as well
+        #
+        except Exception as ex:  # pylint: disable=W0703
             self._exception = ex
+            KittyObject.get_logger().error(traceback.format_exc())
         self._event.set()
 
     def get_results(self):
@@ -63,14 +71,26 @@ class DataManagerTask(object):
         :return: result from running the task
         '''
         self._event.wait()
-        if self._exception:
-            raise self._exception
+        if self._exception is not None:
+            #
+            # Well... rethrownig the exception caught in execute
+            # but on the caller thread
+            #
+            raise self._exception  # pylint: disable=E0702
         return self._result
 
 
 def synced(func):
-    def wrapper(self, *args):
-        task = DataManagerTask(func, *args)
+    '''
+    Decorator for functions that should be called synchronously from another thread
+
+    :param func: function to call
+    '''
+    def wrapper(self, *args, **kwargs):
+        '''
+        Actual wrapper for the synchronous function
+        '''
+        task = DataManagerTask(func, *args, **kwargs)
         self.submit_task(task)
         return task.get_results()
     return wrapper
@@ -208,6 +228,12 @@ class DataManager(Thread):
 
     @synced
     def set(self, key, data):
+        '''
+        set arbitrary data by key in volatile memory
+
+        :param key: key of the data
+        :param data: data to be stored
+        '''
         if isinstance(data, dict):
             self._volatile_data[key] = {k: v for (k, v) in data.items()}
         else:
@@ -215,6 +241,12 @@ class DataManager(Thread):
 
     @synced
     def get(self, key):
+        '''
+        get arbitrary data by key from volatile memory
+
+        :param key: key of the data
+        :return: the data
+        '''
         return self._volatile_data[key]
 
 
@@ -249,7 +281,7 @@ class Table(object):
         })
         self._connection.commit()
 
-    def select(self, to_select, where=None, sql_params=[]):
+    def select(self, to_select, where=None, sql_params=None):
         '''
         select db entries
 
@@ -257,6 +289,8 @@ class Table(object):
         :param where: where clause (default: None)
         :param sql_params: params for the where clause
         '''
+        if sql_params is None:
+            sql_params = []
         query = '''
         SELECT %s FROM %s
         ''' % (to_select, self._name)
@@ -386,7 +420,8 @@ class ReportsTable(Table):
             res.append((row[0], row[1], row[2]))
         return res
 
-    def _serialize_dict(self, data):
+    @classmethod
+    def _serialize_dict(cls, data):
         '''
         serializes a dictionary
 
@@ -394,7 +429,8 @@ class ReportsTable(Table):
         '''
         return zlib.compress(cPickle.dumps(data, protocol=2)).encode('base64')
 
-    def _deserialize_dict(self, data):
+    @classmethod
+    def _deserialize_dict(cls, data):
         '''
         deserializes a dictionary
 

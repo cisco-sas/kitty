@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kitty.  If not, see <http://www.gnu.org/licenses/>.
 '''
-This module contains :class:`~kitty.core.actor.KittyActor`
+This module contains :class:`~kitty.core.actor.KittyActorInterface`
 which is the base class for both monitors and controllers.
 '''
 import time
@@ -23,17 +23,17 @@ from kitty.core.kitty_object import KittyObject
 from kitty.data.report import Report
 
 
-class KittyActor(KittyObject):
+class KittyActorInterface(KittyObject):
     '''
     Base class for monitors and controllers,
     its defines (and partially implements) the Kitty Actor API:
 
-    - :func:`~kitty.core.actor.KittyActor.setup`
-    - :func:`~kitty.core.actor.KittyActor.teardown`
-    - :func:`~kitty.core.actor.KittyActor.pre_test`
-    - :func:`~kitty.core.actor.KittyActor.post_test`
-    - :func:`~kitty.core.actor.KittyActor.is_victim_alive`
-    - :func:`~kitty.core.actor.KittyActor.get_report`
+    - :func:`~kitty.core.actor.KittyActorInterface.setup`
+    - :func:`~kitty.core.actor.KittyActorInterface.teardown`
+    - :func:`~kitty.core.actor.KittyActorInterface.pre_test`
+    - :func:`~kitty.core.actor.KittyActorInterface.post_test`
+    - :func:`~kitty.core.actor.KittyActorInterface.is_victim_alive`
+    - :func:`~kitty.core.actor.KittyActorInterface.get_report`
     '''
 
     def __init__(self, name, logger=None, victim_alive_check_delay=0.3):
@@ -42,7 +42,7 @@ class KittyActor(KittyObject):
         :param logger: logger for the actor (default: None)
         :param victim_alive_check_delay: delay between checks if alive (default: 0.3)
         '''
-        super(KittyActor, self).__init__(name, logger)
+        super(KittyActorInterface, self).__init__(name, logger)
         self.victim_alive_check_delay = victim_alive_check_delay
         self.report = None
         self.test_number = 0

@@ -19,11 +19,11 @@
 This module defines BaseMonitor - the base (abstract) monitor class
 '''
 
-from kitty.core.actor import KittyActor
+from kitty.core.actor import KittyActorInterface
 from kitty.core.threading_utils import LoopFuncThread
 
 
-class BaseMonitor(KittyActor):
+class BaseMonitor(KittyActorInterface):
     '''
     Base (abstract) monitor class
     '''

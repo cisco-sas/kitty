@@ -14,13 +14,19 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Kitty.  If not, see <http://www.gnu.org/licenses/>.
+'''
+This module contains BaseFuzzer, which implements most of the fuzzing logic
+for both Server and Client fuzzing.
 
+This module should not be overriden/referenced by entities outside of kitty,
+as it is tightly coupled to the implementation of the Client and Server fuzzer,
+and will probably be changed in the future.
+'''
 import sys
 import time
 import traceback
 import shlex
 import docopt
-import logging
 from threading import Event
 from kitty.core import KittyException, KittyObject
 from kitty.data.data_manager import DataManager, SessionInfo
@@ -28,7 +34,7 @@ from kitty.data.report import Report
 from pkg_resources import get_distribution
 
 
-class _Configuration:
+class _Configuration(object):
 
     def __init__(self, delay_secs, store_all_reports, session_file_name, max_failures):
         self.delay_secs = delay_secs
@@ -39,7 +45,11 @@ class _Configuration:
 
 def _get_current_version():
     package_name = 'kittyfuzzer'
-    current_version = get_distribution(package_name).version
+    #
+    # This is weird. I know that this is the way to get the version,
+    # yet for some reason pylint complains about it.
+    #
+    current_version = get_distribution(package_name).version  # pylint: disable=maybe-no-member
     return current_version
 
 
@@ -78,6 +88,7 @@ class BaseFuzzer(KittyObject):
         self._last_payload = None
         self._skip_env_test = False
         self._in_environment_test = True
+        self._started = False
         self._handle_options(option_line)
 
     def _handle_options(self, option_line):
@@ -137,7 +148,7 @@ class BaseFuzzer(KittyObject):
         .. deprecated::
             use :func:`~kitty.fuzzers.base.BaseFuzzer.set_delay_between_tests`
         '''
-        raise NotImplementedError('API was changed, use set_delay_between_tests')
+        raise DeprecationWarning('API was changed, use set_delay_between_tests')
 
     def set_delay_between_tests(self, delay_secs):
         '''
@@ -227,8 +238,14 @@ class BaseFuzzer(KittyObject):
 
     def start(self):
         '''
-        start the fuzzing session
+        Start the fuzzing session
+
+        If fuzzer already running, it will return immediatly
         '''
+        if self._started:
+            self.logger.warning('called while fuzzer is running. ignoring.')
+            return
+        self._started = True
         assert(self.model)
         assert(self.user_interface)
         assert(self.target)
@@ -245,7 +262,7 @@ class BaseFuzzer(KittyObject):
         if self.session_info.start_index > self.session_info.current_index:
             self.session_info.current_index = self.session_info.start_index
 
-        self.set_signal_handler()
+        self._set_signal_handler()
         self.user_interface.set_data_provider(self.dataman)
         self.user_interface.set_continue_event(self._continue_event)
         self.user_interface.start()
@@ -331,7 +348,8 @@ class BaseFuzzer(KittyObject):
         return report
 
     def _start_message(self):
-        self.logger.info('''
+        self.logger.info(
+            '''
                  --------------------------------------------------
                  Starting fuzzing session
                  Target: %s
@@ -343,18 +361,19 @@ class BaseFuzzer(KittyObject):
                  --------------------------------------------------
                                  Happy hacking
                  --------------------------------------------------
-                         ''',
-                         self.target.get_description(),
-                         self.user_interface.get_description(),
-                         self.get_log_file_name(),
-                         self.model.num_mutations(),
-                         self.session_info.current_index,
-                         self.session_info.end_index
-                         )
+            ''',
+            self.target.get_description(),
+            self.user_interface.get_description(),
+            self.get_log_file_name(),
+            self.model.num_mutations(),
+            self.session_info.current_index,
+            self.session_info.end_index
+        )
 
     def _end_message(self):
         tested = max(0, self.model.current_index() - self.session_info.start_index + 1)
-        self.logger.info('''
+        self.logger.info(
+            '''
                          --------------------------------------------------
                          Finished fuzzing session
                          Target: %s
@@ -363,14 +382,14 @@ class BaseFuzzer(KittyObject):
                          Mutation range: %d to %d
                          Failure count: %d
                          --------------------------------------------------
-                         ''',
-                         self.target.get_description(),
-                         tested,
-                         's' if tested > 1 else '',
-                         self.session_info.start_index,
-                         self.model.current_index(),
-                         self.session_info.failure_count
-                         )
+            ''',
+            self.target.get_description(),
+            tested,
+            's' if tested > 1 else '',
+            self.session_info.start_index,
+            self.model.current_index(),
+            self.session_info.failure_count
+        )
 
     def _test_info(self):
         fuzz_node_info = self.model.get_test_info()
@@ -378,7 +397,7 @@ class BaseFuzzer(KittyObject):
         self.logger.debug('----------------------------------------------')
         keys = sorted(fuzz_node_info.keys())
         keys = [k for k in keys if k.startswith('node/field')]
-        keys = [k for k in keys if type(fuzz_node_info[k]) != bool]
+        keys = [k for k in keys if not isinstance(fuzz_node_info[k], bool)]
         key_max_len = 0
         for key in keys:
             if len(key) > key_max_len:
@@ -408,7 +427,7 @@ class BaseFuzzer(KittyObject):
         self.user_interface.stop()
         self.target.teardown()
         self.dataman.submit_task(None)
-        self.unset_signal_handler()
+        self._un_set_signal_handler()
 
     def _store_report(self, report):
         self.logger.debug('<in>')
@@ -466,7 +485,7 @@ class BaseFuzzer(KittyObject):
             self._set_session_info()
             return False
 
-    def _exit_now(self, signal, frame):
+    def _exit_now(self, dummy1, dummy2):
         self.stop()
         sys.exit(0)
 
@@ -479,14 +498,15 @@ class BaseFuzzer(KittyObject):
                 return False
         return self.model.current_index() < self.session_info.end_index
 
-    def set_signal_handler(self):
+    def _set_signal_handler(self):
         '''
         Replace the signal handler with self._exit_now
         '''
         import signal
         signal.signal(signal.SIGINT, self._exit_now)
 
-    def unset_signal_handler(self):
+    @classmethod
+    def _un_set_signal_handler(cls):
         '''
         Set the default signal handler
         '''

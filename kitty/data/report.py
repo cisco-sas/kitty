@@ -14,6 +14,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Kitty.  If not, see <http://www.gnu.org/licenses/>.
+'''
+This module defines the :class:`~kitty.data.report.Report` class
+'''
 
 
 class Report(object):
@@ -166,7 +169,7 @@ class Report(object):
         for k, v in self._data_fields.items():
             if isinstance(v, unicode):
                 v = v.encode('utf-8')
-            if type(v) == str:
+            if isinstance(v, str):
                 v = v.encode(encoding)[:-1]
             res[k] = v
         for k, v in self._sub_reports.items():
@@ -175,7 +178,7 @@ class Report(object):
 
     @classmethod
     def _decode(cls, val, encoding):
-        if type(val) == str:
+        if isinstance(val, str):
             val = val.decode(encoding)
         return val
 

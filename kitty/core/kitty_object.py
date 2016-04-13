@@ -56,6 +56,9 @@ class KittyObject(object):
 
     @classmethod
     def get_log_file_name(cls):
+        '''
+        :return: log file name
+        '''
         return KittyObject.log_file_name
 
     @classmethod

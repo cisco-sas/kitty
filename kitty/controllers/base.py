@@ -25,10 +25,10 @@ Since the controller is reponsible for the state of the victim,
 it is expected to perform a basic monitoring as well, and report whether
 the victim is ready for the next test.
 '''
-from kitty.core.actor import KittyActor
+from kitty.core.actor import KittyActorInterface
 
 
-class BaseController(KittyActor):
+class BaseController(KittyActorInterface):
     '''
     Base class for controllers. Defines basic variables and implements basic behavior.
     '''

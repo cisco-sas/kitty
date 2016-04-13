@@ -14,19 +14,23 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Kitty.  If not, see <http://www.gnu.org/licenses/>.
-
+'''
+This module provides various assertion functions used by kitty,
+not that important, but makes the life easier.
+Useful for making assertions that throw :class:`~kitty.core.KittyException`
+'''
 from kitty.core import KittyException
 import types
 
 
-def is_of_types(obj, types):
+def is_of_types(obj, the_types):
     '''
     :param obj: object to assert
-    :param types: iterable of types, or a signle type
+    :param the_types: iterable of types, or a signle type
     :raise: an exception if obj is not an instance of types
     '''
-    if not isinstance(obj, types):
-        raise KittyException('object type (%s) is not one of (%s)' % (type(obj), types))
+    if not isinstance(obj, the_types):
+        raise KittyException('object type (%s) is not one of (%s)' % (type(obj), the_types))
 
 
 def is_int(obj):

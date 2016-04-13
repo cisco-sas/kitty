@@ -14,7 +14,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Kitty.  If not, see <http://www.gnu.org/licenses/>.
-
+'''
+This module contains the :class:`~kitty.fuzzer.client.ClientFuzzer` class.
+'''
 from threading import Event
 from kitty.fuzzers.base import BaseFuzzer
 from kitty.core.threading_utils import LoopFuncThread
@@ -28,8 +30,11 @@ class ClientFuzzer(BaseFuzzer):
     It does not preform an active fuzzing, but rather returns a mutation of a
     response when in the right state.
     It is designed to be a module that is integrated into different stacks.
-    See its usage example in the file examples/client_fuzzer_example.py which
-    designed to fuzz a browser.
+
+    You can see its usahe examples in the following places:
+
+        - examples/02_client_fuzzer_browser_remote
+        - examples/03_client_fuzzer_browser
     '''
 
     #  Wild card for matching any stage
@@ -49,7 +54,6 @@ class ClientFuzzer(BaseFuzzer):
         self._requested_stages = []
         self._report = None
         self._done_evt = Event()
-        self._started = False
 
     def _pre_test(self):
         self._requested_stages = []
@@ -93,11 +97,6 @@ class ClientFuzzer(BaseFuzzer):
             self._end_message()
             self._done_evt.set()
             self._trigger_stop_evt.wait()
-
-    def start(self):
-        if not self._started:
-            self._started = True
-            super(ClientFuzzer, self).start()
 
     def _start(self):
         self._target_control_thread.start()
