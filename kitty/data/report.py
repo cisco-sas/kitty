@@ -228,7 +228,7 @@ class Report(object):
 
     def is_failed(self):
         '''
-        .. deprecated::
+        .. deprecated:: 0.6.7
             use :func:`~kitty.data.report.Report.get_status`
         '''
         raise NotImplementedError('API was changed, use get_status instead')
