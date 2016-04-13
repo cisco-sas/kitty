@@ -66,13 +66,22 @@ class Report(object):
         '''
         return self.get('name')
 
-    def success(self):
+    def passed(self):
         '''
-        Set the failure status to False.
+        Set the report status to PASSED
         '''
         self.set_status(Report.PASSED)
         if 'reason' in self._data_fields:
             del self._data_fields['reason']
+
+    def success(self):
+        '''
+        Set the report status to PASSED.
+
+        .. deprecated:: 0.6.7
+           Use :func:`passed` instead
+        '''
+        self.passed()
 
     def failed(self, reason=None):
         '''
