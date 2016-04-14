@@ -286,15 +286,3 @@ class List(OneOf):
                 )
         return res
 
-if __name__ == '__main__':
-    from kitty.model import String
-    l = List(name='test list', fields=[
-        String('A', fuzzable=False),
-        String('B', fuzzable=False),
-        String('C', fuzzable=False),
-        String('D', fuzzable=False),
-    ])
-    print 'num mutations:', l.num_mutations()
-    print 'default value:', l.render().tobytes()
-    while l.mutate():
-        print l.get_info()['path'], ':', l.render().tobytes()
