@@ -19,7 +19,7 @@
 Tools for testing and manipulating kitty templates.
 
 Usage:
-    kitty-tool generate [--verbose] [-s SKIP] [-c COUNT] [-o OUTDIR] [-f FORMAT] <FILE> <TEMPLATE>
+    kitty-tool generate [--verbose] [-s SKIP] [-c COUNT] [-o OUTDIR] [-f FORMAT] <FILE> <TEMPLATE> ...
     kitty-tool list <FILE>
     kitty-tool --version
 
@@ -30,7 +30,7 @@ Commands:
 
 Options:
     <FILE>                  python file that contains the template
-    <TEMPLATE>              template name to generate files from
+    <TEMPLATE>              template name(s) to generate files from
     --out -o OUTDIR         output directory for the generated mutations [default: out]
     --skip -s SKIP          how many mutations to skip [default: 0]
     --count -c COUNT        end index to generate
@@ -114,7 +114,7 @@ class Handler(object):
 
 class FileGeneratorHandler(Handler):
 
-    def __init__(self, outdir, skip, count, template_name, filename_template, logger):
+    def __init__(self, outdir, skip, count, template_names, filename_template, logger):
         super(FileGeneratorHandler, self).__init__(logger)
         self.outdir = outdir or 'out'
         if skip is not None:
@@ -130,7 +130,7 @@ class FileGeneratorHandler(Handler):
                 self.count = int(count)
             except:
                 raise Exception('count should be a number')
-        self.template_name = template_name
+        self.template_names = template_names
         self.filename_template = filename_template
         try:
             self.filename_template % {
@@ -147,7 +147,7 @@ class FileGeneratorHandler(Handler):
 
     def handle(self, template):
         template_name = template.get_name()
-        if template_name == self.template_name:
+        if template_name in self.template_names:
             self.logger.info('Generating mutation files from template %s into %s' % (template_name, os.path.abspath(self.outdir)))
             template.skip(self.skip)
             self.end_index = template.num_mutations() if not self.count else self.skip + self.count
@@ -160,15 +160,25 @@ class FileGeneratorHandler(Handler):
             total = (self.end_index - self.skip)
             step = 100.0 / total
 #            step = max(step, 2)
+            max_line_length = 0
             while template.mutate():
                 template_filename = self.filename_template % {'template': template_name, 'index': template._current_index}
                 with open(os.path.join(self.outdir, template_filename), 'wb') as f:
                     f.write(template.render().tobytes())
                 metadata_filename = template_filename + '.metadata'
+                info = template.get_info()
                 with open(os.path.join(self.outdir, metadata_filename), 'wb') as f:
-                    f.write(dumps(template.get_info(), indent=4, sort_keys=True))
-                sys.stdout.write('\r%d/%d' % (template._current_index, self.end_index))
-                sys.stdout.write('(%d%%)' % (int((total - (self.end_index - template._current_index)) * step)))
+                    f.write(dumps(info, indent=4, sort_keys=True))
+                out_line = ''
+                out_line += '\r%3d%%' % (int((total - (self.end_index - template._current_index)) * step))
+                out_line += ' %d/%d' % (template._current_index, self.end_index)
+                if 'field/path' in info:
+                    out_line += ' %s' % (info['field/path'])
+                if len(out_line) > max_line_length:
+                    max_line_length = len(out_line)
+                else:
+                    out_line += ' ' * (max_line_length - len(out_line))
+                sys.stdout.write(out_line)
                 sys.stdout.flush()
                 if template._current_index >= self.end_index:
                     break
@@ -193,7 +203,7 @@ def _main():
                     outdir=opts['--out'],
                     skip=opts['--skip'],
                     count=opts['--count'],
-                    template_name=opts['<TEMPLATE>'],
+                    template_names=opts['<TEMPLATE>'],
                     filename_template=opts['--filename-format'],
                     logger=logger
                 ),
