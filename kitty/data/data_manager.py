@@ -247,7 +247,7 @@ class DataManager(Thread):
         :param key: key of the data
         :return: the data
         '''
-        return self._volatile_data[key]
+        return self._volatile_data.get(key, None)
 
 
 class Table(object):
