@@ -405,22 +405,38 @@ class _LibraryField(BaseField):
         return skipped
 
     def _mutate(self):
-        value = self._lib.get(self._current_index)
+        value = self._lib.get(self._current_index)[0]  # [1] is the description
         self._current_value = value
 
     def _init(self):
         lib = _MultiListAccessor()
+        # library that depend on the value of the field
         lib.add_list(self._get_local_lib())
+        # library that is always added
         lib.add_list(self._wrap_get_class_lib())
+        # libraries that depend on the tags of the field
+        for tagged_lib in self._get_tagged_libs():
+            lib.add_list(tagged_lib)
         self._lib = lib
         self._filter_lib()
         self._num_mutations = self._lib.size()
+
+    def get_info(self):
+        info = super(_LibraryField, self).get_info()
+        idx = self._current_index
+        if idx >= 0 and idx < self._lib.size():
+            current = self._lib.get(idx)
+            if current:
+                info['mutation/description'] = current[1]
+        return info
 
     def _filter_lib(self):
         pass
 
     def _get_local_lib(self):
         '''
+        Get library that depend on the value of the instance
+
         :rtype: list
         :return: list of local lib
         '''
@@ -435,10 +451,18 @@ class _LibraryField(BaseField):
 
     def _get_class_lib(self):
         '''
+        Get library that is always relevant for this field
+
         :rtype: list
         :return: list of class lib
         '''
         self.not_implemented('_get_class_lib')
+
+    def _get_tagged_libs(self):
+        '''
+        Get libraries that are relevant for the tags of the current instance
+        '''
+        return []
 
 
 class Static(BaseField):
@@ -464,8 +488,8 @@ class Static(BaseField):
         super(Static, self).__init__(value=value, encoder=encoder, fuzzable=False, name=name)
 
 
-def gen_power_list(val, min_power=0, max_power=10):
-    return [val * (2 ** i) for i in range(min_power, max_power + 1)]
+def gen_power_list(val, min_power=0, max_power=10, mutation_desc=''):
+    return [(val * (2 ** i), mutation_desc) for i in range(max_power, min_power, -3)]
 
 
 class String(_LibraryField):
@@ -499,55 +523,107 @@ class String(_LibraryField):
 
     def _get_local_lib(self):
         lib = []
+        l = len(self._default_value)
         for i in [2, 10, 100]:
-            lib.append(self._default_value * i)
-            lib.append(self._default_value * i + '\xfe')
-        lib.append('\x00' + self._default_value)
-        lib.append(self._default_value + '\x00')
+            lib.append((self._default_value * i, 'duplicate value %s times' % i))
+        lib.append((self._default_value + '\xfe', 'value with utf8 escape char'))
+        lib.append(('\x00' + self._default_value, 'null before value'))
+        lib.append((self._default_value[0:l / 2] + '\x00' + self._default_value[l / 2:], 'null in middle of value'))
+        lib.append((self._default_value + '\x00', 'null after value'))
         return lib
+
+    def _add_command_injection_strings_unix(self, lib):
+        '''
+        .. note::
+
+            The following mutations will probably not be detected
+            unless there's a monitor that checks if the file /tmp/KITTY
+            was created in the post test
+        '''
+        lib.append(('|touch /tmp/KITTY', 'command injection - pipe'))
+        lib.append((';touch /tmp/KITTY;', 'command injection - additional command'))
+        lib.append((';ls>/tmp/KITTY', 'command injection - additional command'))
+        lib.append(('";ls>/tmp/KITTY;ls>/dev/null"', 'command injection - escape double qoutes'))
+        lib.append(('\';ls>/tmp/KITTY;ls>\'/dev/null\'', 'command injection - escape qoutes'))
+        lib.append(('`ls>/tmp/KITTY`', 'command injection - backtick'))
+        lib.append((' `ls>/tmp/KITTY`', 'command injection - backtick with space'))
+
+    def _add_sql_injection_strings(self, lib):
+        '''
+        .. note::
+
+            The following mutations will probably not be detected
+            unless some entity will check the response from the target
+            on the validity of the DB.
+        '''
+        entries = [
+            ("' or 1=1 --", 'mssql - bypass check'),
+            ("\'; desc users; --", 'mysql - mssql - get desc users'),
+            ("' or username is not NULL or username = '", 'mysql - mssql - bypass check'),
+            ("1 union all select 1,2,3,4,5,6,name from sysobjects where xtype = 'u' --", 'mysql - mssql - get sysobjects'),
+            ("` or `1`=`1", 'oracle - bypass check'),
+            ("' or '1'='1", 'oracle - bypass check'),
+        ]
+        for (s, desc) in entries:
+            lib.append((s, 'sqli - %s' % desc))
+
+    def _add_buffer_overflow_strings(self, lib):
+        for i in [2, 10, 100, 1000, 5000, 10000]:
+            lib.append(('A' * i, 'overflow - %d chars' % (i)))
+
+    def _add_path_traversal_strings(self, lib):
+        '''
+        .. note::
+
+            The following mutations will probably not be detected
+            unless there's a monitor that checks if the file /tmp/KITTY
+            was created in the post test
+        '''
+        entries = [
+            (('/etc/passwd', 'absolute - /etc/passwd')),
+            (('./../../../../../../../../../../../../../../etc/passwd', 'relative - /etc/passwd')),
+            (('../../../../../../../../../../../../../../etc/passwd', 'relative - /etc/passwd')),
+            (('/proc/cpuinfo', 'absolute path - /proc/cpuinfo')),
+            (('./../../../../../../../../../../../../../../proc/cpuinfo', 'relative - /proc/cpuinfo')),
+            (('../../../../../../../../../../../../../../proc/cpuinfo', 'relative - /proc/cpuinfo')),
+            (('~/.profile', 'absolute - home')),
+            (('$HOME/.profile', 'environment - home')),
+            (('/../../../../../../../../../../../../boot.ini', 'relative - boot.ini')),
+        ]
+        for (s, desc) in entries:
+            lib.append((s, 'path traversal - %s' % desc))
 
     def _get_class_lib(self):
         lib = []
-        lib.append('')
+        lib.append(('', 'empty string'))
         # format strings
-        for s in ['%s', '%%s', '"%s"', '%n', '%%n', '"%n"', '\r\n', '\n']:
-            lib.extend(gen_power_list(s, max_power=10))
-        for s in ['\x00', '\xde\xad\xbe\xef']:
-            lib.extend(gen_power_list(s, max_power=13))
+        for s in ['%s', '%%s', '"%s"', '%n', '%%n', '"%n"']:
+            lib.extend(gen_power_list(s, max_power=10, mutation_desc='format string'))
+        # taken from fuzzdb
+        lib.append(('%.16705u%2\\$hn', 'format string'))
+        for s in ['\r\n', '\n']:
+            lib.extend(gen_power_list(s, max_power=10, mutation_desc='line breaks'))
+        for s in ['\xde\xad\xbe\xef']:
+            lib.extend(gen_power_list(s, max_power=10, mutation_desc='binary values'))
         # *nix command injection
-        lib.append('|touch /tmp/KITTY')
-        lib.append(';touch /tmp/KITTY;')
-        lib.append(';ls>/tmp/KITTY')
-        lib.append('";ls>/tmp/KITTY;ls>"/dev/null"')
-        lib.append('\';ls>/tmp/KITTY;ls>\'/dev/null\'')
+        self._add_command_injection_strings_unix(lib)
         # windows command injection
-        lib.append('|notepad')
-        lib.append(';notepad;')
-        lib.append('\nnotepad\n')
-        # sql injection
-        lib.append('1;SELECT%20*')
-        lib.append('\'sqlattempt1')
-        lib.append('(sqlattempt2)')
-        lib.append('OR%201=1')
-        # paths and path traversal
-        lib.append('/.:/' + 'A' * 5000 + '\x00\x00')
-        lib.append('/.../' + 'A' * 5000 + '\x00\x00')
-        lib.append('/.../.../.../.../.../.../.../.../.../.../')
-        lib.append('/../../../../../../../../../../../../etc/passwd')
-        lib.append('/../../../../../../../../../../../../boot.ini')
-        lib.append('..:..:..:..:..:..:..:..:..:..:..:..:..:')
-        lib.append('\\\\*')
-        lib.append('\\\\?\\')
+        # TODO: need to learn a bit about windows cmd line injection...
+        lib.append(('|notepad', 'windows - should be replaced'))
+        lib.append((';notepad;', 'windows - should be replaced'))
+        lib.append(('\nnotepad\n', 'windows - should be replaced'))
+        self._add_sql_injection_strings(lib)
+        self._add_buffer_overflow_strings(lib)
+        self._add_path_traversal_strings(lib)
         lib.extend(gen_power_list('/\\', max_power=9))
         lib.extend(gen_power_list('/.', max_power=9))
-        lib.append('!@#$%%^#$%#$@#$%$$@#$%^^**(()')
-        lib.append('%01%02%03%04%0a%0d%0aADSF')
-        lib.append('%01%02%03@%04%0a%0d%0aADSF')
-        lib.append('/%00/')
-        lib.append('%00/')
-        lib.append('%00')
-        lib.append('%u0000')
-        lib.append('%\xfe\xf0%\x00\xff')
+        lib.append(('!@#$%%^#$%#$@#$%$$@#$%^^**(()', 'some weird chars'))
+        lib.append(('%01%02%03%04%0a%0d%0aADSF', 'binary variants'))
+        lib.append(('%01%02%03@%04%0a%0d%0aADSF', 'binary variants'))
+        lib.append(('/%00/', 'null variant'))
+        lib.append(('%00/', 'null variant'))
+        lib.append(('%00', 'null variant'))
+        lib.append(('%u0000', 'utf16 null'))
         lib.extend(gen_power_list('%\xfe\xf0%\x01\xff', max_power=5))
         lib.extend(self._add_strings_from_file('./kitty_strings.txt'))
         return lib
@@ -556,7 +632,7 @@ class String(_LibraryField):
         if self._max_size is not None:
             for i in range(self._lib.size(), 0, -1):
                 i -= 1
-                val = self._lib.get(i)
+                val = self._lib.get(i)[0]
                 if len(val) > self._max_size:
                     self._lib.skip_index(i)
             self._num_mutations = self._lib.size()
@@ -569,7 +645,7 @@ class String(_LibraryField):
                     for line in f:
                         if line.endswith('\n'):
                             line = line[:-1]
-                        res.append(line)
+                        res.append((line, 'from file %s' % (file_name)))
             except Exception as e:
                 self.logger.warning('Could not read strings from file %s: %s' % (file_name, e))
         else:
@@ -617,7 +693,7 @@ class Delimiter(String):
             lib.extend(gen_power_list(delim, max_power=2))
         lib.extend(gen_power_list('\r\n', max_power=3))
         lib.extend(gen_power_list('\t\r\n', max_power=3))
-        lib.append('')
+        lib.append(('', 'empty delimiter'))
         return lib
 
 
@@ -686,8 +762,13 @@ class BitField(_LibraryField):
 
     def _get_local_lib(self):
         lib = []
-        for i in range(self._length):
-            lib.append(lambda x, i=i: x._default_value ^ (1 << i))
+        for i in range(self._length - 1, 0, -3):
+            lib.append(
+                (
+                    (lambda x, i=i: x._default_value ^ (1 << i)),
+                    'xor bit %d of value' % (i)
+                )
+            )
         return lib
 
     def _get_class_lib(self):
@@ -699,21 +780,31 @@ class BitField(_LibraryField):
         '''
         lib = []
         num_sections = 4
-        for i in range(5):
-            lib.append(lambda x, i=i: x._min_value + i)
-            lib.append(lambda x, i=i: x._max_value - i)
+        for i in range(3):
+            lib.append(((lambda x, i=i: x._min_value + i), 'off by %d from max value' % i))
+            lib.append(((lambda x, i=i: x._max_value - i), 'off by -%d from min value' % i))
             for s in range(1, num_sections):
-                lib.append(lambda x, i=i, s=s: x._max_value - (x._max_min_diff / num_sections) * s + i)
-                lib.append(lambda x, i=i, s=s: x._max_value - (x._max_min_diff / num_sections) * s - i)
+                lib.append(
+                    (
+                        (lambda x, i=i, s=s: x._max_value - (x._max_min_diff / num_sections) * s + i),
+                        'off by %d from section %d' % (i, s)
+                    )
+                )
+                lib.append(
+                    (
+                        (lambda x, i=i, s=s: x._max_value - (x._max_min_diff / num_sections) * s - i),
+                        'off by %d from section %d' % (i, s)
+                    )
+                )
         # off-by-N
-        for i in range(1, 5):
-            lib.append(lambda x, i=i: x._default_value + i)
-            lib.append(lambda x, i=i: x._default_value - i)
+        for i in range(1, 3):
+            lib.append(((lambda x, i=i: x._default_value + i), 'off by %d from value' % i))
+            lib.append(((lambda x, i=i: x._default_value - i), 'off by %d from value' % -i))
         self._add_ints_from_file('./kitty_integers.txt')
         return lib
 
     def _mutate(self):
-        func = self._lib.get(self._current_index)
+        func = self._lib.get(self._current_index)[0]
         self._current_value = func(self)
 
     def _encode_value(self, value):
@@ -723,7 +814,7 @@ class BitField(_LibraryField):
         vals = []
         for i in range(self._lib.size(), 0, -1):
             i -= 1
-            func = self._lib.get(i)
+            func = self._lib.get(i)[0]
             res = func(self)
             if res in vals:
                 self._lib.skip_index(i)
@@ -786,7 +877,7 @@ class Group(_LibraryField):
         super(Group, self).__init__(values[0], encoder, fuzzable, name)
 
     def _get_local_lib(self):
-        return self._values[:]
+        return [(x, '') for x in self._values]
 
     def _get_class_lib(self):
         return []
