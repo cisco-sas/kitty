@@ -1,3 +1,25 @@
+Version 0.6.7 (2016-04-18)
+==========================
+
+* new feature: [KittyActor] a new class, KittyActor, is now the base class for monitors and controllers
+* new feature: [KittyActor] a new API is_victim_alive can be used to check if the victim is alive, it is called in a loop in pre-test
+* enhancement: [BaseFuzzer] default logging level is now INFO, hence less messages are printed, can be controlled from cmd line args
+* bugfix: [BaseFuzzer] update test info before the calling target's pre_test
+* new feature: [Report] use 'status' field instead of 'failed' field in the report. currently support FAILED, PASSED and ERROR.
+* enhancement: [WebInterface] html - improvements of caching, window size, cell overflow
+* new feature: [WebInterface] html - report table now shows test status and reason
+* bugfix: [kitty-tool] fixed command line option parsing
+* new feature: [kitty-tool] added checks for mutation indices in "generate"
+* new feature: [kitty-tool] print progress and current field path in "generate"
+* bugfix: [DataModel] fixed "field path" in field info
+* new feature: [DataModel] new fields - Offset & AbsoluteOffset - can hold the offset of a specific field inside the template
+* new feature: [DataModel] new conditions - BitMaskSet and BitMaskNotSet
+* new feature: [DataModel] absolute name resolution of fields
+* enhancement: [DataModel] perform render in two passes when needed, avoid (some) redundant rendering in between
+* new feature: [DataModel] new container - List - will perform the standard mutations of each of the internal fields, but will also perform mutations on the order and existence of its elements.
+* enhancement: [DataModel] reduce number of mutations for BitField & String field. This cuts the mutation count to about half of the previous count.
+* new feature: [DataModel] now String and BitField have a human friendly mutation description in the info
+
 Version 0.6.6 (2016-04-03)
 ==========================
 
