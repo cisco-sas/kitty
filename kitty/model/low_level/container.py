@@ -212,7 +212,8 @@ class Container(BaseField):
             rendered = Bits()
             for field in self._fields:
                 rendered += field._initialize_default_buffer()
-            self._default_rendered = rendered
+            self._default_value = rendered
+            self._default_rendered = self._encode_value(self._default_value)
         return self._default_rendered
 
     def _mutate(self):
@@ -754,7 +755,8 @@ class OneOf(Container):
         return res
 
     def _initialize_default_buffer(self):
-        self._default_rendered = self._fields[self._field_idx]._initialize_default_buffer()
+        self._default_value = self._fields[self._field_idx]._initialize_default_buffer()
+        self._default_rendered = self._encode_value(self._default_value)
         return self._default_rendered
 
     def _calculate_mutations(self, num):
