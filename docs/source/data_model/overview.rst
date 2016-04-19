@@ -20,15 +20,17 @@ Template is the only low-level interface to the high-level of the data
 model.
 
 A full documentation of the low level data model can be found in the API
-reference.
+:doc:`reference <../kitty.model.low_level>`.
+
+A full list of the fields in the Kitty data model syntax can be found in the :doc:`big_list_of_fields`.
 
 High Level Model
 ----------------
 
 The high level model describe how a sequence of messages (Templates)
 looks like to the fuzzer. There are two main models for this part,
-``GraphModel`` and ``StagedSequenceModel``. An additional model -
-``RandomSequenceModel`` is a naive case of ``StagedSequenceModel`` and is
+:class:`~kitty.model.high_level.graph.GraphModel` and :class:`~kitty.model.high_level.staged_sequence.StagedSequenceModel`. An additional model -
+:class:`~kitty.model.high_level.random_sequence.RandomSequenceModel` is a naive case of :class:`~kitty.model.high_level.staged_sequence.StagedSequenceModel` and is
 more convenient, when the order of messages really doesn't matter.
 
 During the fuzzing session, the fuzzer queries the data model for a

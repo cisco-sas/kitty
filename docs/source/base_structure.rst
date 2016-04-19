@@ -44,7 +44,7 @@ that the order in which messages are sent itself be fuzzed.
 The data model is constructed using the classes defined in the
 `model <https://github.com/cisco-sas/kitty/tree/master/kitty/model>`_ source folder.
 
-For more information, visit the data model :doc:`documentation </base_data_model_overview>`,
+For more information, visit the data model :doc:`documentation </data_model/overview>`,
 :doc:`reference </kitty.model>` and :doc:`tutorials </tutorials/index>`.
 
 Target
