@@ -35,42 +35,94 @@
 
     <script>
 
-        function toTitleCase(str)
-        {
-            return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();}).replace('_', ' ');
+        /* Change a string to title case: 'hEllo wORLD'-> 'Hello World' */
+        function toTitleCase(str) {
+            return str.replace(
+                /\w\S*/g,
+                function(txt) {
+                    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+                }
+            ).replace('_', ' ');
         }
 
-        function sanitizeName(str)
-        {
+        /* Replace "bad" chars with '_' */
+        function sanitizeName(str) {
             return str.replace(/\W+/g, '_');
         }
 
-        function add_to_table(base_name, key, value){
-            if(key != 'sub_reports'){
-                var is_code = false;
-                if((typeof value) == 'string') {
-                    value = window.atob(value);
-                    if(value.indexOf('\n') != -1) {
-                        is_code = true;
-                    }
-                }
-                if(is_code) {
-                    $('<tr>').append($('<td>').text(toTitleCase(key.replace(/_/g, ' '))), $('<td class="textarea-data">').append($('<pre>').text(value))).appendTo($('#' + base_name + '_table'));
-                }
-                else {
-                    $('<tr>').append($('<td>').text(toTitleCase(key.replace(/_/g, ' '))), $('<td class="textarea-data">').text(value)).appendTo($('#' + base_name + '_table'));
+        /* Decode as base64 if the value is a string */
+        function kunescape(val) {
+            if((typeof val) == 'string') {
+                val = window.atob(val);
+            }
+            return val;
+        }
+
+        /* Check if value is a multiline value */
+        function is_multiline(val) {
+            if ((typeof val) == 'string') {
+                if(val.indexOf('\n') != -1) {
+                    return true;
                 }
             }
+            return false;
         }
-        function fill_table(base_name, report, first_fields){
-            var sub_reports = report.sub_reports;  //JSON.parse(window.atob(report.sub_reports));
-            $.each(first_fields, function(idx, val){
-                v = report[val];
-                if ((typeof v) == 'string') {
-                    v = window.atob(v);
-                }
-                $('#' + base_name + '_' + val).text(v);
-                delete report[val];
+
+        /* Generate field id from base name and key */
+        function field_id_from_key(base_name, key) {
+            return base_name + '_' + key;
+        }
+        
+        /* Get field by the table name and the key */
+        function field_by_key(base_name, key) {
+            return $('#' + field_id_from_key(base_name, key));
+        }
+
+        /* Generate table id from base_name */
+        function table_id_from_name(base_name) {
+            return base_name + '_table';
+        }
+
+        /* Get table by the base_name */
+        function table_by_name(base_name) {
+            return $('#' + table_id_from_name(base_name));
+        }
+
+        /* Set a value in a field and return the field */
+        function set_value_in_field(field, value)
+        {
+            value = kunescape(value);
+            if(is_multiline(value)) {
+                field.append($('<pre>').text(value));
+            }
+            else {
+                field.text(value);
+            }
+            return field;
+        }
+        /* Add a field to the table */
+        function add_to_table(base_name, key, value) {
+            if(key != 'sub_reports'){
+                $('<tr>')
+                .append(
+                    $('<td>').text(toTitleCase(key.replace(/_/g, ' '))),
+                    set_value_in_field($('<td class="textarea-data">'), value)
+                )
+                .appendTo(table_by_name(base_name));
+            }
+        }
+
+        /* Set value of existing field in the table */
+        function set_in_table(base_name, key, value) {
+            set_value_in_field(field_by_key(base_name, key), value);
+        }
+
+        /* Fill a table from a report */
+        function fill_table(base_name, report, first_fields) {
+            var sub_reports = report.sub_reports;
+            $.each(first_fields, function(idx, key){
+                set_in_table(base_name, key, report[key]);
+                delete report[key];
             });
             var keys = [];
             for (var prop in report) {
@@ -84,39 +136,56 @@
                     add_to_table(base_name, key, value);
                 }
             }
-            // $.each(report, function(key, val){
-            //     if(sub_reports.indexOf(key) == -1){
-            //         add_to_table(base_name, key, val);
-            //     }                
-            // });
         }
 
+        /* Create a table */
         function create_table(name, title) {
-            var row1 = '<tr><td>Issuer</td><td id="' + name +'_name"></td></tr>';
-            var row2 = '<tr><td>Status</td><td id="' + name +'_status"></td></tr>';
-            var row3 = '<tr><td>Reason</td><td id="' + name +'_reason"></td></tr>';
-            var table = '<table id="' + name + '_table" class="table table-hover table-striped table-bordered info-table">' + row1 + row2 + row3 + '</table>';
-            var heading = '<div class="panel-heading">' + title + '</div>';
-            var panel = '<div class="panel panel-danger">' + heading + table + '</div>';
-            var wrap = '<tr><td>' + panel + '</td></tr>';
-            var tbody = $('#reports_container_table_body');
-            tbody.append(wrap);
-            
+            var new_tr = $('<tr></tr>');
+            new_tr.append(
+                $('<td>').append(
+                    $('<div>')
+                    .append(
+                        $('<div>')
+                        .addClass('panel-heading')
+                        .text(title)
+                    )
+                    .append(
+                        $('<table>', {id:table_id_from_name(name)})
+                        .addClass('table table-hover table-striped table-bordered info-table')
+                        .append(
+                            $('<tr>')
+                            .append($('<td>').text('Issuer'))
+                            .append($('<td>', {id: field_id_from_key(name, 'name')}))
+                        ).append(
+                            $('<tr>')
+                            .append($('<td>').text('Status'))
+                            .append($('<td>', {id: field_id_from_key(name, 'status')}))
+                        ).append(
+                            $('<tr>')
+                            .append($('<td>').text('Reason'))
+                            .append($('<td>', {id: field_id_from_key(name, 'reason')}))
+                        )
+                    )
+                    .addClass('panel panel-danger')
+                )
+            ).appendTo($('#reports_container_table_body'));
         }
 
+        /* Build tables and fill them for all reports */
         function build_tables(response) {
             var report = response.report;
-            var sub_reports = report.sub_reports; //JSON.parse(window.atob(report.sub_reports));
+            var sub_reports = report.sub_reports;
             $('#report_name').text('Report for test #' + report_num);
             fill_table('main_report', report, ['name', 'status', 'reason', 'fuzz_path']);
             sub_reports.sort();
-            $.each(sub_reports, function(idx, val){
-                subrep = report[val]
-                create_table(sanitizeName(val), toTitleCase(val));
-                fill_table(sanitizeName(val), subrep, ['name', 'status', 'reason']);
+            $.each(sub_reports, function(idx, key){
+                subrep = report[key]
+                create_table(sanitizeName(key), toTitleCase(key));
+                fill_table(sanitizeName(key), subrep, ['name', 'status', 'reason']);
             });
         }
 
+        /* Handle failure to fetch report */
         function handle_failure() {
             alert('Failed to load report');
         }
