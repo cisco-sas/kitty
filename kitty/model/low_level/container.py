@@ -900,9 +900,8 @@ class Template(Container):
         res = {'field/%s' % k: v for (k, v) in info.items()}
         res['name'] = self.get_name()
         res['mutation/current index'] = self._current_index
-        res['mutation/total number'] = self._last_index()
-        res['value/rendered/hex'] = self._current_rendered.tobytes().encode('hex')
-        res['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64')
+        res['mutation/total number'] = self.num_mutations()
+        res['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64').replace('\n', '')
         res['value/rendered/len'] = len(self._current_rendered.tobytes())
         res['tree'] = self.get_tree().encode('base64')
         res['hash'] = self.hash()

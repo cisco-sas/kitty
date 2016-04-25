@@ -195,11 +195,9 @@ class BaseField(KittyObject):
         info['path'] = info['name']
         info['field type'] = type(self).__name__
         info['value/raw'] = repr(self._current_value)
-        info['value/rendered/hex'] = self._current_rendered.tobytes().encode('hex')
-        info['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64')[:-1]
+        info['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64').replace('\n', '')
         info['value/rendered/length/bits'] = len(self._current_rendered)
         info['value/rendered/length/bytes'] = len(self._current_rendered.tobytes())
-        info['value/default'] = repr(self._default_value)
         info['mutation/total number'] = self._num_mutations
         info['mutation/current index'] = self._current_index
         info['mutation/mutating'] = self._mutating()
