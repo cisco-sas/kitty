@@ -494,8 +494,8 @@ class Offset(FieldIntProperty):
         '''
         base_offset = 0
         if self.base_field is not None:
-            base_offset = self.base_field.get_offset()
-        target_offset = self._field.get_offset()
+            base_offset = self.base_field.offset
+        target_offset = self._field.offset
         if (target_offset is None) or (base_offset is None):
             return 0
         return target_offset - base_offset

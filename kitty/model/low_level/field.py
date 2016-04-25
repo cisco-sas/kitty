@@ -74,12 +74,6 @@ class BaseField(KittyObject):
         '''
         self.offset = offset
 
-    def get_offset(self):
-        '''
-        :return: absolute offset of this field (in bits)
-        '''
-        return self.offset
-
     def _mutating(self):
         return self._current_index != -1
 
