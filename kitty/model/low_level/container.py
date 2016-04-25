@@ -493,7 +493,7 @@ class Conditional(Container):
         '''
         dup = super(Conditional, self).copy()
         condition = self._condition.copy()
-        condition.invalidate()
+        condition.invalidate(self)
         dup._condition = condition
         return dup
 
@@ -917,6 +917,8 @@ class Template(Container):
     def copy(self):
         '''
         We might want to change it in the future, but for now...
+
+        :raises: :class:`~kitty.core.KittyException`, as it should not be copied
         '''
         raise KittyException('Template should NOT be copied')
 

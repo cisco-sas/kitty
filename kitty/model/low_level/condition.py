@@ -23,6 +23,7 @@ In many cases the decision is made based on a value of a specific field, but you
 In future versions, they will probably be used to make other decisions, not only basic rendering decisions.
 '''
 import types
+import copy
 from kitty.core import KittyException, khash
 
 
@@ -40,7 +41,23 @@ class Condition(object):
         raise NotImplementedError('applies')
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the condition
+        '''
         return khash(type(self).__name__)
+
+    def copy(self):
+        '''
+        :return: a copy of the condition
+        '''
+        return copy.copy(self)
+
+    def invalidate(self, container):
+        '''
+        :param container: the container that tries to invalidate the condition
+        '''
+        pass
 
 
 class FieldCondition(Condition):
@@ -61,7 +78,11 @@ class FieldCondition(Condition):
             self._field_name = None
             self._field = field
 
-    def invalidate(self):
+    def invalidate(self, container):
+        '''
+        :param container: the container that tries to invalidate the condition
+        '''
+        self._get_ready(container)
         field_name = self._field.get_name()
         if field_name is None:
             raise KittyException('Cannot invalidate field without name')
@@ -197,5 +218,9 @@ class Compare(FieldCondition):
         return self._comp_fn(value, self._comp_value)
 
     def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the condition
+        '''
         hashed = super(Compare, self).hash()
         return khash(hashed, self._comp_value, self._comp_type)
