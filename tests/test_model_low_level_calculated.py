@@ -214,7 +214,7 @@ class IndexOfTestCase(CalculatedTestCase):
         return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable, name=self.uut_name)
 
     def calculate(self, field):
-        rendered = field._enclosing.get_rendered_fields()
+        rendered = field.enclosing.get_rendered_fields()
         if field in rendered:
             value = rendered.index(field)
         else:

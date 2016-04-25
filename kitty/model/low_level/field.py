@@ -62,7 +62,7 @@ class BaseField(KittyObject):
         self._current_value = value
         self._current_rendered = self._default_rendered
         self._current_index = -1
-        self._enclosing = None
+        self.enclosing = None
         self._initialized = False
         self._hash = None
         self._need_second_pass = False
@@ -178,8 +178,8 @@ class BaseField(KittyObject):
         :return: list of fields from the top of the path to current field
         '''
         alist = [self]
-        if self._enclosing:
-            alist = self._enclosing._get_enclosing_list() + alist
+        if self.enclosing:
+            alist = self.enclosing._get_enclosing_list() + alist
         return alist
 
     def get_structure(self):
@@ -223,7 +223,7 @@ class BaseField(KittyObject):
             return self.resolve_absolute_name(name)
         resolved_field = self.scan_for_field(name)
         if not resolved_field:
-            container = self._enclosing
+            container = self.enclosing
             if container:
                 resolved_field = container.resolve_field(name)
         if not resolved_field:
@@ -240,7 +240,9 @@ class BaseField(KittyObject):
         :return: field with this absolute name
         :raises: KittyException if field could not be resolved
         '''
-        current = self._get_root()
+        current = self
+        while current.enclosing:
+            current = current.enclosing
         components = name.split('/')[2:]
         for component in components:
             current = current.get_field_by_name(component)
@@ -252,18 +254,6 @@ class BaseField(KittyObject):
         :raises: :class:`~kitty.core.KittyException` if no direct subfield with this name
         '''
         raise KittyException('Basic field (%s) does not contain any fields inside (looked for "%s")' % (self, name))
-
-    def _get_root(self):
-        root = self
-        while root._enclosing:
-            root = root._enclosing
-        return root
-
-    def _set_enclosing(self, container):
-        '''
-        Set the enclosing field of this field
-        '''
-        self._enclosing = container
 
     def copy(self):
         '''

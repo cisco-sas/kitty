@@ -380,7 +380,7 @@ class IndexOf(FieldIntProperty):
         We want to avoid trouble, so if the field is not enclosed by any other field,
         we just return 0.
         '''
-        encloser = field._enclosing
+        encloser = field.enclosing
         if encloser:
             rendered = encloser.get_rendered_fields(RenderContext(self))
             if field not in rendered:

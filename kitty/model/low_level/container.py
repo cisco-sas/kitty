@@ -75,7 +75,7 @@ class Container(BaseField):
             idx = self._fields.index(container)
             dup._containers.append(dup._fields[idx])
         for field in dup._fields:
-            field._set_enclosing(dup)
+            field.enclosing = dup
         return dup
 
     def hash(self):
@@ -326,7 +326,7 @@ class Container(BaseField):
         '''
         kassert.is_of_types(field, BaseField)
         container = self._container()
-        field._set_enclosing(self)
+        field.enclosing = self
         if isinstance(field, Container):
             self._containers.append(field)
         if container:
