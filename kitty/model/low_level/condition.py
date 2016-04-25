@@ -134,7 +134,7 @@ class InList(ListCondition):
     '''
 
     def _applies(self, container, ctx):
-        value = self._field.get_current_value()
+        value = self._field._current_value
         return value in self._value_list
 
 
@@ -193,7 +193,7 @@ class Compare(FieldCondition):
         self._comp_value = comp_value
 
     def _applies(self, container, ctx):
-        value = self._field.get_current_value()
+        value = self._field._current_value
         return self._comp_fn(value, self._comp_value)
 
     def hash(self):

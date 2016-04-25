@@ -88,12 +88,6 @@ class BaseField(KittyObject):
         self._current_rendered = self._encode_value(self._current_value)
         return self._current_rendered
 
-    def get_current_value(self):
-        '''
-        :return: current value
-        '''
-        return self._current_value
-
     def _last_index(self):
         '''
         :return: last mutation index of this field
