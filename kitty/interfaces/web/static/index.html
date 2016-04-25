@@ -134,7 +134,7 @@
 <!-- update the stages graph -->
 <script type="text/javascript">
     var state = {};
-    state.template_description = {};
+    state.template_info = {};
 
     function renderStageGraph(elements){
         var cy = cytoscape({
@@ -324,7 +324,7 @@
 
     function updateCurrentPayload(test_details)
     {
-        var curr = test_details['node/value/rendered/base64'];
+        var curr = test_details.node.value.rendered.base64;
         if(state.current_payload != curr)
         {
             $('#current_payload_hexdump').html(convertToHtml(Hexdump.dump(atob(curr))));
@@ -342,19 +342,17 @@
 
     function updateTemplateStructure(test_details)
     {
-        var hash  = test_details['node/hash'];
-        if(state.waiting_for_template_structure)
+        var hash  = test_details['node']['hash'];
+        if(!state.waiting_for_template_structure)
         {
-
-        }
-        else
-        {
-            if(hash != state.template_description['node/hash'])
+            if(hash != state.template_info.hash)
             {
-                $.getJSON('api/template_description.json', function (data)
+                $.getJSON('api/template_info.json', function (data)
                 {
-                    state.template_description = data;
-                    state.template_description['node/hash'] = hash;
+                    console.log(data);
+                    console.log(state.template_info);
+                    state.template_info = data;
+                    state.template_info.hash = hash;
                     state.waiting_for_template_structure = false;
                     setTimeout(performUpdate, 10);
                 });
@@ -370,28 +368,32 @@
 
     function updateTemplateWithCurrentState(test_details)
     {
-        var tree_string = buildTree(state.template_description, test_details, 0, test_details['node/mutation/current index']);
+        var tree_string = buildTree(state.template_info, test_details, 0, test_details.node.mutation.current_index);
         $('#template_structure').html(tree_string);
     }
 
     function buildTree(node, test_details, depth, relative_mutation_index)
     {
         var res = '';
-        var node_total_number = node['mutation/total number'];
+        var node_total_number = node.mutation.total_number;
         var mutating = relative_mutation_index < node_total_number && relative_mutation_index > 0;
         res += '&nbsp;'.repeat(depth * 2);
-        res += '<b>' + node['name'] + '</b>';
-        res += ' (' + node['field type'] + ')';
+        res += '<b>' + node.name + '</b>';
+        res += ' (' + node.field_type + ')';
         if(mutating)
         {
-            res += '(' + relative_mutation_index.toString() + '/' + node_total_number.toString() + ')';
+            if(node_total_number > 0)
+            {
+                node_total_number -= 1;
+            }
+            res += '(' + relative_mutation_index.toString() + '/' + (node_total_number).toString() + ')';
             res = '<span class="mutation-highlight">' + res + '</span>'; 
         }
         res += '<br>';
-        if(node['fields'])
-            $.each(node['fields'], function(index, value){
+        if(node.fields)
+            $.each(node.fields, function(index, value){
                 res += buildTree(value, test_details, depth + 1, relative_mutation_index);
-                relative_mutation_index -= value['mutation/total number'];
+                relative_mutation_index -= value.mutation.total_number;
             });
 
         return res;
@@ -425,9 +427,9 @@
     }
 
     function updateFuzzingStage(test_details){
-        if(test_details['sequence/current'] != state.current_sequence)
+        if(test_details.sequence.current != state.current_sequence)
         {
-            test_details['sequence/current'] = state.current_sequence;
+            test_details.sequence.current = state.current_sequence;
             triggerStageGraphUpdate();
         }
     }

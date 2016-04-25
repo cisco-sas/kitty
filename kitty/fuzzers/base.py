@@ -34,6 +34,19 @@ from kitty.data.report import Report
 from pkg_resources import get_distribution
 
 
+def _flatten_dict_entry(orig_key, v):
+    entries = []
+    if isinstance(v, list):
+        for i in range(len(v)):
+            entries.extend(_flatten_dict_entry('%s[%s]' % (orig_key, i), v[i]))
+    elif isinstance(v, dict):
+        for k in v:
+            entries.extend(_flatten_dict_entry('%s/%s' % (orig_key, k), v[k]))
+    else:
+        entries.append((orig_key, v))
+    return entries
+
+
 class _Configuration(object):
 
     def __init__(self, delay_secs, store_all_reports, session_file_name, max_failures):
@@ -436,7 +449,9 @@ class BaseFuzzer(KittyObject):
         test_info = self.model.get_test_info()
         data_model_report = Report(name='Data Model')
         for k, v in test_info.items():
-            data_model_report.add(k, v)
+            new_entries = _flatten_dict_entry(k, v)
+            for (k_, v_) in new_entries:
+                data_model_report.add(k_, v_)
         report.add(data_model_report.get_name(), data_model_report)
         payload = self._last_payload
         if payload is not None:

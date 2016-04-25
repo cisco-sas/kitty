@@ -127,8 +127,13 @@ class BaseModel(KittyObject):
         '''
         self._get_ready()
         res = {
-            'sequence/current': self.get_sequence_str(),
-            'current mutation index': '%s/%s' % (self._current_index, self.last_index())
+            'sequence': {
+                'current': self.get_sequence_str()
+            },
+            'mutation': {
+                'current_index': self._current_index,
+                'total_number': self.num_mutations()
+            }
         }
         return res
 

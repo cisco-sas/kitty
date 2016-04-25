@@ -197,17 +197,16 @@ class GraphModel(BaseModel):
 
     def get_model_info(self):
         info = {}
-        info['model name'] = self.name
-        info['sequence count'] = len(self._sequences)
+        info['model_name'] = self.name
+        info['sequence_count'] = len(self._sequences)
         return info
 
     def get_test_info(self):
         info = super(GraphModel, self).get_test_info()
         node_info = self._get_node().get_info()
-        for k, v in node_info.items():
-            info['node/%s' % k] = v
-        info['sequence/index'] = self._sequence_idx
-        info['duplicate (skipped) test count'] = self._duplication_count
+        info['node'] = node_info
+        info['sequence']['index'] = self._sequence_idx
+        info['duplicated'] = self._duplication_count
         return info
 
     def get_template_info(self):

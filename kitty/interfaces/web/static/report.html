@@ -35,14 +35,14 @@
 
     <script>
 
-        /* Change a string to title case: 'hEllo wORLD'-> 'Hello World' */
+        /* Change a string to title case: 'hello world'-> 'Hello World' */
         function toTitleCase(str) {
-            return str.replace(
-                /\w\S*/g,
-                function(txt) {
-                    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+            return str.replace(/_/g, ' ').replace(
+                /(\s|^|\/)([a-zA-Z])/g,
+                function(txt, a, b) {
+                    return a + b.toUpperCase();
                 }
-            ).replace('_', ' ');
+            );
         }
 
         /* Replace "bad" chars with '_' */
@@ -105,7 +105,7 @@
             if(key != 'sub_reports'){
                 $('<tr>')
                 .append(
-                    $('<td>').text(toTitleCase(key.replace(/_/g, ' '))),
+                    $('<td>').text(toTitleCase(key)),
                     set_value_in_field($('<td class="textarea-data">'), value)
                 )
                 .appendTo(table_by_name(base_name));

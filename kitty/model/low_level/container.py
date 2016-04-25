@@ -265,7 +265,7 @@ class Container(BaseField):
         return result
 
     def get_structure(self):
-        mine = super(Container, self).get_info()
+        mine = super(Container, self).get_structure()
         fields = []
         for field in self._fields:
             fields.append(field.get_structure())
@@ -897,14 +897,21 @@ class Template(Container):
         '''
         self.render()
         info = super(Template, self).get_info()
-        res = {'field/%s' % k: v for (k, v) in info.items()}
+        res = {}
         res['name'] = self.get_name()
-        res['mutation/current index'] = self._current_index
-        res['mutation/total number'] = self.num_mutations()
-        res['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64').replace('\n', '')
-        res['value/rendered/len'] = len(self._current_rendered.tobytes())
-        res['tree'] = self.get_tree().encode('base64')
+        res['mutation'] = {
+            'current_index': self._current_index,
+            'total_number': self.num_mutations()
+        }
+        res['value'] = {
+            'rendered': {
+                'base64': self._current_rendered.tobytes().encode('base64'),
+                'length_in_bytes': len(self._current_rendered.tobytes()),
+            }
+        }
+        res['tree'] = self.get_tree()
         res['hash'] = self.hash()
+        res['field'] = info
         return res
 
     def copy(self):

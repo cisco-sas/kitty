@@ -183,25 +183,40 @@ class BaseField(KittyObject):
         return alist
 
     def get_structure(self):
-        return self.get_info()
+        info = {
+            'field_type': type(self).__name__,
+            'mutation': {
+                'current_index': self._current_index,
+                'total_number': self._num_mutations,
+            },
+            'name': self.name if self.name else '<no name>',
+        }
+        return info
 
     def get_info(self):
         '''
         :rtype: dictionary
         :return: field information
         '''
-        info = {}
-        info['name'] = self.name if self.name else '<no name>'
-        info['path'] = info['name']
-        info['field type'] = type(self).__name__
-        info['value/raw'] = repr(self._current_value)
-        info['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64').replace('\n', '')
-        info['value/rendered/length/bits'] = len(self._current_rendered)
-        info['value/rendered/length/bytes'] = len(self._current_rendered.tobytes())
-        info['mutation/total number'] = self._num_mutations
-        info['mutation/current index'] = self._current_index
-        info['mutation/mutating'] = self._mutating()
-        info['mutation/fuzzable'] = self._fuzzable
+        info = {
+            'name': self.name if self.name else '<no name>',
+            'path':  self.name if self.name else '<no name>',
+            'field_type': type(self).__name__,
+            'value': {
+                'raw': repr(self._current_value),
+                'rendered': {
+                    'base64': self._current_rendered.tobytes().encode('base64'),
+                    'length_in_bits': len(self._current_rendered),
+                    'length_in_bytes': len(self._current_rendered.tobytes()),
+                }
+            },
+            'mutation': {
+                'total_number': self._num_mutations,
+                'current_index': self._current_index,
+                'mutating': self._mutating(),
+                'fuzzable': self._fuzzable,
+            },
+        }
         return info
 
     def _encode_value(self, value):
@@ -403,7 +418,7 @@ class _LibraryField(BaseField):
         if idx >= 0 and idx < self._lib.size():
             current = self._lib.get(idx)
             if current:
-                info['mutation/description'] = current[1]
+                info['mutation']['description'] = current[1]
         return info
 
     def _filter_lib(self):
