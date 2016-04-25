@@ -21,15 +21,16 @@ Tests for low level fields
 from common import metaTest, BaseTestCase
 from bitstring import Bits
 from kitty.model.low_level.field import String, Static, Group
-from kitty.model.low_level.container import Container, ForEach, If, IfNot, Repeat
+from kitty.model.low_level.container import Container, ForEach, If, IfNot, Repeat, Template
 from kitty.model.low_level.container import Meta, Pad, Trunc
 from kitty.model.low_level.condition import Condition
 from kitty.model.low_level.aliases import Equal, NotEqual
+from kitty.core import KittyException
 
 
 class ContainerTest(BaseTestCase):
 
-    __meta__ = False
+    __meta__ = True
 
     def setUp(self, cls=Container):
         super(ContainerTest, self).setUp(cls)
@@ -233,11 +234,18 @@ class ContainerTest(BaseTestCase):
                 self.assertEqual(container.get_rendered_fields(), [])
 
     @metaTest
-    def _testSetOffsetPersist(self):
-        offset = 1000
-        uut = Container(name=self.uut_name, fields=[String('abc'), String('def')])
-        uut.set_offset(offset)
-        self.assertEqual(uut.get_offset(), offset)
+    def testCopy(self):
+        fields = [
+            String('test_string', name='field1'),
+            If(Equal('test_group_5', 'A'), String('if', name='if_field3'), name='if2'),
+            IfNot(Equal('test_group_5', 'A'), String('ifnot', name='ifnot_field5'), name='ifnot4'),
+            Group(name='test_group_5', values=['A', 'B', 'C'])
+        ]
+        uut = self.get_default_container(fields)
+        uut_copy = uut.copy()
+        uut_mutations = self.get_all_mutations(uut, reset=False)
+        copy_mutations = self.get_all_mutations(uut_copy, reset=False)
+        self.assertEqual(uut_mutations, copy_mutations)
 
 
 class RealContainerTest(ContainerTest):
@@ -293,6 +301,7 @@ class ConditionTest(ContainerTest):
         while condition_container.mutate():
             rendered = condition_container.render()
             self.assertEqual(rendered, Bits())
+        del enclosing
 
     @metaTest
     def testConditionAppliesFirst(self):
@@ -312,6 +321,8 @@ class ConditionTest(ContainerTest):
         while condition_container.mutate():
             self.assertEqual(condition_container.render(), Bits())
 
+        del enclosing
+
     @metaTest
     def testConditionNotAppliesFirst(self):
         field = self.get_condition_field()
@@ -329,6 +340,8 @@ class ConditionTest(ContainerTest):
         self.assertEqual(condition_container.render(), inner_field.render())
         while condition_container.mutate():
             self.assertEqual(condition_container.render(), inner_field.render())
+
+        del enclosing
 
 
 class IfTest(ConditionTest):
@@ -701,3 +714,17 @@ class TruncTest(BaseTestCase):
         trunc1 = Trunc(11 * 8, fields=String('abc'))
         trunc2 = Trunc(10 * 8, fields=String('abc'))
         self.assertNotEqual(trunc1.hash(), trunc2.hash())
+
+
+class TemplateTest(ContainerTest):
+
+    __meta__ = False
+
+    def setUp(self, cls=Template):
+        super(TemplateTest, self).setUp(cls)
+        self.uut_name = 'uut'
+
+    def testCopy(self):
+        uut = self.get_default_container()
+        with self.assertRaises(KittyException):
+            uut.copy()
