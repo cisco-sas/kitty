@@ -67,6 +67,7 @@ class BaseField(KittyObject):
         self._hash = None
         self._need_second_pass = False
         self.offset = None
+        self._controlled = False
 
     def set_offset(self, offset):
         '''
@@ -302,7 +303,7 @@ class BaseField(KittyObject):
 
         :return: True if field is in default form
         '''
-        return not self._mutating()
+        return not self._mutating() and not self._controlled
 
     def __str__(self):
         data = []

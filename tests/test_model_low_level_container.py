@@ -20,8 +20,9 @@ Tests for low level fields
 '''
 from common import metaTest, BaseTestCase
 from bitstring import Bits
-from kitty.model.low_level.field import String, Static, Group
-from kitty.model.low_level.container import Container, ForEach, If, IfNot, Repeat, Template
+from struct import unpack
+from kitty.model.low_level import String, Static, Group, BE32
+from kitty.model.low_level.container import Container, ForEach, If, IfNot, Repeat, Template, Switch
 from kitty.model.low_level.container import Meta, Pad, Trunc
 from kitty.model.low_level.condition import Condition
 from kitty.model.low_level.aliases import Equal, NotEqual
@@ -714,6 +715,188 @@ class TruncTest(BaseTestCase):
         trunc1 = Trunc(11 * 8, fields=String('abc'))
         trunc2 = Trunc(10 * 8, fields=String('abc'))
         self.assertNotEqual(trunc1.hash(), trunc2.hash())
+
+
+class SwitchTest(BaseTestCase):
+
+    __meta__ = False
+
+    def setUp(self, cls=Switch):
+        super(SwitchTest, self).setUp(cls)
+        self.uut_name = 'uut'
+        self.key_field_name = 'key_field'
+        self.key_field_default_value = 0
+
+    def get_uut(self, field_dict=[], default_key=0, fuzzable=True):
+        return self.cls(field_dict, self.key_field_name, default_key, name=self.uut_name, fuzzable=fuzzable)
+
+    def get_default_key_field(self, fuzzable=True):
+        key_field = BE32(name=self.key_field_name, value=self.key_field_default_value, fuzzable=fuzzable)
+        return key_field
+
+    def testNumMutationsMatchesMutateCount(self):
+        field_dict = {
+            1: String('1'),
+            2: String('2'),
+            3: String('3'),
+        }
+        uut = self.get_uut(field_dict, 2)
+        key_field = self.get_default_key_field()
+        container = Container([uut, key_field])
+        num_mutations = uut.num_mutations()
+        actual_num_mutations = len(self.get_all_mutations(uut))
+        self.assertEqual(num_mutations, actual_num_mutations)
+        del container
+
+    def testNumMutationsIsAtLeastSumOfFieldsNumMutations(self):
+        field_dict = {
+            1: String('1'),
+            2: String('2'),
+            3: String('3'),
+        }
+        uut = self.get_uut(field_dict, 2)
+        key_field = self.get_default_key_field()
+        container = Container([uut, key_field])
+        num_mutations = uut.num_mutations()
+        actual_num_mutations = sum(v.num_mutations() for k, v in field_dict.items())
+        self.assertGreaterEqual(num_mutations, actual_num_mutations)
+        del container
+
+    def testZeroMutationsIfNotFuzzable(self):
+        field_dict = {
+            1: String('1'),
+            2: String('2'),
+            3: String('3'),
+        }
+        uut = self.get_uut(field_dict, 2, fuzzable=False)
+        key_field = self.get_default_key_field()
+        container = Container([uut, key_field])
+        num_mutations = uut.num_mutations()
+        actual_num_mutations = len(self.get_all_mutations(uut))
+        self.assertEqual(num_mutations, actual_num_mutations)
+        self.assertEqual(num_mutations, 0)
+        del container
+
+    def testSwitchFieldSetByKeyFieldWhenNotMutating(self):
+        field_dict = {
+            1: String('1'),
+            2: String('2'),
+            3: String('3'),
+        }
+        default_key = 2
+        uut = self.get_uut(field_dict, default_key)
+        key_field = self.get_default_key_field()
+        container = Container([uut, key_field])
+        while key_field.mutate():
+            key = key_field._current_value
+            uut_rendered = uut.render()
+            uut_key = key if key in field_dict else default_key
+            field_rendred = field_dict[uut_key].render()
+            self.assertEqual(uut_rendered, field_rendred)
+        del container
+
+    def testKeyFieldValueSetBySwitchWhenMutating(self):
+        field_dict = {
+            1: String('1'),
+            2: String('2'),
+            3: String('3'),
+        }
+        uut = self.get_uut(field_dict, 2)
+        key_field = self.get_default_key_field()
+        container = Container([uut, key_field])
+        while uut.mutate():
+            key_rendered = key_field.render().tobytes()
+            key_value = key_field._current_value
+            self.assertEqual(key_value, unpack('>I', key_rendered)[0])
+            self.assertEqual(key_value, uut._keys[uut._field_idx])
+        del container
+
+    def testContainerRenderingKeyBeforeSwitch(self):
+        field_dict = {
+            1: Static('\x00\x00\x00\x01'),
+            2: Static('\x00\x00\x00\x02'),
+            3: Static('\x00\x00\x00\x03'),
+        }
+        default_key = 2
+        uut = self.get_uut(field_dict, default_key)
+        key_field = self.get_default_key_field(fuzzable=False)
+        container = Container([key_field, uut])
+        mutations = self.get_all_mutations(container)
+        for mutation in mutations:
+            mutation = mutation.tobytes()
+            self.assertEqual(len(mutation), 8)
+            key = unpack('>I', mutation[:4])[0]
+            case = unpack('>I', mutation[4:])[0]
+            if key in field_dict:
+                self.assertEqual(key, case)
+            else:
+                self.assertEqual(case, 2)
+
+    def testContainerRenderingKeyAfterSwitch(self):
+        field_dict = {
+            1: Static('\x00\x00\x00\x01'),
+            2: Static('\x00\x00\x00\x02'),
+            3: Static('\x00\x00\x00\x03'),
+        }
+        default_key = 2
+        uut = self.get_uut(field_dict, default_key)
+        key_field = self.get_default_key_field(fuzzable=False)
+        container = Container([uut, key_field])
+        mutations = self.get_all_mutations(container)
+        for mutation in mutations:
+            mutation = mutation.tobytes()
+            self.assertEqual(len(mutation), 8)
+            key = unpack('>I', mutation[:4])[0]
+            case = unpack('>I', mutation[4:])[0]
+            if key in field_dict:
+                self.assertEqual(key, case)
+            else:
+                self.assertEqual(case, 2)
+
+    def testSwitchWithStringKey(self):
+        field_dict = {
+            '1': String('1'),
+            '2': String('2'),
+            '3': String('3'),
+        }
+        default_key = '3'
+        uut = self.get_uut(field_dict, default_key)
+        key_field = String(name=self.key_field_name, value='someval')
+        container = Container([uut, key_field])
+        while key_field.mutate():
+            key = key_field._current_value
+            uut_rendered = uut.render()
+            uut_key = key if key in field_dict else default_key
+            field_rendred = field_dict[uut_key].render()
+            self.assertEqual(uut_rendered, field_rendred)
+        del container
+
+    def testSwitchWithStaticKeyField(self):
+        field_dict = {
+            '1': String('1'),
+            '2': String('2'),
+            '3': String('3'),
+        }
+        default_key = '3'
+        uut = self.get_uut(field_dict, default_key)
+        key_field = Static(name=self.key_field_name, value='someval')
+        container = Container([uut, key_field])
+        while key_field.mutate():
+            key = key_field._current_value
+            uut_rendered = uut.render()
+            uut_key = key if key in field_dict else default_key
+            field_rendred = field_dict[uut_key].render()
+            self.assertEqual(uut_rendered, field_rendred)
+        del container
+
+    def testExceptionIfDefaultKeyNotInDict(self):
+        with self.assertRaises(KittyException):
+            field_dict = {
+                1: String('1'),
+                2: String('2'),
+                3: String('3'),
+            }
+            self.get_uut(field_dict, 0)
 
 
 class TemplateTest(ContainerTest):

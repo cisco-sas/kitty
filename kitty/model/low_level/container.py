@@ -198,7 +198,6 @@ class Container(BaseField):
         Prepare to run (if not ready)
         '''
         num = 0
-        self._need_second_pass = False
         for field in self._fields:
             field._initialize()
             self._need_second_pass |= field._need_second_pass
@@ -424,7 +423,8 @@ class ForEach(Container):
             self._current_index = idx
             # if done internal mutation, mutate the "for-each" field and than start mutating the fields again
             self._mutated_field.mutate()
-            self._mutate()
+            return self._mutate()
+        return True
 
     def reset(self, reset_mutated=True):
         '''
@@ -677,7 +677,8 @@ class Repeat(Container):
 
     def _mutate(self):
         if not self._in_repeat_stage():
-            super(Repeat, self)._mutate()
+            return super(Repeat, self)._mutate()
+        return True
 
     def render(self, ctx=None):
         '''
@@ -772,6 +773,94 @@ class OneOf(Container):
         elif self._current_index == len(self._fields):
             self._field_idx = 0
         return super(OneOf, self)._mutate()
+
+
+class Switch(OneOf):
+    '''
+    When switch is not mutating, it will render one of the fields,
+    choosing the one with a key that matchs the value of key_field.
+    When switch is mutating, it will mutate and render one of its fields each time,
+    setting the value of the key_field field to the mutated field key.
+    '''
+
+    def __init__(self, field_dict, key_field, default_key, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
+        '''
+        :param field_dict: dictionary of key:field
+        :param key_field: (name of) field that switch takes the key from
+        :param default_key: key to use if the key_field's value doesn't match any key
+        :type encoder: BitsEncoder
+        :param encoder: encoder for the container (default: ENC_BITS_DEFAULT)
+        :param fuzzable: is container fuzzable (default: True)
+        :param name: (unique) name of the container (default: None)
+
+        :example:
+
+            ::
+
+                Container(fields=[
+                    BE16(name='opcode', value=1),
+                    Switch(name='opcode_params', key_field='opcode', default_key=1, field_dict={
+                        1: Container(name='opcode_1_params', fields=[
+                            BE32(name='param1', value=3),
+                        ]),
+                        2: Container(name='opcode_2_params', fields=[
+                            BE32(name='param1', value=4),
+                            BE32(name='param2', value=5),
+                        ]),
+                    })
+                ])
+        '''
+        if default_key not in field_dict:
+            raise KittyException('default_key(%s) is not a key in field_dict' % (default_key))
+        self._field_dict = field_dict
+        self._key_field = key_field
+        self._default_key = default_key
+        self._key_idx = 0
+        self._keys = sorted(self._field_dict)
+        self._keys.remove(default_key)
+        self._keys.insert(0, default_key)
+        fields = [field_dict[k] for k in self._keys]
+        super(Switch, self).__init__(fields=fields, encoder=encoder, fuzzable=fuzzable, name=name)
+
+    def _init(self):
+        super(Switch, self)._init()
+        key_field = self.resolve_field(self._key_field)
+        key_field._controlled = True
+
+    def _mutate(self):
+        res = super(Switch, self)._mutate()
+        key = self._keys[self._field_idx]
+        key_field = self.resolve_field(self._key_field)
+        key_field.set_current_value(key)
+        return res
+
+    def render(self, ctx=None):
+        '''
+        Render only a single field (see class docstring for more details)
+
+        :param ctx: rendering context in which the method was called
+        :rtype: `Bits`
+        :return: rendered value of the container
+        '''
+        if ctx is None:
+            ctx = RenderContext()
+        ctx.push(self)
+        self._initialize()
+        offset = self.offset if self.offset else 0
+        if self._mutating():
+            field_idx = self._field_idx
+        else:
+            key_field = self.resolve_field(self._key_field)
+            key_from_key_field = key_field._current_value
+            if key_from_key_field in self._keys:
+                field_idx = self._keys.index(key_from_key_field)
+            else:
+                field_idx = 0  # default value
+        self._fields[field_idx].set_offset(offset)
+        rendered = self._fields[field_idx].render(ctx)
+        self.set_current_value(rendered)
+        ctx.pop()
+        return self._current_rendered
 
 
 class TakeFrom(OneOf):
