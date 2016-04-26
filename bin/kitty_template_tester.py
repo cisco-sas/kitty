@@ -50,9 +50,21 @@ class TemplateProcessor(object):
 
 class TemplateTreePrinter(TemplateProcessor):
 
+    def _pad(self):
+        return '  ' * self.depth
+
+    def _print_structure(self, structure):
+        print('%s%s(name="%s")' % (self._pad(), structure['field_type'], structure['name']))
+        if 'fields' in structure:
+            self.depth += 1
+            for field in structure['fields']:
+                self._print_structure(field)
+            self.depth -= 1
+
     def process(self, t):
-        t.num_mutations()
-        print(t.get_tree())
+        self.depth = 0
+        structure = t.get_structure()
+        self._print_structure(structure)
 
 
 class TemplateTester(TemplateProcessor):
