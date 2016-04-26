@@ -998,7 +998,6 @@ class Template(Container):
                 'length_in_bytes': len(self._current_rendered.tobytes()),
             }
         }
-        res['tree'] = self.get_tree()
         res['hash'] = self.hash()
         res['field'] = info
         return res
