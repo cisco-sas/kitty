@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>Kitty Fuzzer 0.2 - Report</title>
+    <title>Kitty Fuzzer Report</title>
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="static/style.css">
 </head>
@@ -195,7 +195,8 @@
             return document.URL.split('=').slice(-1)[0];
         }
 
-        report_num = get_report_num();
+        var report_num = get_report_num();
+        document.title += ' #' + report_num;
         $.getJSON('../api/report?report_id=' + report_num, build_tables).fail(handle_failure);
     </script>
 </body>
