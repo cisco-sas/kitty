@@ -285,28 +285,6 @@ class Container(BaseField):
             info = super(Container, self).get_info()
         return info
 
-    def get_tree(self, depth=0):
-        '''
-        Get a string representation of the field tree
-
-        :param depth: current depth in the tree (default:0)
-        :return: string representing the field tree
-        '''
-        s = ''
-        s += '%(pad)s%(desc)s\n' % {
-                'pad': '  ' * depth,
-                'desc': self
-                }
-        for field in self._fields:
-            if isinstance(field, Container):
-                s += field.get_tree(depth + 1)
-            else:
-                s += '%(pad)s%(desc)s\n' % {
-                    'pad': '  ' * (depth + 1),
-                    'desc': field
-                    }
-        return s
-
     def pop(self):
         '''
         Remove a the top container from the container stack
