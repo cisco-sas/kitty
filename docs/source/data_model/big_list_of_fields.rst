@@ -259,7 +259,7 @@ from some (or many) samples, or if you know of such a tool,
 we'd really like to know about that.
 
 Anyway... Kitty's data model syntax is inspired by the syntax of
-`Construct <https://construct.readthedocs.org/en/latest/>`_.
+`Construct <https://construct.readthedocs.io/en/latest/>`_.
 In the sense that the entire model of a payload (e.g. template)
 can be constructed in a single -- nested -- constructur.
 Using the standard alignment of python,

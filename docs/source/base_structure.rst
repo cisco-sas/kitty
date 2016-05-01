@@ -10,7 +10,7 @@ Relation Between Modules
 
 .. note::
 
-   Need to generate UML, look here... https://build-me-the-docs-please.readthedocs.org/en/latest/Using_Sphinx/UsingGraphicsAndDiagramsInSphinx.html
+   Need to generate UML, look here... https://build-me-the-docs-please.readthedocs.io/en/latest/Using_Sphinx/UsingGraphicsAndDiagramsInSphinx.html
 
 ::
 

@@ -101,7 +101,7 @@ What's Next?
 
         pip install kittyfuzzer
 
-- Read some of the documentation at `ReadTheDocs <https://kitty.readthedocs.org>`_.
+- Read some of the documentation at `ReadTheDocs <https://kitty.readthedocs.io>`_.
 - Build your fuzzer :-)
 - Need some help - ask at our google group: kitty-fuzzer@googlegroups.com
 
@@ -126,7 +126,7 @@ Contribution FAQ
 .. |docs| image:: https://readthedocs.org/projects/kitty/badge/?version=latest
     :alt: Documentation Status
     :scale: 100%
-    :target: https://kitty.readthedocs.org/en/latest/?badge=latest
+    :target: https://kitty.readthedocs.io/en/latest/?badge=latest
 
 .. |travis| image:: https://travis-ci.org/cisco-sas/kitty.svg?branch=master
     :alt: Build Status
