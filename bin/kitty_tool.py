@@ -19,12 +19,11 @@
 Tools for testing and manipulating kitty templates.
 
 Usage:
-    kitty-tool generate [--verbose] [-s SKIP] [-c COUNT] [-o OUTDIR] [-f FORMAT] <FILE> <TEMPLATE> ...
+    kitty-tool generate [options] <FILE> <TEMPLATE> ...
     kitty-tool list <FILE>
     kitty-tool --version
 
 Commands:
-
     generate    generate files with mutated payload
     list        list templates in a file
 
@@ -34,6 +33,7 @@ Options:
     --out -o OUTDIR         output directory for the generated mutations [default: out]
     --skip -s SKIP          how many mutations to skip [default: 0]
     --count -c COUNT        end index to generate
+    --path -p FIELDPATH     generate mutations only for the field with the given path
     --verbose -v            verbose output
     --filename-format -f FORMAT  format for generated file names [default: %(template)s.%(index)s.bin]
     --version               print version and exit
@@ -114,31 +114,31 @@ class Handler(object):
 
 class FileGeneratorHandler(Handler):
 
-    def __init__(self, outdir, skip, count, template_names, filename_template, logger):
+    def __init__(self, opts, logger):
         super(FileGeneratorHandler, self).__init__(logger)
-        self.outdir = outdir or 'out'
-        if skip is not None:
+        self.outdir = opts['--out'] or 'out'
+        if opts['--skip'] is not None:
             try:
-                self.skip = int(skip)
+                self.skip = int(opts['--skip'])
             except:
                 raise Exception('skip should be a number')
         else:
             self.skip = 0
-        self.count = count
+        self.count = opts['--count']
         if self.count:
             try:
-                self.count = int(count)
+                self.count = int(self.count)
             except:
                 raise Exception('count should be a number')
-        self.template_names = template_names
-        self.filename_template = filename_template
+        self.template_names = opts['<TEMPLATE>']
+        self.filename_format = opts['--filename-format']
         try:
-            self.filename_template % {
+            self.filename_format % {
                 'template': 'hello',
                 'index': 1
             }
         except:
-            raise Exception('invalid filename template: %s' % (self.filename_template))
+            raise Exception('invalid filename template: %s' % (self.filename_format))
 
     def start(self):
         if os.path.exists(self.outdir):
@@ -162,7 +162,7 @@ class FileGeneratorHandler(Handler):
 #            step = max(step, 2)
             max_line_length = 0
             while template.mutate():
-                template_filename = self.filename_template % {'template': template_name, 'index': template._current_index}
+                template_filename = self.filename_format % {'template': template_name, 'index': template._current_index}
                 with open(os.path.join(self.outdir, template_filename), 'wb') as f:
                     f.write(template.render().tobytes())
                 metadata_filename = template_filename + '.metadata'
@@ -200,11 +200,7 @@ def _main():
             file_iter = FileIterator(
                 opts['<FILE>'],
                 FileGeneratorHandler(
-                    outdir=opts['--out'],
-                    skip=opts['--skip'],
-                    count=opts['--count'],
-                    template_names=opts['<TEMPLATE>'],
-                    filename_template=opts['--filename-format'],
+                    opts,
                     logger=logger
                 ),
                 logger
