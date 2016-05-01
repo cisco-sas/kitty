@@ -2,10 +2,10 @@
 <html lang="en">
 
 <head>
-        <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
-        <link rel="stylesheet" type="text/css" href="static/style.css">
-        <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
-        <title>Kitty Fuzzer Report</title>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="static/style.css">
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+    <title>Kitty Report</title>
 </head>
 
 <body>
@@ -17,22 +17,38 @@
         <h2 id="report_name"></h2>
     </div>
 
-    <table id="reports_container_table" class="table table-main-layout">
-        <tbody id="reports_container_table_body">
-            <tr><td>
-                <div class="panel panel-danger">
-                    <div class="panel-heading">Main Report</div>
-                    <table id="main_report_table" class="table table-hover table-striped table-bordered info-table">
-                        <tr><td>Issuer</td><td id="main_report_name"></td></tr>
-                        <tr><td>Status</td><td id="main_report_status"></td></tr>
-                        <tr><td>Reason</td><td id="main_report_reason"></td></tr>
-                        <tr><td>Fuzz Path</td><td id="main_report_fuzz_path"></td></tr>
-                    </table>
+
+    <div class="container" id="reports_container_table">
+        <div class="table" id="reports_container_table_body">
+            <!-- Main report -->
+            <div class="row">
+                <div class="container report-single-table">
+                    <div class="panel panel-danger">
+                        <div class="panel-heading">Main Report</div>
+                        <div class="table table-hover table-striped table-bordered" id="main_report_table">
+                            <div class="row report-row">
+                                <div class="report-cell-key col-sm-3">Issuer</div>
+                                <div class="report-cell-value col-sm-9" id="main_report_name"></div>
+                            </div>
+                            <div class="row report-row">
+                                <div class="report-cell-key col-sm-3">Status</div>
+                                <div class="report-cell-value col-sm-9" id="main_report_status"></div>
+                            </div>
+                            <div class="row report-row">
+                                <div class="report-cell-key col-sm-3">Reason</div>
+                                <div class="report-cell-value col-sm-9" id="main_report_reason"></div>
+                            </div>
+                            <div class="row report-row">
+                                <div class="report-cell-key col-sm-3">Fuzz Path</div>
+                                <div class="report-cell-value col-sm-9" id="main_report_fuzz_path"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </td></tr>
-        </tbody>
-        
-    </table>
+            </div>
+
+        </div>
+    </div>
 
     <script>
 
@@ -101,30 +117,52 @@
             }
             return field;
         }
+
         /* Add a field to the table */
         function add_to_table(base_name, key, value) {
             if(key != 'sub_reports'){
-                $('<tr>')
+                $('<div>')
                 .append(
-                    $('<td>').text(toTitleCase(key)),
-                    set_value_in_field($('<td class="textarea-data">'), value)
+                    $('<div>').addClass('report-cell-key col-sm-3').text(toTitleCase(key)),
+                    set_value_in_field(
+                        $('<div>').addClass('report-cell-value col-sm-9'),
+                        value
+                    )
                 )
+                .addClass('row report-row')
                 .appendTo(table_by_name(base_name));
             }
         }
 
         /* Set value of existing field in the table */
-        function set_in_table(base_name, key, value) {
+        function set_in_table(base_name, key, value)
+        {
             set_value_in_field(field_by_key(base_name, key), value);
+        }
+
+        function highlight_failed_row(base_name, key)
+        {
+            var status_row = field_by_key(base_name, key);
+            status_row.parent().css('background', '#dc9696');
         }
 
         /* Fill a table from a report */
         function fill_table(base_name, report, first_fields) {
             var sub_reports = report.sub_reports;
+            var passed = false;
             $.each(first_fields, function(idx, key){
                 set_in_table(base_name, key, report[key]);
+                if((key == 'status') && (window.atob(report[key]) == 'passed'))
+                {
+                    passed = true;
+                }
                 delete report[key];
             });
+            if(passed == false)
+            {
+                highlight_failed_row(base_name, 'status');
+                highlight_failed_row(base_name, 'reason');
+            }
             var keys = [];
             for (var prop in report) {
                 keys.push(prop);
@@ -141,42 +179,73 @@
 
         /* Create a table */
         function create_table(name, title) {
-            var new_tr = $('<tr></tr>');
-            new_tr.append(
-                $('<td>').append(
+            $('<div class="row">')
+            .append(
+                $('<div>')
+                .addClass('container-fluid report-single-table')
+                .append(
                     $('<div>')
+                    .addClass('panel panel-danger')
                     .append(
                         $('<div>')
                         .addClass('panel-heading')
                         .text(title)
                     )
                     .append(
-                        $('<table>', {id:table_id_from_name(name)})
-                        .addClass('table table-hover table-striped table-bordered info-table')
+                        $('<div>', {id:table_id_from_name(name)})
+                        .addClass(
+                            'table table-hover table-striped table-bordered info-table'
+                        )
                         .append(
-                            $('<tr>')
-                            .append($('<td>').text('Issuer'))
-                            .append($('<td>', {id: field_id_from_key(name, 'name')}))
-                        ).append(
-                            $('<tr>')
-                            .append($('<td>').text('Status'))
-                            .append($('<td>', {id: field_id_from_key(name, 'status')}))
-                        ).append(
-                            $('<tr>')
-                            .append($('<td>').text('Reason'))
-                            .append($('<td>', {id: field_id_from_key(name, 'reason')}))
+                            $('<div>')
+                            .addClass('row report-row')
+                            .append(
+                                $('<div>')
+                                .addClass('report-cell-key col-sm-3')
+                                .text('Issuer')
+                            )
+                            .append(
+                                $('<div>', {id: field_id_from_key(name, 'name')})
+                                .addClass('report-cell-value col-sm-9')
+                            )
+                        )
+                        .append(
+                            $('<div>')
+                            .addClass('row report-row')
+                            .append(
+                                $('<div>')
+                                .addClass('report-cell-key col-sm-3')
+                                .text('Status')
+                            )
+                            .append(
+                                $('<div>', {id: field_id_from_key(name, 'status')})
+                                .addClass('report-cell-value col-sm-9')
+                            )
+                        )
+                        .append(
+                            $('<div>')
+                            .addClass('row report-row')
+                            .append(
+                                $('<div>')
+                                .addClass('report-cell-key col-sm-3')
+                                .text('Reason')
+                            )
+                            .append(
+                                $('<div>', {id: field_id_from_key(name, 'reason')})
+                                .addClass('report-cell-value col-sm-')
+                            )
                         )
                     )
-                    .addClass('panel panel-danger')
                 )
-            ).appendTo($('#reports_container_table_body'));
+            )
+            .appendTo($('#reports_container_table_body'));
         }
 
         /* Build tables and fill them for all reports */
         function build_tables(response) {
             var report = response.report;
             var sub_reports = report.sub_reports;
-            $('#report_name').text('Report for test #' + report_num);
+            $('#report_name').text('Report #' + report_num);
             fill_table('main_report', report, ['name', 'status', 'reason', 'fuzz_path']);
             sub_reports.sort();
             $.each(sub_reports, function(idx, key){

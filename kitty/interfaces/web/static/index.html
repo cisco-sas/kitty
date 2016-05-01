@@ -87,16 +87,14 @@
                             <div class="panel-heading">
                                 Reports (<span id="failure_count" style="align:right;"></span>)
                             </div>
-                            <!-- TODO: replace with actual implementation -->
                             <div class="unknown-data-size" id="report-table">
-                                <table id="reports" class="table table-bordered table-striped">
+                                <table id="reports" class="table table-bordered table-striped table-responsive">
                                     <colgroup>
                                         <col class="col-lg-2"/>
                                     </colgroup>
                                     <tbody>
                                     </tbody>
                                 </table>
-                                <!--<lu id="reports" class="list-group"></lu>-->
                             </div>
                             <button id="export_all" type="button" class="btn btn-danger" onclick="exportAllReports()">Export All reports</button>
                         </div>
@@ -136,7 +134,7 @@
     var state = {};
     state.template_info = {};
 
-    function renderStageGraph(elements){
+    function renderStageGraph(elements) {
         var cy = cytoscape({
             container: $('#stages-graph'),
 
@@ -182,6 +180,32 @@
     function triggerStageGraphUpdate() {
         $.getJSON('../api/stages.json', updateStageGraph);
     }
+
+    function is_edge_in_path(curr_path, src, dst) {
+        return (
+            (curr_path.indexOf(dst) != -1) &&
+            (curr_path.indexOf(src) != -1) &&
+            ((curr_path.indexOf(src) + 1) == curr_path.indexOf(dst))
+        )
+    }
+
+    function get_edge_classes(curr_path, src, dst) {
+        if(is_edge_in_path(curr_path, src, dst))
+            return 'highlighted';
+        else
+            return '';
+    }
+
+    function has_node(elements, node) {
+        return elements.nodes.indexOf(node) != -1;
+    }
+
+    function add_node_if_missing(elements, node) {
+        if(has_node(elements, node) == false)
+        {
+            elements.nodes.push({data: {id: node}});
+        }
+    }
     
     function updateStageGraph(resp) {
         var curr_path = resp.current;
@@ -194,46 +218,29 @@
         elements.nodes = new Array();
         elements.edges = new Array();
         curr_path.unshift('Start');
-        $.each(curr_path, function(idx, value){
+        $.each(curr_path, function(idx, value) {
             elements.nodes.push({data: {id: value}, classes: 'highlighted'});
         });
         /*
         build all the edges, each entry in all_stages holds a
         list of destinations from the key
         */
-        $.each(all_stages, function(k, v){
+        $.each(all_stages, function(src, v) {
             /* don't set the same edge twice, even if it occurs twice */
             var cache = new Array();
-            $.each(v, function(idx, value){
+            $.each(v, function(idx, dst) {
                 /* highlight the edge if it is in current path */
-                var classes = '';
-                if(
-                    (curr_path.indexOf(value) != -1) &&
-                    (curr_path.indexOf(k) != -1) &&
-                    ((curr_path.indexOf(k) + 1) == curr_path.indexOf(value))
-                )
-                {
-                    classes = 'highlighted';
-                }
-                if(cache.indexOf(value) == - 1)
-                {
+                var classes = get_edge_classes(curr_path, src, dst);
+                if(cache.indexOf(dst) == - 1) {
                     elements.edges.push({
-                        data: {
-                            source: k,
-                            target: value,
-                            id: k + '--' + value,
-                        },
+                        data: {source: src, target: dst, id: src + '--' + dst},
                         classes:classes,
                     });
-                    if(elements.nodes.indexOf(value) == -1){
-                        elements.nodes.push({data: {id: value}});
-                    }
-                    cache.push(value);
+                    add_node_if_missing(elements, dst);
+                    cache.push(dst);
                 }
             });
-            if(elements.nodes.indexOf(k) == -1){
-                elements.nodes.push({data: {id: k}});
-            }
+            add_node_if_missing(elements, src);
         });
         renderStageGraph(elements);
     }
@@ -253,14 +260,15 @@
                         .append($('<td>').text(entry[2]))
                         .attr('onclick', "document.location = '" + "static/report.html?report_id=" + test_number +"';")
                         .attr('style', 'cursor: pointer;')
+                        .attr('title', 'Show report ' + test_number)
                     );
                 });    
             }
         }
     }
 
+    /* Fetch all reports, return a dictionary - testname/report */
     function getAllReports() {
-        /* Fetch all reports, return a dictionary - testname/report */
         var res = {};
         $.each(state.reports, function(index, entry){
             var test_number = entry[0];
@@ -274,10 +282,8 @@
         return res;
     }
 
+    /* Store all reports into a single zip file */
     function exportAllReports() {
-        /*
-        Store all reports into a single zip file
-        */
         var zip = new JSZip();
         var filename = 'kitty_' + state.start_time.toString() + '_reports.zip';
         var report_dir = zip.folder('reports');
