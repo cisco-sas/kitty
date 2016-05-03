@@ -1,4 +1,4 @@
-Version 0.6.8 (2016-05-03)
+Version 0.6.8 (2016-05-04)
 ==========================
 
 * bugfix: [DataModel] Delimiter field's __init__ didn't receive nor passed an encoder
