@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="static/style.css">
     <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon"> 
     <title>Kitty Fuzzer</title>
@@ -87,16 +87,14 @@
                             <div class="panel-heading">
                                 Reports (<span id="failure_count" style="align:right;"></span>)
                             </div>
-                            <!-- TODO: replace with actual implementation -->
                             <div class="unknown-data-size" id="report-table">
-                                <table id="reports" class="table table-bordered table-striped">
+                                <table id="reports" class="table table-bordered table-striped table-responsive">
                                     <colgroup>
                                         <col class="col-lg-2"/>
                                     </colgroup>
                                     <tbody>
                                     </tbody>
                                 </table>
-                                <!--<lu id="reports" class="list-group"></lu>-->
                             </div>
                             <button id="export_all" type="button" class="btn btn-danger" onclick="exportAllReports()">Export All reports</button>
                         </div>
@@ -134,9 +132,9 @@
 <!-- update the stages graph -->
 <script type="text/javascript">
     var state = {};
-    state.template_description = {};
+    state.template_info = {};
 
-    function renderStageGraph(elements){
+    function renderStageGraph(elements) {
         var cy = cytoscape({
             container: $('#stages-graph'),
 
@@ -182,6 +180,32 @@
     function triggerStageGraphUpdate() {
         $.getJSON('../api/stages.json', updateStageGraph);
     }
+
+    function is_edge_in_path(curr_path, src, dst) {
+        return (
+            (curr_path.indexOf(dst) != -1) &&
+            (curr_path.indexOf(src) != -1) &&
+            ((curr_path.indexOf(src) + 1) == curr_path.indexOf(dst))
+        )
+    }
+
+    function get_edge_classes(curr_path, src, dst) {
+        if(is_edge_in_path(curr_path, src, dst))
+            return 'highlighted';
+        else
+            return '';
+    }
+
+    function has_node(elements, node) {
+        return elements.nodes.indexOf(node) != -1;
+    }
+
+    function add_node_if_missing(elements, node) {
+        if(has_node(elements, node) == false)
+        {
+            elements.nodes.push({data: {id: node}});
+        }
+    }
     
     function updateStageGraph(resp) {
         var curr_path = resp.current;
@@ -194,46 +218,29 @@
         elements.nodes = new Array();
         elements.edges = new Array();
         curr_path.unshift('Start');
-        $.each(curr_path, function(idx, value){
+        $.each(curr_path, function(idx, value) {
             elements.nodes.push({data: {id: value}, classes: 'highlighted'});
         });
         /*
         build all the edges, each entry in all_stages holds a
         list of destinations from the key
         */
-        $.each(all_stages, function(k, v){
+        $.each(all_stages, function(src, v) {
             /* don't set the same edge twice, even if it occurs twice */
             var cache = new Array();
-            $.each(v, function(idx, value){
+            $.each(v, function(idx, dst) {
                 /* highlight the edge if it is in current path */
-                var classes = '';
-                if(
-                    (curr_path.indexOf(value) != -1) &&
-                    (curr_path.indexOf(k) != -1) &&
-                    ((curr_path.indexOf(k) + 1) == curr_path.indexOf(value))
-                )
-                {
-                    classes = 'highlighted';
-                }
-                if(cache.indexOf(value) == - 1)
-                {
+                var classes = get_edge_classes(curr_path, src, dst);
+                if(cache.indexOf(dst) == - 1) {
                     elements.edges.push({
-                        data: {
-                            source: k,
-                            target: value,
-                            id: k + '--' + value,
-                        },
+                        data: {source: src, target: dst, id: src + '--' + dst},
                         classes:classes,
                     });
-                    if(elements.nodes.indexOf(value) == -1){
-                        elements.nodes.push({data: {id: value}});
-                    }
-                    cache.push(value);
+                    add_node_if_missing(elements, dst);
+                    cache.push(dst);
                 }
             });
-            if(elements.nodes.indexOf(k) == -1){
-                elements.nodes.push({data: {id: k}});
-            }
+            add_node_if_missing(elements, src);
         });
         renderStageGraph(elements);
     }
@@ -253,14 +260,15 @@
                         .append($('<td>').text(entry[2]))
                         .attr('onclick', "document.location = '" + "static/report.html?report_id=" + test_number +"';")
                         .attr('style', 'cursor: pointer;')
+                        .attr('title', 'Show report ' + test_number)
                     );
                 });    
             }
         }
     }
 
+    /* Fetch all reports, return a dictionary - testname/report */
     function getAllReports() {
-        /* Fetch all reports, return a dictionary - testname/report */
         var res = {};
         $.each(state.reports, function(index, entry){
             var test_number = entry[0];
@@ -274,10 +282,8 @@
         return res;
     }
 
+    /* Store all reports into a single zip file */
     function exportAllReports() {
-        /*
-        Store all reports into a single zip file
-        */
         var zip = new JSZip();
         var filename = 'kitty_' + state.start_time.toString() + '_reports.zip';
         var report_dir = zip.folder('reports');
@@ -324,7 +330,7 @@
 
     function updateCurrentPayload(test_details)
     {
-        var curr = test_details['node/value/rendered/base64'];
+        var curr = test_details.node.value.rendered.base64;
         if(state.current_payload != curr)
         {
             $('#current_payload_hexdump').html(convertToHtml(Hexdump.dump(atob(curr))));
@@ -342,19 +348,17 @@
 
     function updateTemplateStructure(test_details)
     {
-        var hash  = test_details['node/hash'];
-        if(state.waiting_for_template_structure)
+        var hash  = test_details['node']['hash'];
+        if(!state.waiting_for_template_structure)
         {
-
-        }
-        else
-        {
-            if(hash != state.template_description['node/hash'])
+            if(hash != state.template_info.hash)
             {
-                $.getJSON('api/template_description.json', function (data)
+                $.getJSON('api/template_info.json', function (data)
                 {
-                    state.template_description = data;
-                    state.template_description['node/hash'] = hash;
+                    console.log(data);
+                    console.log(state.template_info);
+                    state.template_info = data;
+                    state.template_info.hash = hash;
                     state.waiting_for_template_structure = false;
                     setTimeout(performUpdate, 10);
                 });
@@ -370,28 +374,32 @@
 
     function updateTemplateWithCurrentState(test_details)
     {
-        var tree_string = buildTree(state.template_description, test_details, 0, test_details['node/mutation/current index']);
+        var tree_string = buildTree(state.template_info, test_details, 0, test_details.node.mutation.current_index);
         $('#template_structure').html(tree_string);
     }
 
     function buildTree(node, test_details, depth, relative_mutation_index)
     {
         var res = '';
-        var node_total_number = node['mutation/total number'];
+        var node_total_number = node.mutation.total_number;
         var mutating = relative_mutation_index < node_total_number && relative_mutation_index > 0;
         res += '&nbsp;'.repeat(depth * 2);
-        res += '<b>' + node['name'] + '</b>';
-        res += ' (' + node['field type'] + ')';
+        res += '<b>' + node.name + '</b>';
+        res += ' (' + node.field_type + ')';
         if(mutating)
         {
-            res += '(' + relative_mutation_index.toString() + '/' + node_total_number.toString() + ')';
+            if(node_total_number > 0)
+            {
+                node_total_number -= 1;
+            }
+            res += '(' + relative_mutation_index.toString() + '/' + (node_total_number).toString() + ')';
             res = '<span class="mutation-highlight">' + res + '</span>'; 
         }
         res += '<br>';
-        if(node['fields'])
-            $.each(node['fields'], function(index, value){
+        if(node.fields)
+            $.each(node.fields, function(index, value){
                 res += buildTree(value, test_details, depth + 1, relative_mutation_index);
-                relative_mutation_index -= value['mutation/total number'];
+                relative_mutation_index -= value.mutation.total_number;
             });
 
         return res;
@@ -425,9 +433,9 @@
     }
 
     function updateFuzzingStage(test_details){
-        if(test_details['sequence/current'] != state.current_sequence)
+        if(test_details.sequence.current != state.current_sequence)
         {
-            test_details['sequence/current'] = state.current_sequence;
+            test_details.sequence.current = state.current_sequence;
             triggerStageGraphUpdate();
         }
     }

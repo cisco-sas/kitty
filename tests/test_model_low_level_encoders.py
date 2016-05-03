@@ -183,4 +183,3 @@ class StrNullTerminatedEncoderTest(StrFuncEncoderTest):
 
     def get_default_encoder(self):
         return self.cls()
-

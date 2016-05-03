@@ -35,7 +35,7 @@ import json
 import types
 
 
-class KittyWebApi(object):
+class KittyWebClientApi(object):
 
     def __init__(self, host, port):
         '''
@@ -102,14 +102,23 @@ def cmd_report_show(options):
             print_report(report, depth=0)
 
 
+def _pad(depth, with_key):
+    if depth > 0:
+        if with_key:
+            return '    ' * (depth - 1) + '+---'
+        else:
+            return '    ' * (depth)
+    return ''
+
+
 def indent_print(depth, key, val=None):
     if val is None:
-        print(('    ' * depth) + key)
+        print(_pad(depth, True) + key)
     else:
         pre_len = len(key)
         first = True
         for line in val.split('\n'):
-            print(('    ' * depth) + key + line)
+            print(_pad(depth, with_key=first) + key + line)
             if first:
                 key = ' ' * pre_len
                 first = False
@@ -119,49 +128,78 @@ def format_key(k):
     return k.replace('_', ' ')
 
 
+def print_entry(k, v, depth, decode_str):
+    if isinstance(v, list):
+        indent_print(depth, '%-20s' % (k + ':'))
+        for i in range(len(v)):
+            print_entry('%s' % i, v, depth + 1, decode_str)
+    elif isinstance(v, dict):
+        indent_print(depth, '%-20s' % (k + ':'))
+        for subk in sorted(v):
+            print_entry(subk, v[subk], depth + 1, decode_str)
+    else:
+        print_key_val(k, v, depth, decode_str)
+
+
+def print_key_val(k, val, depth, decode_str):
+    if isinstance(val, types.StringTypes) and decode_str:
+        try:
+            val = val.decode('base64')
+        except:
+            pass
+    key = format_key(k)
+    try:
+        indent_print(depth, '%-20s' % (key + ':'), '%s' % val)
+    except UnicodeDecodeError:
+        indent_print(depth, '%-20s' % (key + ':'), '%s' % val.encode('hex'))
+
+
 def print_report(report, depth):
+    # next two fields should not be printed as normal fields
     name = report['name'].decode('base64')
     del report['name']
     sub_reports = report['sub_reports']
     del report['sub_reports']
+    # print report header
     indent_print(depth, '***** Report: %s *****' % name)
+    # print entries (excluding sub-reports)
     for k in sorted(report.keys()):
         if k not in sub_reports:
             val = report[k]
-            if isinstance(val, types.StringTypes):
-                val = val.decode('base64')
-            key = format_key(k)
-            try:
-                indent_print(depth + 1, '%-20s' % (key + ':'), '%s' % val)
-            except UnicodeDecodeError:
-                indent_print(depth + 1, '%-20s' % (key + ':'), '%s' % val.encode('hex'))
+            print_entry(k, val, depth, True)
+    print('')
+    # print sub-reports
     for sr in sorted(sub_reports):
-        print_report(report[sr], depth + 1)
+        print_report(report[sr], depth)
 
 
 def cmd_info(options, web):
     resp = web.get_stats()
+
     print('--- Stats ---')
     stats = resp['stats']
     for k, v in stats.items():
         print('%s: %s' % (k, v))
-    print
+    print('')
+
     print('--- Current Test Info ---')
     info = resp['current_test']
-    max_len = max(len(k) for k in info.keys())
+    # max_len = max(len(k) for k in info.keys())
     for k, v in sorted(info.items()):
-        pad = ' ' * (max_len - len(k))
-        print('%s:%s %s' % (k, pad, v))
+        print_entry(k, v, 0, False)
+        # pad = ' ' * (max_len - len(k))
+        # print('%s:%s %s' % (k, pad, v))
+
     if options['--verbose']:
         reports = resp['reports_extended']
-        print
+        print('')
         print('--- Report list ---')
         print('\n'.join('%-10s %-10s %s' % tuple(report) for report in reports))
 
 
 def _main():
     options = docopt.docopt(__doc__)
-    web = KittyWebApi(options['--host'], int(options['--port']))
+    web = KittyWebClientApi(options['--host'], int(options['--port']))
     if options['reports']:
         if options['store']:
             cmd_report_store(options, web)

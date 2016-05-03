@@ -38,6 +38,7 @@ from kitty.model import Template
 opts = docopt.docopt(__doc__)
 t1 = Template(name='T1', fields=[
     String('The default string', name='S1_1'),
+    String('Another string', name='S1_2'),
 ])
 
 # Writes content to files

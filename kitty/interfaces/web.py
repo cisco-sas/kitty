@@ -181,7 +181,7 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         data_type = 'text/json'
         if path == 'stats.json':
             response = self._get_stats()
-        elif path == 'template_description.json':
+        elif path == 'template_info.json':
             response = json.dumps(self.dataman.get('template_info'))
         elif path == 'stages.json':
             response = json.dumps(self.dataman.get('stages'))

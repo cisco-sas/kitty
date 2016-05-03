@@ -233,9 +233,11 @@ class StagedSequenceModel(BaseModel):
         :return: dictionary of information about this model
         '''
         info = {}
-        info['model name'] = self.name
+        info['model_name'] = self.name
         info['stages'] = '->'.join([repr(s) for s in self._stages])
-        info['sequence index'] = '%s/%s' % (self._current_index, self._num_mutations)
+        info['sequence'] = {
+            'index': self._current_index
+        }
         return info
 
     def get_test_info(self):
@@ -244,7 +246,7 @@ class StagedSequenceModel(BaseModel):
         '''
         info = super(StagedSequenceModel, self).get_test_info()
         seq = self._sequence
-        info['sequence length'] = len(seq)
+        info['sequence']['length'] = len(seq)
         return info
 
     def hash(self):

@@ -17,7 +17,7 @@
 
 '''
 RPC implementation, based on jsonrpc
-https://json-rpc.readthedocs.org/
+https://json-rpc.readthedocs.io/
 '''
 import requests
 import json

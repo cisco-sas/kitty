@@ -380,7 +380,7 @@ class IndexOf(FieldIntProperty):
         We want to avoid trouble, so if the field is not enclosed by any other field,
         we just return 0.
         '''
-        encloser = field._enclosing
+        encloser = field.enclosing
         if encloser:
             rendered = encloser.get_rendered_fields(RenderContext(self))
             if field not in rendered:
@@ -494,8 +494,8 @@ class Offset(FieldIntProperty):
         '''
         base_offset = 0
         if self.base_field is not None:
-            base_offset = self.base_field.get_offset()
-        target_offset = self._field.get_offset()
+            base_offset = self.base_field.offset
+        target_offset = self._field.offset
         if (target_offset is None) or (base_offset is None):
             return 0
         return target_offset - base_offset

@@ -75,7 +75,7 @@ class Container(BaseField):
             idx = self._fields.index(container)
             dup._containers.append(dup._fields[idx])
         for field in dup._fields:
-            field._set_enclosing(dup)
+            field.enclosing = dup
         return dup
 
     def hash(self):
@@ -198,7 +198,6 @@ class Container(BaseField):
         Prepare to run (if not ready)
         '''
         num = 0
-        self._need_second_pass = False
         for field in self._fields:
             field._initialize()
             self._need_second_pass |= field._need_second_pass
@@ -212,7 +211,8 @@ class Container(BaseField):
             rendered = Bits()
             for field in self._fields:
                 rendered += field._initialize_default_buffer()
-            self._default_rendered = rendered
+            self._default_value = rendered
+            self._default_rendered = self._encode_value(self._default_value)
         return self._default_rendered
 
     def _mutate(self):
@@ -264,7 +264,7 @@ class Container(BaseField):
         return result
 
     def get_structure(self):
-        mine = super(Container, self).get_info()
+        mine = super(Container, self).get_structure()
         fields = []
         for field in self._fields:
             fields.append(field.get_structure())
@@ -285,28 +285,6 @@ class Container(BaseField):
             info = super(Container, self).get_info()
         return info
 
-    def get_tree(self, depth=0):
-        '''
-        Get a string representation of the field tree
-
-        :param depth: current depth in the tree (default:0)
-        :return: string representing the field tree
-        '''
-        s = ''
-        s += '%(pad)s%(desc)s\n' % {
-                'pad': '  ' * depth,
-                'desc': self
-                }
-        for field in self._fields:
-            if isinstance(field, Container):
-                s += field.get_tree(depth + 1)
-            else:
-                s += '%(pad)s%(desc)s\n' % {
-                    'pad': '  ' * (depth + 1),
-                    'desc': field
-                    }
-        return s
-
     def pop(self):
         '''
         Remove a the top container from the container stack
@@ -325,7 +303,7 @@ class Container(BaseField):
         '''
         kassert.is_of_types(field, BaseField)
         container = self._container()
-        field._set_enclosing(self)
+        field.enclosing = self
         if isinstance(field, Container):
             self._containers.append(field)
         if container:
@@ -423,7 +401,8 @@ class ForEach(Container):
             self._current_index = idx
             # if done internal mutation, mutate the "for-each" field and than start mutating the fields again
             self._mutated_field.mutate()
-            self._mutate()
+            return self._mutate()
+        return True
 
     def reset(self, reset_mutated=True):
         '''
@@ -492,7 +471,7 @@ class Conditional(Container):
         '''
         dup = super(Conditional, self).copy()
         condition = self._condition.copy()
-        condition.invalidate()
+        condition.invalidate(self)
         dup._condition = condition
         return dup
 
@@ -676,7 +655,8 @@ class Repeat(Container):
 
     def _mutate(self):
         if not self._in_repeat_stage():
-            super(Repeat, self)._mutate()
+            return super(Repeat, self)._mutate()
+        return True
 
     def render(self, ctx=None):
         '''
@@ -754,7 +734,8 @@ class OneOf(Container):
         return res
 
     def _initialize_default_buffer(self):
-        self._default_rendered = self._fields[self._field_idx]._initialize_default_buffer()
+        self._default_value = self._fields[self._field_idx]._initialize_default_buffer()
+        self._default_rendered = self._encode_value(self._default_value)
         return self._default_rendered
 
     def _calculate_mutations(self, num):
@@ -770,6 +751,94 @@ class OneOf(Container):
         elif self._current_index == len(self._fields):
             self._field_idx = 0
         return super(OneOf, self)._mutate()
+
+
+class Switch(OneOf):
+    '''
+    When switch is not mutating, it will render one of the fields,
+    choosing the one with a key that matchs the value of key_field.
+    When switch is mutating, it will mutate and render one of its fields each time,
+    setting the value of the key_field field to the mutated field key.
+    '''
+
+    def __init__(self, field_dict, key_field, default_key, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
+        '''
+        :param field_dict: dictionary of key:field
+        :param key_field: (name of) field that switch takes the key from
+        :param default_key: key to use if the key_field's value doesn't match any key
+        :type encoder: BitsEncoder
+        :param encoder: encoder for the container (default: ENC_BITS_DEFAULT)
+        :param fuzzable: is container fuzzable (default: True)
+        :param name: (unique) name of the container (default: None)
+
+        :example:
+
+            ::
+
+                Container(fields=[
+                    BE16(name='opcode', value=1),
+                    Switch(name='opcode_params', key_field='opcode', default_key=1, field_dict={
+                        1: Container(name='opcode_1_params', fields=[
+                            BE32(name='param1', value=3),
+                        ]),
+                        2: Container(name='opcode_2_params', fields=[
+                            BE32(name='param1', value=4),
+                            BE32(name='param2', value=5),
+                        ]),
+                    })
+                ])
+        '''
+        if default_key not in field_dict:
+            raise KittyException('default_key(%s) is not a key in field_dict' % (default_key))
+        self._field_dict = field_dict
+        self._key_field = key_field
+        self._default_key = default_key
+        self._key_idx = 0
+        self._keys = sorted(self._field_dict)
+        self._keys.remove(default_key)
+        self._keys.insert(0, default_key)
+        fields = [field_dict[k] for k in self._keys]
+        super(Switch, self).__init__(fields=fields, encoder=encoder, fuzzable=fuzzable, name=name)
+
+    def _init(self):
+        super(Switch, self)._init()
+        key_field = self.resolve_field(self._key_field)
+        key_field._controlled = True
+
+    def _mutate(self):
+        res = super(Switch, self)._mutate()
+        key = self._keys[self._field_idx]
+        key_field = self.resolve_field(self._key_field)
+        key_field.set_current_value(key)
+        return res
+
+    def render(self, ctx=None):
+        '''
+        Render only a single field (see class docstring for more details)
+
+        :param ctx: rendering context in which the method was called
+        :rtype: `Bits`
+        :return: rendered value of the container
+        '''
+        if ctx is None:
+            ctx = RenderContext()
+        ctx.push(self)
+        self._initialize()
+        offset = self.offset if self.offset else 0
+        if self._mutating():
+            field_idx = self._field_idx
+        else:
+            key_field = self.resolve_field(self._key_field)
+            key_from_key_field = key_field._current_value
+            if key_from_key_field in self._keys:
+                field_idx = self._keys.index(key_from_key_field)
+            else:
+                field_idx = 0  # default value
+        self._fields[field_idx].set_offset(offset)
+        rendered = self._fields[field_idx].render(ctx)
+        self.set_current_value(rendered)
+        ctx.pop()
+        return self._current_rendered
 
 
 class TakeFrom(OneOf):
@@ -895,20 +964,27 @@ class Template(Container):
         '''
         self.render()
         info = super(Template, self).get_info()
-        res = {'field/%s' % k: v for (k, v) in info.items()}
+        res = {}
         res['name'] = self.get_name()
-        res['mutation/current index'] = self._current_index
-        res['mutation/total number'] = self._last_index()
-        res['value/rendered/hex'] = self._current_rendered.tobytes().encode('hex')
-        res['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64')
-        res['value/rendered/len'] = len(self._current_rendered.tobytes())
-        res['tree'] = self.get_tree().encode('base64')
+        res['mutation'] = {
+            'current_index': self._current_index,
+            'total_number': self.num_mutations()
+        }
+        res['value'] = {
+            'rendered': {
+                'base64': self._current_rendered.tobytes().encode('base64'),
+                'length_in_bytes': len(self._current_rendered.tobytes()),
+            }
+        }
         res['hash'] = self.hash()
+        res['field'] = info
         return res
 
     def copy(self):
         '''
         We might want to change it in the future, but for now...
+
+        :raises: :class:`~kitty.core.KittyException`, as it should not be copied
         '''
         raise KittyException('Template should NOT be copied')
 

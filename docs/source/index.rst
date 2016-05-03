@@ -14,7 +14,7 @@ Contents:
    base_introduction
    base_structure
    tutorials/index
-   base_data_model_overview
+   data_model/index
    tools
    modules
    controller

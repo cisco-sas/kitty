@@ -22,7 +22,8 @@ Tests for low level fields:
 from common import metaTest, BaseTestCase
 from bitstring import Bits
 import types
-from kitty.model import String, Delimiter, RandomBits, RandomBytes, Dynamic, Static, Group
+import struct
+from kitty.model import String, Delimiter, RandomBits, RandomBytes, Dynamic, Static, Group, Float
 from kitty.model import BitField, UInt8, UInt16, UInt32, UInt64, SInt8, SInt16, SInt32, SInt64
 from kitty.core import KittyException
 import os
@@ -97,18 +98,18 @@ class ValueTestCase(BaseTestCase):
         self.assertEqual(num_mutations, 0)
         rendered = field.render()
         as_val = self.bits_to_value(rendered)
-        self.assertEqual(as_val, self.default_value)
+        self.assertAlmostEqual(as_val, self.default_value, places=5)
         mutated = field.mutate()
         self.assertFalse(mutated)
         rendered = field.render()
         as_val = self.bits_to_value(rendered)
-        self.assertEqual(as_val, self.default_value)
+        self.assertAlmostEqual(as_val, self.default_value, places=5)
         field.reset()
         mutated = field.mutate()
         self.assertFalse(mutated)
         rendered = field.render()
         as_val = self.bits_to_value(rendered)
-        self.assertEqual(as_val, self.default_value)
+        self.assertAlmostEqual(as_val, self.default_value, places=5)
 
     @metaTest
     def testNumMutations(self):
@@ -713,6 +714,18 @@ class GroupTests(ValueTestCase):
         self.assertListEqual([Bits(bytes=x) for x in self.default_values], mutations)
         mutations = self._get_all_mutations(field)
         self.assertListEqual([Bits(bytes=x) for x in self.default_values], mutations)
+
+
+class FloatTests(ValueTestCase):
+    __meta__ = False
+    default_value = 15.3
+    default_value_rendered = Bits(bytes=struct.pack('>f', default_value))
+
+    def setUp(self):
+        super(FloatTests, self).setUp(Float)
+
+    def bits_to_value(self, bits):
+        return struct.unpack('>f', bits.tobytes())[0]
 
 
 class BitFieldTests(ValueTestCase):

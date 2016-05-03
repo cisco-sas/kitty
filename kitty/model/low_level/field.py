@@ -29,6 +29,7 @@ from kitty.core import KittyObject, KittyException, kassert, khash
 from kitty.model.low_level.encoder import ENC_STR_DEFAULT, StrEncoder
 from kitty.model.low_level.encoder import ENC_INT_DEFAULT, BitFieldEncoder
 from kitty.model.low_level.encoder import ENC_BITS_DEFAULT, BitsEncoder
+from kitty.model.low_level.encoder import ENC_FLT_DEFAULT, FloatEncoder
 
 
 empty_bits = Bits()
@@ -62,23 +63,18 @@ class BaseField(KittyObject):
         self._current_value = value
         self._current_rendered = self._default_rendered
         self._current_index = -1
-        self._enclosing = None
+        self.enclosing = None
         self._initialized = False
         self._hash = None
         self._need_second_pass = False
         self.offset = None
+        self._controlled = False
 
     def set_offset(self, offset):
         '''
         :param offset: absolute offset of this field (in bits)
         '''
         self.offset = offset
-
-    def get_offset(self):
-        '''
-        :return: absolute offset of this field (in bits)
-        '''
-        return self.offset
 
     def _mutating(self):
         return self._current_index != -1
@@ -93,12 +89,6 @@ class BaseField(KittyObject):
         self._current_value = value
         self._current_rendered = self._encode_value(self._current_value)
         return self._current_rendered
-
-    def get_current_value(self):
-        '''
-        :return: current value
-        '''
-        return self._current_value
 
     def _last_index(self):
         '''
@@ -190,32 +180,45 @@ class BaseField(KittyObject):
         :return: list of fields from the top of the path to current field
         '''
         alist = [self]
-        if self._enclosing:
-            alist = self._enclosing._get_enclosing_list() + alist
+        if self.enclosing:
+            alist = self.enclosing._get_enclosing_list() + alist
         return alist
 
     def get_structure(self):
-        return self.get_info()
+        info = {
+            'field_type': type(self).__name__,
+            'mutation': {
+                'current_index': self._current_index,
+                'total_number': self._num_mutations,
+            },
+            'name': self.name if self.name else '<no name>',
+        }
+        return info
 
     def get_info(self):
         '''
         :rtype: dictionary
         :return: field information
         '''
-        info = {}
-        info['name'] = self.name if self.name else '<no name>'
-        info['path'] = info['name']
-        info['field type'] = type(self).__name__
-        info['value/raw'] = repr(self._current_value)
-        info['value/rendered/hex'] = self._current_rendered.tobytes().encode('hex')
-        info['value/rendered/base64'] = self._current_rendered.tobytes().encode('base64')[:-1]
-        info['value/rendered/length/bits'] = len(self._current_rendered)
-        info['value/rendered/length/bytes'] = len(self._current_rendered.tobytes())
-        info['value/default'] = repr(self._default_value)
-        info['mutation/total number'] = self._num_mutations
-        info['mutation/current index'] = self._current_index
-        info['mutation/mutating'] = self._mutating()
-        info['mutation/fuzzable'] = self._fuzzable
+        info = {
+            'name': self.name if self.name else '<no name>',
+            'path':  self.name if self.name else '<no name>',
+            'field_type': type(self).__name__,
+            'value': {
+                'raw': repr(self._current_value),
+                'rendered': {
+                    'base64': self._current_rendered.tobytes().encode('base64'),
+                    'length_in_bits': len(self._current_rendered),
+                    'length_in_bytes': len(self._current_rendered.tobytes()),
+                }
+            },
+            'mutation': {
+                'total_number': self._num_mutations,
+                'current_index': self._current_index,
+                'mutating': self._mutating(),
+                'fuzzable': self._fuzzable,
+            },
+        }
         return info
 
     def _encode_value(self, value):
@@ -237,7 +240,7 @@ class BaseField(KittyObject):
             return self.resolve_absolute_name(name)
         resolved_field = self.scan_for_field(name)
         if not resolved_field:
-            container = self._enclosing
+            container = self.enclosing
             if container:
                 resolved_field = container.resolve_field(name)
         if not resolved_field:
@@ -254,7 +257,9 @@ class BaseField(KittyObject):
         :return: field with this absolute name
         :raises: KittyException if field could not be resolved
         '''
-        current = self._get_root()
+        current = self
+        while current.enclosing:
+            current = current.enclosing
         components = name.split('/')[2:]
         for component in components:
             current = current.get_field_by_name(component)
@@ -266,18 +271,6 @@ class BaseField(KittyObject):
         :raises: :class:`~kitty.core.KittyException` if no direct subfield with this name
         '''
         raise KittyException('Basic field (%s) does not contain any fields inside (looked for "%s")' % (self, name))
-
-    def _get_root(self):
-        root = self
-        while root._enclosing:
-            root = root._enclosing
-        return root
-
-    def _set_enclosing(self, container):
-        '''
-        Set the enclosing field of this field
-        '''
-        self._enclosing = container
 
     def copy(self):
         '''
@@ -311,7 +304,7 @@ class BaseField(KittyObject):
 
         :return: True if field is in default form
         '''
-        return not self._mutating()
+        return not self._mutating() and not self._controlled
 
     def __str__(self):
         data = []
@@ -427,7 +420,7 @@ class _LibraryField(BaseField):
         if idx >= 0 and idx < self._lib.size():
             current = self._lib.get(idx)
             if current:
-                info['mutation/description'] = current[1]
+                info['mutation']['description'] = current[1]
         return info
 
     def _filter_lib(self):
@@ -668,7 +661,7 @@ class Delimiter(String):
     _encoder_type_ = StrEncoder
     lib = None
 
-    def __init__(self, value, max_size=None, fuzzable=True, name=None):
+    def __init__(self, value, max_size=None, encoder=ENC_STR_DEFAULT, fuzzable=True, name=None):
         '''
         :type value: str
         :param value: default value
@@ -684,7 +677,7 @@ class Delimiter(String):
 
                 Delimiter('=', max_size=30, encoder=ENC_STR_BASE64)
         '''
-        super(Delimiter, self).__init__(value=value, max_size=max_size, fuzzable=fuzzable, name=name)
+        super(Delimiter, self).__init__(value=value, max_size=max_size, encoder=encoder, fuzzable=fuzzable, name=name)
 
     def _get_class_lib(self):
         lib = []
@@ -694,6 +687,48 @@ class Delimiter(String):
         lib.extend(gen_power_list('\r\n', max_power=3))
         lib.extend(gen_power_list('\t\r\n', max_power=3))
         lib.append(('', 'empty delimiter'))
+        return lib
+
+
+class Float(_LibraryField):
+    '''
+    Represent a floating point number.
+    The mutations target edge cases and invalid floating point numbers.
+    '''
+    _encoder_type_ = FloatEncoder
+    lib = None
+
+    def __init__(self, value, encoder=ENC_FLT_DEFAULT, fuzzable=True, name=None):
+        '''
+        :type value: float
+        :param value: default value
+        :type encoder: :class:`~kitty.model.low_levele.encoder.FloatEncoder`
+        :param encoder: encoder for the field (default: ENC_FLT_DEFAULT)
+        :param fuzzable: is field fuzzable (default: True)
+        :param name: name of the object (default: None)
+
+        :example:
+
+            ::
+
+                Float(0.3)
+        '''
+        super(Float, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
+
+    def _get_local_lib(self):
+        return []
+
+    def _get_class_lib(self):
+        lib = []
+        lib.append((float('NaN'), 'positive NaN'))
+        lib.append((float('-NaN'), 'negative NaN'))
+        lib.append((float('inf'), 'positive infinity'))
+        lib.append((float('-inf'), 'negative infinity'))
+        lib.append((float(0.), 'positive zero'))
+        lib.append((float(-0.), 'negative zero'))
+        #
+        # what else?
+        #
         return lib
 
 

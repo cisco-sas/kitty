@@ -204,7 +204,7 @@ class RotateMutator(FieldRangeMutator):
 class List(OneOf):
 
     '''
-    Describe a list of elements in the template
+    Describe a list of elements in the template.
     In addition to the standard mutations of its element,
     a List also performs mutation of full elements,
     by reordering, duplicating and omitting them.
@@ -285,4 +285,3 @@ class List(OneOf):
                     )
                 )
         return res
-
