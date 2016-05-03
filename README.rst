@@ -104,6 +104,7 @@ What's Next?
 - Read some of the documentation at `ReadTheDocs <https://kitty.readthedocs.io>`_.
 - Build your fuzzer :-)
 - Need some help - ask at our google group: kitty-fuzzer@googlegroups.com
+- You can also find us on freenode #kittyfuzzer
 
 Contribution FAQ
 ----------------
