@@ -94,6 +94,7 @@ The following atomic fields are available in Kitty (some of them are aliases for
     :class:`~kitty.model.low_level.aliases.SInt64`
 - :class:`~kitty.model.low_level.field.Delimiter`
 - :class:`~kitty.model.low_level.field.Dynamic`
+- :class:`~kitty.model.low_level.field.Float`
 - :class:`~kitty.model.low_level.field.Group`
 - :class:`~kitty.model.low_level.field.RandomBits`
 - :class:`~kitty.model.low_level.field.RandomBytes`
@@ -211,11 +212,12 @@ Encoders
 The encoders receive data from the field they are assigned to,
 and return a sequence of bits, which is the rendered data.
 
-There are 3 types of encoders:
+There are 4 types of encoders:
 
 - Encoders of strings (python2.7's str), receiving a string and returning Bits.
 - Encoders of Bits, receiving Bits object and returning Bits.
 - Encoders of numbers, receiving int value, length in bits and sign and returning Bits.
+- Encoders of floating point numbers, receiving float and returning Bits.
 
 Encoders are objects, but since most common encoders are stateless,
 and don't change state, the same instance can be used in multple fields,
@@ -242,6 +244,11 @@ These instances are listed in the :doc:`API reference<../kitty.model.low_level.e
     - :class:`~kitty.model.low_level.encoder.StrEncoderWrapper`
     - :class:`~kitty.model.low_level.encoder.StrFuncEncoder`
     - :class:`~kitty.model.low_level.encoder.StrNullTerminatedEncoder`
+
+- :class:`~kitty.model.low_level.encoder.FloatEncoder`
+
+    - :class:`~kitty.model.low_level.encoder.FloatAsciiEncoder`
+    - :class:`~kitty.model.low_level.encoder.FloatBinEncoder`
 
 .. _examples:
 

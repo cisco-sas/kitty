@@ -20,7 +20,7 @@ Encoders are used for encoding fields and containers.
 The encoders are passed as an argument to the fields/container, during the field rendering,
 the encoder's `encode` method is called.
 
-There are three families of encoders:
+There are four families of encoders:
 
 :Bits Encoders: Used to encode fields/containers that their value is of type *Bits* (Container, ForEach etc.)
 
@@ -29,9 +29,14 @@ There are three families of encoders:
 :BitField Encoders:
     Used to encode fields that inherit from BitField or contain BitField (UInt8, Size, Checksum etc.)
     Those encoders are also refferred to as Int Encoders.
+
+:FloatingPoint Encoders:
+    Used to encode fields that inherit from FloatingPoint field (Float, Double)
+    Those encoders are also refferred to as Float Encoders
 '''
 from bitstring import Bits, BitArray
 from kitty.core import kassert, KittyException
+from struct import pack
 
 
 # ################### String Encoders ####################
@@ -176,8 +181,8 @@ class BitFieldEncoder(object):
     | Singleton Name    | Encoding                              | Class                 |
     +===================+=======================================+=======================+
     | ENC_INT_BIN       | Encode as binary bits                 | BitFieldBinEncoder    |
-    +-------------------+---------------------------------------+-----------------------+
-    | ENC_INT_LE        | Encode as a little endian binary bits | BitFieldBinEncoder    |
+    +-------------------+---------------------------------------+                       +
+    | ENC_INT_LE        | Encode as a little endian binary bits |                       |
     +-------------------+---------------------------------------+                       |
     | ENC_INT_BE        | Encode as a big endian binary bits    |                       |
     +-------------------+---------------------------------------+-----------------------+
@@ -187,7 +192,7 @@ class BitFieldEncoder(object):
     +-------------------+---------------------------------------+                       |
     | ENC_INT_HEX_UPPER | Encode as an upper case hex value     |                       |
     +-------------------+---------------------------------------+-----------------------+
-    | ENC_INT_DEFAULT   | Same as ENC_INT_BIN                   |                       |
+    | ENC_INT_DEFAULT   | Same as ENC_INT_BIN                   | BitFieldBinEncoder    |
     +-------------------+---------------------------------------+-----------------------+
     '''
 
@@ -423,3 +428,98 @@ ENC_BITS_UTF8 = StrEncoderWrapper(StrEncodeEncoder('utf-8'))
 ENC_BITS_HEX = StrEncoderWrapper(StrEncodeEncoder('hex'))
 
 ENC_BITS_DEFAULT = ENC_BITS_NONE
+
+
+# ################### BitField (int) Encoders ####################
+
+class FloatEncoder(object):
+    '''
+    Base encoder class for FloatingPoint values
+
+    +-------------------+---------------------------------------+-----------------------------------------------------------+
+    | Singleton Name    | Encoding                              | Class                                                     |
+    +===================+=======================================+===========================================================+
+    | ENC_FLT_LE        | Encode as a little endian 32 bit      | :class:`~kitty.model.low_level.encoder.FloatBinEncoder`   |
+    +-------------------+---------------------------------------+                                                           |
+    | ENC_FLT_BE        | Encode as a big endian 32 bit         |                                                           |
+    +-------------------+---------------------------------------+                                                           |
+    | ENC_DBL_LE        | Encode as a little endian 64 bit      |                                                           |
+    +-------------------+---------------------------------------+                                                           |
+    | ENC_DBL_BE        | Encode as a big endian 64 bit         |                                                           |
+    +-------------------+---------------------------------------+-----------------------------------------------------------+
+    | ENC_FLT_FP        | Fixed point                           | :class:`~kitty.model.low_level.encoder.FloatAsciiEncoder` |
+    +-------------------+---------------------------------------+                                                           |
+    | ENC_FLT_EXP       | Exponent notation                     |                                                           |
+    +-------------------+---------------------------------------+                                                           |
+    | ENC_FLT_EXP_UPPER | Exponent notation, with upper case E  |                                                           |
+    +-------------------+---------------------------------------+                                                           |
+    | ENC_FLT_GEN       | General format                        |                                                           |
+    +-------------------+---------------------------------------+                                                           |
+    | ENC_FLT_GEN_UPPER | General format, with upper case       |                                                           |
+    +-------------------+---------------------------------------+-----------------------------------------------------------+
+    | ENC_FLT_DEFAULT   | Same as ENC_FLT_BE                    | :class:`~kitty.model.low_level.encoder.FloatBinEncoder`   |
+    +-------------------+---------------------------------------+-----------------------------------------------------------+
+    '''
+
+    def encode(self, value):
+        '''
+        :type value: ``float``
+        :param value: value to encode
+        :rtype: ``Bits``
+        :return: encoded value in bits
+        '''
+        raise NotImplementedError('should be implemented in sub classes')
+
+
+class FloatBinEncoder(FloatEncoder):
+    '''
+    Encode a floating point number in binary format as described by IEEE 754 (binary32 and binary64)
+    '''
+
+    def __init__(self, fmt):
+        '''
+        :type fmt: str
+        :param fmt: format of binary encoding (see floating point encoding in struct docs.)
+        '''
+        super(FloatBinEncoder, self).__init__()
+        self.fmt = fmt
+
+    def encode(self, value):
+        '''
+        :param value: value to encode
+        '''
+        packed = pack(self.fmt, value)
+        return Bits(bytes=packed)
+
+
+class FloatAsciiEncoder(FloatEncoder):
+    '''
+    Encode a floating point number in ascii as described by IEEE 754 (decimal*)
+    '''
+
+    def __init__(self, fmt):
+        '''
+        :type fmt: str
+        :param fmt: format of ascii encoding (see floating point encoding in string docs.)
+        '''
+        super(FloatAsciiEncoder, self).__init__()
+        self.fmt = fmt
+
+    def encode(self, value):
+        '''
+        :param value: value to encode
+        '''
+        packed = self.fmt % (value)
+        return Bits(bytes=packed)
+
+
+ENC_FLT_LE = FloatBinEncoder('<f')
+ENC_FLT_BE = FloatBinEncoder('>f')
+ENC_DBL_LE = FloatBinEncoder('<d')
+ENC_DBL_BE = FloatBinEncoder('>d')
+ENC_FLT_FP = FloatAsciiEncoder('%f')
+ENC_FLT_EXP = FloatAsciiEncoder('%e')
+ENC_FLT_EXP_UPPER = FloatAsciiEncoder('%E')
+ENC_FLT_GEN = FloatAsciiEncoder('%g')
+ENC_FLT_GEN_UPPER = FloatAsciiEncoder('%G')
+ENC_FLT_DEFAULT = ENC_FLT_BE

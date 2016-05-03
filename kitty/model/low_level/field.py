@@ -29,6 +29,7 @@ from kitty.core import KittyObject, KittyException, kassert, khash
 from kitty.model.low_level.encoder import ENC_STR_DEFAULT, StrEncoder
 from kitty.model.low_level.encoder import ENC_INT_DEFAULT, BitFieldEncoder
 from kitty.model.low_level.encoder import ENC_BITS_DEFAULT, BitsEncoder
+from kitty.model.low_level.encoder import ENC_FLT_DEFAULT, FloatEncoder
 
 
 empty_bits = Bits()
@@ -686,6 +687,48 @@ class Delimiter(String):
         lib.extend(gen_power_list('\r\n', max_power=3))
         lib.extend(gen_power_list('\t\r\n', max_power=3))
         lib.append(('', 'empty delimiter'))
+        return lib
+
+
+class Float(_LibraryField):
+    '''
+    Represent a floating point number.
+    The mutations target edge cases and invalid floating point numbers.
+    '''
+    _encoder_type_ = FloatEncoder
+    lib = None
+
+    def __init__(self, value, encoder=ENC_FLT_DEFAULT, fuzzable=True, name=None):
+        '''
+        :type value: float
+        :param value: default value
+        :type encoder: :class:`~kitty.model.low_levele.encoder.FloatEncoder`
+        :param encoder: encoder for the field (default: ENC_FLT_DEFAULT)
+        :param fuzzable: is field fuzzable (default: True)
+        :param name: name of the object (default: None)
+
+        :example:
+
+            ::
+
+                Float(0.3)
+        '''
+        super(Float, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
+
+    def _get_local_lib(self):
+        return []
+
+    def _get_class_lib(self):
+        lib = []
+        lib.append((float('NaN'), 'positive NaN'))
+        lib.append((float('-NaN'), 'negative NaN'))
+        lib.append((float('inf'), 'positive infinity'))
+        lib.append((float('-inf'), 'negative infinity'))
+        lib.append((float(0.), 'positive zero'))
+        lib.append((float(-0.), 'negative zero'))
+        #
+        # what else?
+        #
         return lib
 
 
