@@ -660,7 +660,7 @@ class Delimiter(String):
     _encoder_type_ = StrEncoder
     lib = None
 
-    def __init__(self, value, max_size=None, fuzzable=True, name=None):
+    def __init__(self, value, max_size=None, encoder=ENC_STR_DEFAULT, fuzzable=True, name=None):
         '''
         :type value: str
         :param value: default value
@@ -676,7 +676,7 @@ class Delimiter(String):
 
                 Delimiter('=', max_size=30, encoder=ENC_STR_BASE64)
         '''
-        super(Delimiter, self).__init__(value=value, max_size=max_size, fuzzable=fuzzable, name=name)
+        super(Delimiter, self).__init__(value=value, max_size=max_size, encoder=encoder, fuzzable=fuzzable, name=name)
 
     def _get_class_lib(self):
         lib = []
