@@ -67,8 +67,8 @@ class ClientTarget(BaseTarget):
             # self.controller.report.add('failure_reason', 'trigger timed out')
             # raise Exception('[%s] Error: trigger timed out (%d)'
             #                 % (self.name, self.mutation_server_timeout))
-            self.report.failed('trigger timed out')
-            self.logger.debug('Failure: trigger timed out')
+            self.report.error('trigger timed out')
+            self.logger.error('Failure: trigger timed out')
         else:
             time.sleep(self.post_fuzz_delay)
         self.response_sent_event.clear()
