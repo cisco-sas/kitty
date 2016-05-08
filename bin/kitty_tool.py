@@ -33,7 +33,7 @@ Options:
     --out -o OUTDIR         output directory for the generated mutations [default: out]
     --skip -s SKIP          how many mutations to skip [default: 0]
     --count -c COUNT        end index to generate
-    --path -p FIELDPATH     generate mutations only for the field with the given path
+    --field-path -p FIELDPATH   generate mutations only for the field with the given path
     --verbose -v            verbose output
     --filename-format -f FORMAT  format for generated file names [default: %(template)s.%(index)s.bin]
     --version               print version and exit
@@ -102,7 +102,8 @@ class FileIterator(object):
 
 class Handler(object):
 
-    def __init__(self, logger):
+    def __init__(self, opts, logger):
+        self.opts = opts
         self.logger = logger
 
     def start(self):
@@ -112,24 +113,24 @@ class Handler(object):
         pass
 
 
+def to_int(val, name):
+    if val is None:
+        return val
+    try:
+        return int(val)
+    except:
+        raise Exception('%s should be a number' % name)
+
+
 class FileGeneratorHandler(Handler):
 
     def __init__(self, opts, logger):
-        super(FileGeneratorHandler, self).__init__(logger)
+        super(FileGeneratorHandler, self).__init__(opts, logger)
         self.outdir = opts['--out'] or 'out'
-        if opts['--skip'] is not None:
-            try:
-                self.skip = int(opts['--skip'])
-            except:
-                raise Exception('skip should be a number')
-        else:
-            self.skip = 0
-        self.count = opts['--count']
-        if self.count:
-            try:
-                self.count = int(self.count)
-            except:
-                raise Exception('count should be a number')
+        if opts['--skip'] is None:
+            self.skip = '0'
+        self.skip = to_int(opts['--skip'], 'skip')
+        self.count = to_int(opts['--count'], 'count')
         self.template_names = opts['<TEMPLATE>']
         self.filename_format = opts['--filename-format']
         try:
@@ -146,44 +147,64 @@ class FileGeneratorHandler(Handler):
         os.mkdir(self.outdir)
 
     def handle(self, template):
+        self.template = template
         template_name = template.get_name()
         if template_name in self.template_names:
             self.logger.info('Generating mutation files from template %s into %s' % (template_name, os.path.abspath(self.outdir)))
-            template.skip(self.skip)
-            self.end_index = template.num_mutations() if not self.count else self.skip + self.count
-            self.end_index = min(self.end_index, template.num_mutations()) - 1
-            if self.end_index < 0:
-                raise Exception('No mutations to generate, are you sure about the count ??')
-            if self.skip > template.num_mutations():
-                raise Exception('No mutations to generate, you skipped over the entire template')
-            self.logger.info('Mutation range: %s-%s' % (self.skip, self.end_index))
-            total = (self.end_index - self.skip)
-            step = 100.0 / total
-#            step = max(step, 2)
-            max_line_length = 0
+            self._set_current_template_params(template)
+            self.logger.info('Mutation range: %s-%s (total: %d)' % (self.skip, self.end_index, self.end_index - self.skip + 1))
+            self._progress_init()
             while template.mutate():
                 template_filename = self.filename_format % {'template': template_name, 'index': template._current_index}
-                with open(os.path.join(self.outdir, template_filename), 'wb') as f:
-                    f.write(template.render().tobytes())
+                self._store_template(template, template_filename)
                 metadata_filename = template_filename + '.metadata'
                 info = template.get_info()
-                with open(os.path.join(self.outdir, metadata_filename), 'wb') as f:
-                    f.write(dumps(info, indent=4, sort_keys=True))
-                out_line = ''
-                out_line += '\r%3d%%' % (int((total - (self.end_index - template._current_index)) * step))
-                out_line += ' %d/%d' % (template._current_index, self.end_index)
-                if 'field/path' in info:
-                    out_line += ' %s' % (info['field/path'])
-                if len(out_line) > max_line_length:
-                    max_line_length = len(out_line)
-                else:
-                    out_line += ' ' * (max_line_length - len(out_line))
-                sys.stdout.write(out_line)
-                sys.stdout.flush()
+                self._store_metadata(info, metadata_filename)
+                self._progress_print(template._current_index, info)
                 if template._current_index >= self.end_index:
                     break
-            sys.stdout.write('\n')
-            sys.stdout.flush()
+            self._progress_finalize()
+
+    def _set_current_template_params(self, template):
+        template.skip(self.skip)
+        self.end_index = template.num_mutations() if not self.count else self.skip + self.count
+        self.end_index = min(self.end_index, template.num_mutations()) - 1
+        if self.end_index < 0:
+            raise Exception('No mutations to generate, are you sure about the count ??')
+        if self.skip > template.num_mutations():
+            raise Exception('No mutations to generate, you skipped over the entire template')
+
+    def _store_template(self, template, filename):
+        with open(os.path.join(self.outdir, filename), 'wb') as f:
+            f.write(template.render().tobytes())
+
+    def _store_metadata(self, info, filename):
+        with open(os.path.join(self.outdir, filename), 'wb') as f:
+            f.write(dumps(info, indent=4, sort_keys=True))
+
+    def _progress_init(self):
+        self.total = (self.end_index - self.skip)
+        self.step = 100.0 / self.total
+        self.max_line_length = 0
+
+    def _progress_print(self, current_index, info):
+        tests_left = (self.end_index - current_index)
+        precent = int((self.total - tests_left) * self.step)
+        out_line = ''
+        out_line += '\r%3d%%' % (precent)
+        out_line += ' %d/%d' % (current_index - self.skip + 1, self.end_index - self.skip + 1)
+        if 'field/path' in info:
+            out_line += ' %s' % (info['field/path'])
+        if len(out_line) > self.max_line_length:
+            max_line_length = len(out_line)
+        else:
+            out_line += ' ' * (max_line_length - len(out_line))
+        sys.stdout.write(out_line)
+        sys.stdout.flush()
+
+    def _progress_finalize(self):
+        sys.stdout.write('\n')
+        sys.stdout.flush()
 
 
 class ListHandler(Handler):
@@ -196,24 +217,12 @@ def _main():
     opts = docopt.docopt(__doc__, version=get_distribution('kittyfuzzer').version)
     logger = get_logger(opts)
     try:
-        if opts['generate']:
-            file_iter = FileIterator(
-                opts['<FILE>'],
-                FileGeneratorHandler(
-                    opts,
-                    logger=logger
-                ),
-                logger
-            )
-        elif opts['list']:
-            file_iter = FileIterator(
-                opts['<FILE>'],
-                ListHandler(
-                    logger
-                ),
-                logger
-            )
-        if file_iter:
+        if opts['generate'] or opts['list']:
+            if opts['generate']:
+                handler = FileGeneratorHandler(opts, logger)
+            elif opts['list']:
+                handler = ListHandler(opts, logger)
+            file_iter = FileIterator(opts['<FILE>'], handler, logger)
             file_iter.iterate()
     except Exception as ex:
         logger.error('Error: %s' % ex)
