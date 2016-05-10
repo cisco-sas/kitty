@@ -121,7 +121,6 @@
                         <div class="panel panel-danger kitty-cell">
                             <div class="panel-heading">Target Information</div>
                         </div>
-
                     </td>
                 </tr> <!-- bottom row end -->
             </tbody>
@@ -131,8 +130,10 @@
 
 <!-- update the stages graph -->
 <script type="text/javascript">
-    var state = {};
-    state.template_info = {};
+    var state = {
+        template_info: {},
+        reports: new Array()
+    };
 
     function renderStageGraph(elements) {
         var cy = cytoscape({
@@ -340,7 +341,7 @@
 
     function convertToHtml(text)
     {
-        text = $('<div>').text(text).html();
+        var text = $('<div>').text(text).html();
         text = text.replace(/ /g, '&nbsp;');
         text = text.replace(/\n/g, '<br>');   
         return text;
@@ -363,7 +364,6 @@
                     setTimeout(performUpdate, 10);
                 });
                 state.waiting_for_template_structure = true;
-            // updateTemplateTree(test_details);
             }
             else
             {
@@ -443,13 +443,21 @@
     function processResponse(data) {
         if($('#error_message').is(":visible"))
             $('#error_message').hide({duration: 'fast', easing: 'linear'});
-        updatePauseState(data.paused);
-        updateStats(data.stats);
-        updateProgress(data.stats, data.eta);
-        updateTemplateStructure(data.current_test);
-        updateFuzzingStage(data.current_test);
-        updateCurrentPayload(data.current_test);
-        updateReports(data.reports_extended);
+        if(data.paused != null) {
+            updatePauseState(data.paused);
+        }
+        if(data.stats != null) {
+            updateStats(data.stats);
+            updateProgress(data.stats, data.eta);
+        }
+        if(data.current_test != null) {
+            updateTemplateStructure(data.current_test);
+            updateFuzzingStage(data.current_test);
+            updateCurrentPayload(data.current_test);
+        }
+        if(data.reports_extended != null) {
+            updateReports(data.reports_extended);
+        }
         setTimeout(performUpdate, 3000);
     }
 
@@ -464,7 +472,6 @@
     }
 
     updatePauseState(false);
-    state.reports = new Array();
     performUpdate();
 
 </script>
