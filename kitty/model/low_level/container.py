@@ -564,6 +564,12 @@ class Meta(Container):
         '''
         return []
 
+    def _initialize_default_buffer(self):
+        super(Meta, self)._initialize_default_buffer()
+        self._default_value = empty_bits
+        self._default_rendered = empty_bits
+        return self._default_value
+
 
 class Pad(Container):
     '''

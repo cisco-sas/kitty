@@ -549,6 +549,17 @@ class MetaTest(BaseTestCase):
         uut = Meta(name=self.uut_name, fields=[field], fuzzable=False)
         self.assertEqual(len(uut.render()), 0)
 
+    def testAlwaysRenderedAsEmptyBits(self):
+        field = String('abc')
+        uut = Meta(name=self.uut_name, fields=[field], fuzzable=True)
+        self.assertEqual(len(uut.render()), 0)
+        while uut.mutate():
+            self.assertEqual(len(uut.render()), 0)
+        uut.reset()
+        self.assertEqual(len(uut.render()), 0)
+        while uut.mutate():
+            self.assertEqual(len(uut.render()), 0)
+
 
 class PadTest(BaseTestCase):
 
