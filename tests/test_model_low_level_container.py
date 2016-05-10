@@ -23,7 +23,7 @@ from bitstring import Bits
 from struct import unpack
 from kitty.model.low_level import String, Static, Group, BE32
 from kitty.model.low_level.container import Container, ForEach, If, IfNot, Repeat, Template, Switch
-from kitty.model.low_level.container import Meta, Pad, Trunc
+from kitty.model.low_level.container import Meta, Pad, Trunc, PsuedoTemplate
 from kitty.model.low_level.condition import Condition
 from kitty.model.low_level.aliases import Equal, NotEqual
 from kitty.core import KittyException
@@ -922,3 +922,20 @@ class TemplateTest(ContainerTest):
         uut = self.get_default_container()
         with self.assertRaises(KittyException):
             uut.copy()
+
+
+class PsuedoTemplateTest(BaseTestCase):
+
+    __meta__ = False
+
+    def setUp(self):
+        super(PsuedoTemplateTest, self).setUp(PsuedoTemplate)
+
+    def testRendersToEmptyBits(self):
+        uut = PsuedoTemplate('uut')
+        self.assertEquals(uut.render(), Bits())
+
+    def testNotFuzzable(self):
+        uut = PsuedoTemplate('uut')
+        self.assertEqual(uut.num_mutations(), 0)
+        self.assertFalse(uut.mutate())

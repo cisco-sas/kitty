@@ -21,7 +21,7 @@ they all inherit from ``Container``, which inherits from
 '''
 from bitstring import Bits, BitArray
 import random
-from kitty.model.low_level.field import BaseField, empty_bits, Dynamic
+from kitty.model.low_level.field import BaseField, empty_bits, Dynamic, BitField
 from kitty.model.low_level.encoder import BitsEncoder, ENC_BITS_DEFAULT, ENC_BITS_BYTE_ALIGNED
 from kitty.core import kassert, KittyException, khash
 from kitty.model.low_level.ll_utils import RenderContext
@@ -993,6 +993,66 @@ class Template(Container):
         :raises: :class:`~kitty.core.KittyException`, as it should not be copied
         '''
         raise KittyException('Template should NOT be copied')
+
+
+class PsuedoTemplate(Template):
+    '''
+    A psuedo template is an empty, immutable template, that can be created with any name.
+    Psuedo templates are useful when fuzzing clients and we want to fuzz a template
+    at differemt stages.
+
+    :example:
+
+        Let's say you have a protocol in which a given request is performed twice
+        and you don't only want to check the handling of the response for each request,
+        but what happens when those responses are different.
+
+        This use case happens in various protocols.
+        For example, some USB hosts may ask the same descriptor twice.
+        In the first time, they will only read its length and allocate enough memory for it,
+        and in the second time it will copy the descriptor to the allocated buffer.
+        Providing different descriptors in each response may expose bugs that are similar
+        to time-of-check time-of-use.
+
+
+    When working with a graph model, this can be a problem,
+    as you need to connect the same template to itself to match the stages
+    of the stack, but you cannot do that, as it creates a cycle inside the GraphModel.
+
+    The solution is to create ``PsuedoTemplates`` s with the same name.
+
+    :example:
+
+        ::
+
+            g = GraphModel()
+            stage1 = PsuedoTemplate(original.get_name())
+            stage2 = PsuedoTemplate(original.get_name())
+            g.connect(original)
+            g.connect(stage1)
+            g.connect(stage1, original)
+            g.connect(stage1, stage2)
+            g.connect(stage2, original)
+
+        This will result in the following (interesting) sequences:
+
+        ``original``,
+        ``stage1 -> original`` and
+        ``stage1 -> stage2 -> original``
+    '''
+    #
+    # we want each template to have a different hash,
+    # so we set a different value of the internal (Meta) field to each template
+    #
+    _counter_ = 0
+
+    def __init__(self, name):
+        '''
+        :param name: name of the template
+        '''
+        PsuedoTemplate._counter_ += 1
+        field = Meta(fields=BitField(value=PsuedoTemplate._counter_, length=32))
+        super(PsuedoTemplate, self).__init__(name=name, fuzzable=False, fields=field)
 
 
 class Trunc(Container):
