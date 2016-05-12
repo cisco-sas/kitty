@@ -35,6 +35,7 @@ class BaseTarget(KittyObject):
         self.report = Report(name)
         self.test_number = None
         self.fuzzer = None
+        self.session_data = {}
 
     def set_fuzzer(self, fuzzer):
         self.fuzzer = fuzzer
@@ -113,4 +114,4 @@ class BaseTarget(KittyObject):
 
         :return: dictionary (str, bytes)
         '''
-        return {}
+        return self.session_data
