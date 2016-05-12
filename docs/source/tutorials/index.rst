@@ -10,6 +10,7 @@ Here you can find some tutorials to help you get started with Kitty.
     server_vs_client
     server_fuzzing
     client_fuzzing
+    session_data
 
 
 .. toctree::
