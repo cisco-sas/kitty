@@ -32,7 +32,7 @@ provide those mutations. The responsibility of the stack is to call
 ``None``, the stack handles the request aproprietly, otherwise, it
 returns the result of ``get_mutation`` to the target.
 
-Here's an example of (psuedo) client hook:
+Here's an example of (pseudo) client hook:
 
 .. code:: python
 

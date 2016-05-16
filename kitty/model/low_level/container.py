@@ -995,10 +995,10 @@ class Template(Container):
         raise KittyException('Template should NOT be copied')
 
 
-class PsuedoTemplate(Template):
+class PseudoTemplate(Template):
     '''
-    A psuedo template is an empty, immutable template, that can be created with any name.
-    Psuedo templates are useful when fuzzing clients and we want to fuzz a template
+    A pseudo template is an empty, immutable template, that can be created with any name.
+    Pseudo templates are useful when fuzzing clients and we want to fuzz a template
     at differemt stages.
 
     :example:
@@ -1019,15 +1019,15 @@ class PsuedoTemplate(Template):
     as you need to connect the same template to itself to match the stages
     of the stack, but you cannot do that, as it creates a cycle inside the GraphModel.
 
-    The solution is to create ``PsuedoTemplates`` s with the same name.
+    The solution is to create ``PseudoTemplates`` s with the same name.
 
     :example:
 
         ::
 
             g = GraphModel()
-            stage1 = PsuedoTemplate(original.get_name())
-            stage2 = PsuedoTemplate(original.get_name())
+            stage1 = PseudoTemplate(original.get_name())
+            stage2 = PseudoTemplate(original.get_name())
             g.connect(original)
             g.connect(stage1)
             g.connect(stage1, original)
@@ -1050,9 +1050,9 @@ class PsuedoTemplate(Template):
         '''
         :param name: name of the template
         '''
-        PsuedoTemplate._counter_ += 1
-        field = Meta(fields=BitField(value=PsuedoTemplate._counter_, length=32))
-        super(PsuedoTemplate, self).__init__(name=name, fuzzable=False, fields=field)
+        PseudoTemplate._counter_ += 1
+        field = Meta(fields=BitField(value=PseudoTemplate._counter_, length=32))
+        super(PseudoTemplate, self).__init__(name=name, fuzzable=False, fields=field)
 
 
 class Trunc(Container):

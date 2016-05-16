@@ -171,6 +171,7 @@ The following containers are available in Kitty:
 - :class:`~kitty.model.low_level.container.Switch`
 - :class:`~kitty.model.low_level.container.TakeFrom`
 - :class:`~kitty.model.low_level.container.Template`
+    :class:`~kitty.model.low_level.container.PseudoTemplate`
 - :class:`~kitty.model.low_level.container.Trunc`
 
 .. _mutation-fields:
