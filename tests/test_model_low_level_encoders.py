@@ -23,10 +23,52 @@ from kitty.model.low_level.encoder import StrFuncEncoder, StrEncodeEncoder
 from kitty.model.low_level.encoder import StrBase64NoNewLineEncoder, StrNullTerminatedEncoder
 from kitty.model.low_level.encoder import BitsEncoder, ByteAlignedBitsEncoder, ReverseBitsEncoder
 from kitty.model.low_level.encoder import StrEncoderWrapper, BitsFuncEncoder
+from kitty.model.low_level.encoder import BitFieldBinEncoder
 from kitty.model.low_level import BitField
 from kitty.core import KittyException
+from struct import pack
 from bitstring import Bits
 from common import BaseTestCase
+
+
+class BitFieldBinEncoderTests(BaseTestCase):
+
+    def setUp(self, cls=BitFieldBinEncoder):
+        super(BitFieldBinEncoderTests, self).setUp(cls)
+        self.fmt = '>I'
+        self.signed = False
+        self.length = 32
+        self.mode = 'be'
+
+    def _encode_func(self, value):
+        return Bits(bytes=pack(self.fmt, value))
+
+    def get_default_encoder(self):
+        return BitFieldBinEncoder(self.mode)
+
+    def testCorrectEncoding(self):
+        uut = self.get_default_encoder()
+        value = 0x12345678
+        self.assertEqual(uut.encode(value, self.length, self.signed), self._encode_func(value))
+
+    def testSignedValue(self):
+        uut = self.get_default_encoder()
+        value = -1234
+        self.signed = True
+        self.fmt = '>i'
+        self.assertEqual(uut.encode(value, self.length, self.signed), self._encode_func(value))
+
+    def testLittleEndian(self):
+        self.mode = 'le'
+        self.fmt = '<I'
+        uut = self.get_default_encoder()
+        value = 0x12345678
+        self.assertEqual(uut.encode(value, self.length, self.signed), self._encode_func(value))
+
+    def testExceptionIfLengthIsNotAligned(self):
+        uut = self.get_default_encoder()
+        with self.assertRaises(Exception):
+            uut.encode(1, 9, True)
 
 
 class BitFieldMultiByteEncoderTest(BaseTestCase):
@@ -92,6 +134,10 @@ class BitFieldMultiByteEncoderTest(BaseTestCase):
             encoder=BitFieldMultiByteEncoder()
         )
         self._test(bitfield)
+
+    def testZero(self):
+        uut = BitFieldMultiByteEncoder()
+        self.assertEqual(uut.encode(0, 10, False), Bits(bytes='\x00'))
 
     def testBitFieldMultiByteEncoderSignedUnsupported(self):
         with self.assertRaises(KittyException):
