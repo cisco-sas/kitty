@@ -148,21 +148,6 @@ class StrNullTerminatedEncoder(StrEncoder):
         return Bits(bytes=encoded)
 
 
-def _pad_zeros(data, block_size):
-    '''
-    pad a string to multiples of block_size
-
-    :param data: data to pad
-    :param block_size: size of block
-    :return: padded data
-    '''
-    pad = ''
-    remainder = len(data) % block_size
-    if remainder:
-        pad = '\x00' * (block_size - remainder)
-    return data + pad
-
-
 ENC_STR_BASE64 = StrEncodeEncoder('base64')
 ENC_STR_BASE64_NO_NL = StrBase64NoNewLineEncoder()
 ENC_STR_UTF8 = StrEncodeEncoder('utf-8')
