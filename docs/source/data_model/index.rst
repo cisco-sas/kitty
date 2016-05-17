@@ -10,6 +10,7 @@ Contents:
 
    overview
    big_list_of_fields
+   writing_encoders
    Data Model API Reference<../kitty.model>
 
 Indices and tables
