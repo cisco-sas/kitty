@@ -21,6 +21,8 @@ Tests for low level encoders:
 from kitty.model.low_level.encoder import BitFieldMultiByteEncoder
 from kitty.model.low_level.encoder import StrFuncEncoder, StrEncodeEncoder
 from kitty.model.low_level.encoder import StrBase64NoNewLineEncoder, StrNullTerminatedEncoder
+from kitty.model.low_level.encoder import BitsEncoder, ByteAlignedBitsEncoder, ReverseBitsEncoder
+from kitty.model.low_level.encoder import StrEncoderWrapper
 from kitty.model.low_level import BitField
 from kitty.core import KittyException
 from bitstring import Bits
@@ -37,7 +39,7 @@ class BitFieldMultiByteEncoderTest(BaseTestCase):
         num_bytes = num_bits / 7
         if num_bits % 7 != 0:
             num_bytes += 1
-        return num_bytes*8
+        return num_bytes * 8
 
     def _test(self, bitfield):
         expected_len = self._multibyte_len(bitfield._default_value)
@@ -183,3 +185,87 @@ class StrNullTerminatedEncoderTest(StrFuncEncoderTest):
 
     def get_default_encoder(self):
         return self.cls()
+
+
+class BitsEncoderTest(BaseTestCase):
+
+    def setUp(self, cls=BitsEncoder):
+        super(BitsEncoderTest, self).setUp(cls)
+
+    def _encode_func(self, bits):
+        return bits
+
+    def get_default_encoder(self):
+        return self.cls()
+
+    def testCorrectEncoding(self):
+        value = Bits(bin='01010011')
+        uut = self.get_default_encoder()
+        self.assertEqual(uut.encode(value), self._encode_func(value))
+
+    def testEmptyBits(self):
+        value = Bits()
+        uut = self.get_default_encoder()
+        self.assertEqual(uut.encode(value), Bits())
+
+
+class ReverseBitsEncoderTest(BitsEncoderTest):
+
+    def setUp(self):
+        super(ReverseBitsEncoderTest, self).setUp(ReverseBitsEncoder)
+
+    def _encode_func(self, bits):
+        return bits[::-1]
+
+
+class ByteAlignedBitsEncoderTest(BitsEncoderTest):
+
+    def setUp(self):
+        super(ByteAlignedBitsEncoderTest, self).setUp(ByteAlignedBitsEncoder)
+
+    def _encode_func(self, bits):
+        remainder = len(bits) % 8
+        pad_len = (8 - remainder) % 8
+        return bits + Bits(pad_len)
+
+    def testPaddingNoPad(self):
+        value = Bits(bytes='\x01')
+        uut = self.get_default_encoder()
+        self.assertEqual(uut.encode(value), value)
+
+    def testPadding1(self):
+        value = Bits(bin='1111111')
+        expected = Bits(bin='11111110')
+        uut = self.get_default_encoder()
+        self.assertEqual(uut.encode(value), expected)
+
+    def testPadding4(self):
+        value = Bits(bin='1111')
+        expected = Bits(bin='11110000')
+        uut = self.get_default_encoder()
+        self.assertEqual(uut.encode(value), expected)
+
+    def testPadding7(self):
+        value = Bits(bin='1')
+        expected = Bits(bin='10000000')
+        uut = self.get_default_encoder()
+        self.assertEqual(uut.encode(value), expected)
+
+    def testPaddingMoreThanOneByte(self):
+        value = Bits(bin='1100110011')
+        expected = Bits(bin='1100110011000000')
+        uut = self.get_default_encoder()
+        self.assertEqual(uut.encode(value), expected)
+
+
+class StrEncoderWrapperTest(BitsEncoderTest):
+
+    def setUp(self):
+        super(StrEncoderWrapperTest, self).setUp(StrEncoderWrapper)
+        self._str_encoder = StrEncodeEncoder('base64')
+
+    def _encode_func(self, bits):
+        return self._str_encoder.encode(bits.tobytes())
+
+    def get_default_encoder(self):
+        return self.cls(self._str_encoder)
