@@ -17,7 +17,6 @@
 '''
 Tests for the target classes
 '''
-import unittest
 import logging
 from kitty.targets import BaseTarget, ServerTarget, ClientTarget
 from kitty.core.actor import KittyActorInterface
@@ -58,6 +57,8 @@ class TestActor(KittyActorInterface):
     def __init__(self, name, logger=None, victim_alive_check_delay=0.3, config=None):
         super(TestActor, self).__init__(name, logger, victim_alive_check_delay)
         self.call_count = {}
+        if config is None:
+            config = {}
         self.config = Config(name, config)
 
     def get_call_count(self, func):
