@@ -210,7 +210,11 @@ class Container(BaseField):
         if self.is_default():
             rendered = Bits()
             for field in self._fields:
-                rendered += field._initialize_default_buffer()
+                frendered = field._initialize_default_buffer()
+                if not isinstance(frendered, Bits):
+                    raise KittyException('the field %s:%s was rendered to type %s, you should probably wrap it with appropriate encoder' % (
+                        field.get_name(), type(field), type(frendered)))
+                rendered += frendered
             self._default_value = rendered
             self._default_rendered = self._encode_value(self._default_value)
         return self._default_rendered

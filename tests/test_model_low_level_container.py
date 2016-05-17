@@ -253,6 +253,9 @@ class ContainerTest(BaseTestCase):
         class BadString(String):
             def render(self, ctx=None):
                 return self._current_value
+            def _initialize_default_buffer(self):
+                super(BadString, self)._initialize_default_buffer()
+                return self._current_value
         fields = [BadString('hello')]
         uut = self.get_default_container(fields)
         with self.assertRaises(KittyException):
