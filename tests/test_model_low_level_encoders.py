@@ -22,7 +22,7 @@ from kitty.model.low_level.encoder import BitFieldMultiByteEncoder
 from kitty.model.low_level.encoder import StrFuncEncoder, StrEncodeEncoder
 from kitty.model.low_level.encoder import StrBase64NoNewLineEncoder, StrNullTerminatedEncoder
 from kitty.model.low_level.encoder import BitsEncoder, ByteAlignedBitsEncoder, ReverseBitsEncoder
-from kitty.model.low_level.encoder import StrEncoderWrapper
+from kitty.model.low_level.encoder import StrEncoderWrapper, BitsFuncEncoder
 from kitty.model.low_level import BitField
 from kitty.core import KittyException
 from bitstring import Bits
@@ -208,6 +208,13 @@ class BitsEncoderTest(BaseTestCase):
         uut = self.get_default_encoder()
         self.assertEqual(uut.encode(value), Bits())
 
+    def testRaisesExceptionWhenValueIsNotBits(self):
+        uut = self.get_default_encoder()
+        with self.assertRaises(KittyException):
+            uut.encode(1)
+        with self.assertRaises(KittyException):
+            uut.encode('hello')
+
 
 class ReverseBitsEncoderTest(BitsEncoderTest):
 
@@ -269,3 +276,21 @@ class StrEncoderWrapperTest(BitsEncoderTest):
 
     def get_default_encoder(self):
         return self.cls(self._str_encoder)
+
+    def testExceptionWhenBitsNotByteAligned(self):
+        value = Bits(bin='1111111')
+        uut = self.get_default_encoder()
+        with self.assertRaises(KittyException):
+            uut.encode(value)
+
+
+class BitsFuncEncoderTest(BitsEncoderTest):
+
+    def setUp(self):
+        super(BitsFuncEncoderTest, self).setUp(BitsFuncEncoder)
+
+    def _encode_func(self, bits):
+        return bits[::-1]
+
+    def get_default_encoder(self):
+        return self.cls(self._encode_func)
