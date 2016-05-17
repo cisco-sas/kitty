@@ -30,6 +30,7 @@ from test_model_low_level_fields import *
 from test_model_low_level_full import *
 from test_model_low_level_mutated import *
 from test_remote_rpc import *
+from test_target import *
 
 
 if __name__ == '__main__':
