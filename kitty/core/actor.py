@@ -78,7 +78,7 @@ class KittyActorInterface(KittyObject):
                 last_log = time.time()
                 self.logger.warn('waiting for target to be alive')
             time.sleep(self.victim_alive_check_delay)
-        if last_log > 0: # only if we logged that we're waiting, should we log that we're now alive
+        if last_log > 0:  # only if we logged that we're waiting, should we log that we're now alive
             self.logger.warn('target is now alive')
 
     def post_test(self):
