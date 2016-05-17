@@ -36,6 +36,7 @@ class Config(object):
                 for k, v in full_config[config_name].iteritems():
                     self.config[k] = v
         self.func = None
+        self.test_conf = {}
 
     def get_config_dict(self):
         return self.config

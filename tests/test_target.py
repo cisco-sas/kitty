@@ -19,8 +19,10 @@ Tests for the target classes
 '''
 import unittest
 import logging
-from kitty.targets import BaseTarget
+from kitty.targets import BaseTarget, ServerTarget, ClientTarget
 from kitty.core.actor import KittyActorInterface
+from mocks.mock_config import Config
+from common import BaseTestCase
 
 
 test_logger = None
@@ -53,14 +55,15 @@ def count_calls(fn_name):
 
 class TestActor(KittyActorInterface):
 
-    def __init__(self, name, logger=None, victim_alive_check_delay=0.3):
+    def __init__(self, name, logger=None, victim_alive_check_delay=0.3, config=None):
         super(TestActor, self).__init__(name, logger, victim_alive_check_delay)
         self.call_count = {}
+        self.config = Config(name, config)
 
     def get_call_count(self, func):
         if func in self.call_count:
             return self.call_count[func]
-        return None
+        return 0
 
     @count_calls('setup')
     def setup(self):
@@ -72,6 +75,7 @@ class TestActor(KittyActorInterface):
 
     @count_calls('pre_test')
     def pre_test(self, test_number):
+        self.config.set_test(test_number)
         super(TestActor, self).pre_test(test_number)
 
     @count_calls('post_test')
@@ -80,21 +84,38 @@ class TestActor(KittyActorInterface):
 
     @count_calls('get_report')
     def get_report(self):
-        return super(TestActor, self).get_report()
+        self.config.set_func('report')
+        report = self.report
+        config_report = self.config.get_vals()
+        if config_report:
+            self.logger.debug('found matching config: %s', repr(config_report))
+            for k, v in config_report.iteritems():
+                if k.lower() == 'status':
+                    report.set_status(v)
+                else:
+                    report.add(k, v)
+        return report
 
     @count_calls('is_victim_alive')
     def is_victim_alive(self):
         return super(TestActor, self).is_victim_alive()
 
+    @count_calls('trigger')
+    def trigger(self):
+        pass
 
-class BaseTargetTests(unittest.TestCase):
 
-    def setUp(self):
-        self.logger = get_test_logger()
-        self.uut = BaseTarget(name='uut', logger=self.logger)
+class BaseTargetTests(BaseTestCase):
+
+    def setUp(self, cls=BaseTarget):
+        super(BaseTargetTests, self).setUp(cls)
+        self.uut = self.get_uut()
         self.controller = TestActor('controller', logger=self.logger)
         self.monitor1 = TestActor('Monitor1', logger=self.logger)
         self.monitor2 = TestActor('Monitor2', logger=self.logger)
+
+    def get_uut(self):
+        return self.cls(name='uut', logger=self.logger)
 
     def add_actors(self):
         self.uut.set_controller(self.controller)
@@ -140,3 +161,93 @@ class BaseTargetTests(unittest.TestCase):
         self.uut.post_test(1)
         self.uut.get_report()
         self.check_calls('get_report', 1)
+
+    def testReportFailedIfMonitor1Failed(self):
+        conf = {'1': {'report': {'status': 'failed', 'reason': 'failure reason'}}}
+        self.monitor1 = TestActor('Monitor1', logger=self.logger, config=conf)
+        self.add_actors()
+        self.uut.setup()
+        self.uut.pre_test(1)
+        self.uut.post_test(1)
+        report = self.uut.get_report()
+        self.check_calls('get_report', 1)
+        self.assertEqual(report.get_status(), report.FAILED)
+
+    def testReportErroIfMonitor1Error(self):
+        conf = {'1': {'report': {'status': 'error', 'reason': 'error reason'}}}
+        self.monitor1 = TestActor('Monitor1', logger=self.logger, config=conf)
+        self.add_actors()
+        self.uut.setup()
+        self.uut.pre_test(1)
+        self.uut.post_test(1)
+        report = self.uut.get_report()
+        self.check_calls('get_report', 1)
+        self.assertEqual(report.get_status(), report.ERROR)
+
+    def testReportFailedIfMonitor2Failed(self):
+        conf = {'1': {'report': {'status': 'failed', 'reason': 'failure reason'}}}
+        self.monitor2 = TestActor('Monitor2', logger=self.logger, config=conf)
+        self.add_actors()
+        self.uut.setup()
+        self.uut.pre_test(1)
+        self.uut.post_test(1)
+        report = self.uut.get_report()
+        self.check_calls('get_report', 1)
+        self.assertEqual(report.get_status(), report.FAILED)
+
+    def testReportErroIfMonitor2Error(self):
+        conf = {'1': {'report': {'status': 'error', 'reason': 'error reason'}}}
+        self.monitor2 = TestActor('Monitor2', logger=self.logger, config=conf)
+        self.add_actors()
+        self.uut.setup()
+        self.uut.pre_test(1)
+        self.uut.post_test(1)
+        report = self.uut.get_report()
+        self.check_calls('get_report', 1)
+        self.assertEqual(report.get_status(), report.ERROR)
+
+    def testReportFailedIfControllerFailed(self):
+        conf = {'1': {'report': {'status': 'failed', 'reason': 'failure reason'}}}
+        self.controller = TestActor('Controller', logger=self.logger, config=conf)
+        self.add_actors()
+        self.uut.setup()
+        self.uut.pre_test(1)
+        self.uut.post_test(1)
+        report = self.uut.get_report()
+        self.check_calls('get_report', 1)
+        self.assertEqual(report.get_status(), report.FAILED)
+
+    def testReportErroIfControllerError(self):
+        conf = {'1': {'report': {'status': 'error', 'reason': 'error reason'}}}
+        self.controller = TestActor('Controller', logger=self.logger, config=conf)
+        self.add_actors()
+        self.uut.setup()
+        self.uut.pre_test(1)
+        self.uut.post_test(1)
+        report = self.uut.get_report()
+        self.check_calls('get_report', 1)
+        self.assertEqual(report.get_status(), report.ERROR)
+
+
+class ServerTargetTest(BaseTargetTests):
+
+    def setUp(self):
+        super(ServerTargetTest, self).setUp(ServerTarget)
+
+
+class ClientTargetTest(BaseTargetTests):
+
+    def setUp(self):
+        super(ClientTargetTest, self).setUp(ClientTarget)
+
+    def get_uut(self):
+        return self.cls(name='uut', logger=self.logger, mutation_server_timeout=0)
+
+    def testCallTriggerOfEnclosedActors(self):
+        self.add_actors()
+        self.uut.setup()
+        self.uut.pre_test(1)
+        self.uut.trigger()
+        self.assertEqual(self.controller.get_call_count('trigger'), 1)
+        self.assertEqual(self.monitor1.get_call_count('trigger'), 0)
+        self.assertEqual(self.monitor2.get_call_count('trigger'), 0)
