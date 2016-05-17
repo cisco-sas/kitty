@@ -248,6 +248,27 @@ class ContainerTest(BaseTestCase):
         copy_mutations = self.get_all_mutations(uut_copy, reset=False)
         self.assertEqual(uut_mutations, copy_mutations)
 
+    @metaTest
+    def testExceptionWhenRenderedContainedFieldIsNotBitsDefaultRender(self):
+        class BadString(String):
+            def render(self, ctx=None):
+                return self._current_value
+        fields = [BadString('hello')]
+        uut = self.get_default_container(fields)
+        with self.assertRaises(KittyException):
+            uut.render()
+
+    @metaTest
+    def testExceptionWhenRenderedContainedFieldIsNotBitsMutatedRender(self):
+        class BadString(String):
+            def render(self, ctx=None):
+                return self._current_value
+        fields = [BadString('hello')]
+        uut = self.get_default_container(fields)
+        with self.assertRaises(KittyException):
+            uut.mutate()
+            uut.render()
+
 
 class RealContainerTest(ContainerTest):
 
