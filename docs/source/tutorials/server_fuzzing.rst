@@ -146,7 +146,7 @@ Data model, version 3
 
     from kitty.model import *
 
-    http_get_v2 = Template(name='HTTP_GET_V2', fields=[
+    http_get_v3 = Template(name='HTTP_GET_V3', fields=[
         String('GET', name='method', fuzzable=False),   # 1. Method - a string with the value "GET"
         Delimiter(' ', name='space1', fuzzable=False),  # 1.a The space between Method and Path
         String('/index.html', name='path'),             # 2. Path - a string with the value "/index.html"
