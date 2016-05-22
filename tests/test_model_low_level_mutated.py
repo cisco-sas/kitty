@@ -515,7 +515,7 @@ class BlockDuplicateTests(BlockOperationTests):
 
     def testNumDups10(self):
         self._num_dups = 10
-        self._testBase = 10
+        self._testBase(10, 8)
 
     def testExceptionIfNumDupsNotPositive(self):
         with self.assertRaises(KittyException):

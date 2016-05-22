@@ -272,6 +272,13 @@ class ContainerTest(BaseTestCase):
             uut.mutate()
             uut.render()
 
+    @metaTest
+    def testExceptionIfTwoFieldsHasTheSameName(self):
+        field1 = String(name='A', value='A')
+        field2 = String(name='A', value='B')
+        with self.assertRaises(KittyException):
+            Container(fields=[field1, field2])
+
 
 class RealContainerTest(ContainerTest):
 
