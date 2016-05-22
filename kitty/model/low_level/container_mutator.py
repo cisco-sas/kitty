@@ -243,7 +243,7 @@ class List(OneOf):
     def _get_dups(self, fields):
         num_fields = len(fields)
         res = []
-        for field_count in set([1, 2, num_fields / 2, num_fields]):
+        for field_count in set(x for x in [1, 2, num_fields / 2, num_fields] if x > 0):
             for i in [2, 5, 10, 100, 1000]:
                 res.append(
                     DuplicateMutator(
