@@ -1,5 +1,7 @@
 # Copyright (C) 2016 Cisco Systems, Inc. and/or its affiliates. All rights reserved.
 #
+# This example was authored and contributed by dark-lbp <jtrkid@gmail.com>
+#
 # This file is part of Kitty.
 #
 # Kitty is free software: you can redistribute it and/or modify
@@ -43,13 +45,11 @@ def new_session_callback(fuzzer, edge, resp):
     '''
     :param fuzzer: the fuzzer object
     :param edge: the edge in the graph we currently at.
-                 edge.src is the open_session template
-                 edge.dst is the do_something template
+                 edge.src is the get_session template
+                 edge.dst is the send_data template
     :param resp: the response from the target
     '''
-    # let's say that we have a reference to the target object,
-    # or this might be a target's method
-    print('session is: ', resp[1:3].encode('hex'))
+    fuzzer.logger.info('session is: %s' % resp[1:3].encode('hex'))
     fuzzer.target.session_data['session_id'] = resp[1:3]
 
 
@@ -59,12 +59,12 @@ target = TcpTarget(
 # Need this to wait Target response
 target.set_expect_response(True)
 
-# define model
+# Define model
 model = GraphModel()
 model.connect(get_session)
 model.connect(get_session, send_data, new_session_callback)
 
-# define fuzzer
+# Define fuzzer
 fuzzer = ServerFuzzer()
 fuzzer.set_interface(WebInterface(port=web_port))
 fuzzer.set_model(model)

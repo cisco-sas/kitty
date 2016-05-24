@@ -1,5 +1,7 @@
 # Copyright (C) 2016 Cisco Systems, Inc. and/or its affiliates. All rights reserved.
 #
+# This example was authored and contributed by dark-lbp <jtrkid@gmail.com>
+#
 # This file is part of Kitty.
 #
 # Kitty is free software: you can redistribute it and/or modify
@@ -42,7 +44,7 @@ class SessionHandler(SocketServer.BaseRequestHandler):
 
         ::
             Fuzzer (client)                               Target (server)
-                ||---------------(get_session)----------------->||
+                ||---------------(get_session)------------------>||
                 ||<---------------(session_id)-------------------||
                 ||----------(session_id + send_data)------------>||
                 ||<---------(session_id + send_data)-------------||
