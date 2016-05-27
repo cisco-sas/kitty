@@ -79,7 +79,7 @@ you can use Kitty-based code of others, but it's not an out-of-the-box fuzzer.
 A good place to get (and add) implementations of Kitty models is Katnip.
 
 Katnip
-~~~~~~
+------
 
 Kitty, as a framework, implements the fuzzer main loop, and provides
 syntax for modeling data and base classes for each of the elements
@@ -92,8 +92,8 @@ for data transmition over HTTP, TCP or UART.
 Implementations of all sorts of classes can be found in the complimentary
 repository - `Katnip <https://github.com/cisco-sas/katnip>`_.
 
-What's Next?
-------------
+Getting Started
+---------------
 
 - Install Kitty:
 
@@ -102,9 +102,13 @@ What's Next?
         pip install kittyfuzzer
 
 - Read some of the documentation at `ReadTheDocs <https://kitty.readthedocs.io>`_.
-- Build your fuzzer :-)
-- Need some help - ask at our google group: kitty-fuzzer@googlegroups.com
-- You can also find us on freenode #kittyfuzzer
+- Take a look at the examples
+- Build your very own fuzzer :-)
+
+Support
+-------
+- Mailing list: https://groups.google.com/forum/#!forum/kitty-fuzzer
+- IRC: `#kitty on Freenode <https://webchat.freenode.net/?channels=kitty>`_
 
 Contribution FAQ
 ----------------
@@ -122,7 +126,6 @@ Contribution FAQ
    We'd love to hear about it! please drop us a line
 
 |docs| |travis| |coverage| |gitter|
-
 
 .. |docs| image:: https://readthedocs.org/projects/kitty/badge/?version=latest
     :alt: Documentation Status
