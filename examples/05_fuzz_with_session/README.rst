@@ -19,11 +19,11 @@ To communicate with session server you need request a specific session for each 
 You must use correct session with op_code(2) to send data to *session_server*. If your session
 is correct, server will return a same packet which you just send, otherwise server will return 'session is incorrect'.
 
-Remember Session server only support two kind of packet 'get_session' and 'send_data'. If you send other packet to server, server will server will return 'packet format is incorrect' and close your current connection
+Remember Session server only support two kind of packet 'get_session' and 'send_data'. If you send other packet to server, server will return 'packet format is incorrect' and close your current connection.
 
-Server will stop(fake crash) when you send a packet with length greater than 255 using 'send_data' format.
+Server will **crash** when you send a packet with length greater than 255 using 'send_data' format.
 
-For more details, please check the docs in **session_controller.py**
+For more details, please check the docs in **session_controller.py** and class ``SessionHandler``
 
 
 controller of session server

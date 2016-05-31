@@ -21,6 +21,13 @@ import socket
 import threading
 import select
 import errno
+import time
+import struct
+import random
+import traceback
+
+host = '0.0.0.0'
+port = 9999
 
 
 def _eintr_retry(func, *args):
@@ -266,6 +273,8 @@ class BaseServer(KittyObject):
         """
         self.logger.error('-' * 40)
         self.logger.error('Exception happened during processing of request from %s:%s' % (client_address[0], client_address[1]))
+        self.logger.error(traceback.format_exc())
+        self.logger.error('-' * 40)
 
 
 class TCPServer(BaseServer):
@@ -365,3 +374,173 @@ class TCPServer(BaseServer):
                              args=(request, client_address))
         t.daemon = self.daemon_threads
         t.start()
+
+
+class SessionHandler(BaseRequestHandler):
+    '''
+    The SessionHandler class for our session server.
+    First you need request a session by sending 'get_session' packet to server, server will return same format packet
+    with specific session inside.
+    After you got the session you can communicate with server by sending 'send_data' packet to server. If your session
+    is correct server will return a same packet which you just send, otherwise server will return 'session is incorrect'.
+    Remember Session server only support two kind of packet 'get_session' and 'send_data'. If you send other packet to
+    server, server will server will return 'packet format is incorrect' and close your current connection.
+    Server will stop(fake crash) when you send a large packet(length greater than 255) with 'send_data' format.
+
+    :Example Protocol:
+
+        ::
+            Fuzzer (client)                               Target (server)
+                ||---------------(get_session)------------------>||
+                ||<---------------(session_id)-------------------||
+                ||----------(session_id + send_data)------------>||
+                ||<---------(session_id + send_data)-------------||
+                ||----------(session_id + send_data)------------>||
+                ||<---------(session_id + send_data)-------------||
+                ||<---------........................-------------||
+                ||----------........................------------>||
+
+
+    :get_session:
+
+        ::
+            get_session = Template(name='get_session', fields=[
+                UInt8(value=1, name='op_code', fuzzable=False),
+                UInt16(value=0, name='session_id', fuzzable=False)
+            ])
+
+
+    :send_data:
+        ::
+            send_data = Template(name='send_data', fields=[
+                UInt8(value=2, name='op_code', fuzzable=False),
+                Dynamic(key='session_id', default_value='\x00\x00'),
+                String(name='data', value='some data')
+            ])
+
+    '''
+
+    def __init__(self, request, client_address, server, name='SessionHandler', logger=None):
+        '''
+        :param request: TCP socket connected to the client
+        :param client_address: Client address of request
+        :param server: Session server
+        :param name: Name of the object
+        :param logger: Logger for the object (default: None)
+        '''
+
+        # Create 2 byte specific session for each request
+        self._session = struct.pack('H', random.randrange(65535))
+        self._recv_data = None
+        self._resp_data = None
+        super(SessionHandler, self).__init__(name, request, client_address, server, logger)
+
+    def _send_session(self):
+        self._resp_data = '\x01' + self._session
+        self.logger.info('Session id is: %s' % self._session.encode('hex'))
+        self.request.send(self._resp_data)
+        self._cleanup()
+
+    def _send_data(self, data):
+        self.request.send(data)
+        self._cleanup()
+
+    def _crash(self):
+        raise Exception("Congratulations you successful crash session server!")
+
+    def _check_session(self, data):
+        if data[1:3] == self._session:
+            return True
+        else:
+            return False
+
+    def _check_crash(self, data):
+        if len(data) > 255:
+            return True
+        else:
+            return False
+
+    def _cleanup(self):
+        self._recv_data = None
+        self._resp_data = None
+
+    def _close(self):
+        self.request.close()
+        self.finish()
+
+    def handle(self):
+        while True:
+            # self.request is the TCP socket connected to the client
+            if self.request:
+                self._recv_data = self.request.recv(1024).strip()
+                if self._recv_data:
+                    self.logger.debug('Received data is: %s' % self._recv_data.encode('hex'))
+                    # Check is get_session packet
+                    if self._recv_data == '\x01\x00\x00':
+                        self._send_session()
+                    # Check is send_data packet
+                    elif self._recv_data[0] == '\x02':
+                        if self._check_session(self._recv_data):
+                            self.logger.info('session is correct')
+                            if self._check_crash(self._recv_data):
+                                self._crash()
+                                break
+                            else:
+                                self._send_data(self._recv_data)
+                        else:
+                            self.logger.info('session is incorrect')
+                            self._send_data('session is incorrect')
+                            self._close()
+                            break
+                    else:
+                        self.logger.info('Packet format is incorrect')
+                        self._close()
+                        break
+                else:
+                    self._close()
+                    break
+            else:
+                break
+
+
+class SessionServer(TCPServer):
+    '''
+    SessionServer is implementation of a TCP Server for the ServerFuzzer
+    '''
+
+    allow_reuse_address = True
+
+    def __init__(self, name, server_address, request_handler, logger=None):
+        '''
+        :param name: Name of the object
+        :param server_address: server address for socket to listen
+        :param request_handler: class to handle request
+        :param logger: Logger for this object (default: None)
+        '''
+
+        super(SessionServer, self).__init__(name, server_address, request_handler, logger)
+
+    def stop(self):
+        self.shutdown()
+        self.server_close()
+        time.sleep(1)
+
+    def start(self):
+        self.server_bind()
+        self.server_activate()
+        self.serve_forever()
+
+    def handle_error(self, request, client_address):
+        """
+        Add self.stop to make server stop
+        """
+        self.logger.error('-' * 40)
+        self.logger.error('Exception happened during processing of request from %s:%s' % (client_address[0], client_address[1]))
+        self.logger.error(traceback.format_exc())
+        self.logger.error('-' * 40)
+        self.stop()
+
+
+if __name__ == '__main__':
+    my_server = SessionServer('SessionServer', (host, port), SessionHandler)
+    my_server.start()
