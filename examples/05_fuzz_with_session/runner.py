@@ -23,6 +23,7 @@ from kitty.interfaces import WebInterface
 from kitty.fuzzers import ServerFuzzer
 from kitty.model.low_level.aliases import *
 from kitty.model.low_level.field import *
+from server_controller import SessionServerController
 
 target_ip = '127.0.0.1'
 target_port = 9999
@@ -53,11 +54,16 @@ def new_session_callback(fuzzer, edge, resp):
     fuzzer.target.session_data['session_id'] = resp[1:3]
 
 
-# Define Session target
+# Define session target
 target = TcpTarget(
     name='session_test_target', host=target_ip, port=target_port, timeout=2)
-# Need this to wait Target response
+# Make target expect response
 target.set_expect_response(True)
+
+
+# Define controller
+controller = SessionServerController(name='ServerController', host=target_ip, port=target_port)
+target.set_controller(controller)
 
 # Define model
 model = GraphModel()
