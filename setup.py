@@ -7,7 +7,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
-VERSION = '0.6.8'
+VERSION = '0.6.9'
 AUTHOR = 'Cisco SAS team'
 EMAIL = 'kitty-fuzzer@googlegroups.com'
 URL = 'https://github.com/cisco-sas/kitty.git'
@@ -39,7 +39,7 @@ else:
         author_email=EMAIL,
         url=URL,
         packages=find_packages(),
-        install_requires=['docopt', 'bitstring!=3.1.4', 'six', 'requests'],
+        install_requires=['docopt', 'bitstring', 'six', 'requests'],
         keywords=KEYWORDS,
         entry_points={
             'console_scripts': [

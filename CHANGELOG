@@ -1,3 +1,14 @@
+Version 0.6.9 (2016-06-04)
+==========================
+
+* bugfix: [DataModel] fixed container bug - check rendered type of fields when generating default buffer
+* bugfix: [DataModel] fixed inheritence of BitsFuncEncoder
+* bugfix: [DataModel] List threw exception if had only one element
+* bugfix: [DataModel] Meta field default rendered value was not empty
+* bugfix: [WebInterface] html - check if data exists before using it to fill test info
+* new feature: [ClientTarget] mark trigger timeout as an error, not failure
+* new feature: [DataModel] new field - PsuedoTemplate
+
 Version 0.6.8 (2016-05-04)
 ==========================
 
