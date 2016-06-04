@@ -20,9 +20,9 @@ Tests for Mutators and Mutator-based containers
 '''
 from common import metaTest, BaseTestCase
 from bitstring import Bits
-from kitty.model.low_level.field import String, Static
-from kitty.model.low_level.container import Container
-from kitty.model.low_level.container_mutator import List, OmitMutator, DuplicateMutator, RotateMutator
+from kitty.model.low_level import String, Static
+from kitty.model.low_level import Container
+from kitty.model.low_level import List, OmitMutator, DuplicateMutator, RotateMutator
 from kitty.core import KittyException
 
 empty_bits = Bits()
@@ -36,8 +36,8 @@ class MutatorTests(BaseTestCase):
         super(MutatorTests, self).setUp(cls)
         self.uut_name = 'uut'
 
-    def get_uut(self, field_count, fields, fuzzable=True):
-        return self.cls(field_count=field_count, fields=fields, fuzzable=fuzzable, name=self.uut_name)
+    def get_uut(self, field_count, fields, delim=None, fuzzable=True):
+        return self.cls(field_count=field_count, fields=fields, delim=delim, fuzzable=fuzzable, name=self.uut_name)
 
     @metaTest
     def testEmptyWhileNotMutating(self):
@@ -89,13 +89,6 @@ class MutatorTests(BaseTestCase):
 
     def _stringTest(self, values, field_count, expected, **kwargs):
         fields = [String(c) for c in values]
-        uut = self.get_uut(field_count, fields, **kwargs)
-        self.assertEqual(uut.num_mutations(), len(expected))
-        mutations = [x.tobytes() for x in self.get_all_mutations(uut)]
-        self.assertEqual(mutations, expected)
-
-    def _staticTest(self, values, field_count, expected, **kwargs):
-        fields = [Container(String(c)) for c in values]
         uut = self.get_uut(field_count, fields, **kwargs)
         self.assertEqual(uut.num_mutations(), len(expected))
         mutations = [x.tobytes() for x in self.get_all_mutations(uut)]
@@ -236,10 +229,10 @@ class ListTests(BaseTestCase):
         super(ListTests, self).setUp(cls)
         self.uut_name = 'uut'
 
-    def get_uut(self, fields=None, fuzzable=True):
+    def get_uut(self, fields=None, delim=None, fuzzable=True):
         if fields is None:
             fields = self.get_default_fields()
-        return self.cls(name=self.uut_name, fields=fields, fuzzable=fuzzable)
+        return self.cls(name=self.uut_name, fields=fields, delim=delim, fuzzable=fuzzable)
 
     def get_default_fields(self):
         return [
@@ -289,3 +282,12 @@ class ListTests(BaseTestCase):
         uut.reset()
         uut_rendered = uut.render()
         self.assertEqual(default_rendered, uut_rendered)
+
+    def testDelimiterExist(self):
+        num_elems = 3
+        fields = [Static('A') for i in range(num_elems)]
+        uut = self.get_uut(fields=fields, delim=String('/'))
+        mutations = [m.tobytes() for m in self.get_all_mutations(uut)]
+        for m in mutations:
+            if m != '':
+                self.assertEqual(m.count('/'), (len(m) - 1) / 2)
