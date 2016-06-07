@@ -1084,8 +1084,10 @@ class PseudoTemplate(Template):
         '''
         :param name: name of the template
         '''
-        PseudoTemplate._counter_ += 1
-        field = Meta(fields=BitField(value=PseudoTemplate._counter_, length=32))
+        val = PseudoTemplate._counter_
+        PseudoTemplate._counter_ += 2
+        val = val * 123
+        field = Meta(fields=BitField(value=val, length=32))
         super(PseudoTemplate, self).__init__(name=name, fuzzable=False, fields=field)
 
 

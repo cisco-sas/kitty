@@ -970,3 +970,9 @@ class PseudoTemplateTest(BaseTestCase):
         uut = PseudoTemplate('uut')
         self.assertEqual(uut.num_mutations(), 0)
         self.assertFalse(uut.mutate())
+
+    def testDifferentHashToAllPseudoTemplates(self):
+        templates = []
+        templates.extend([PseudoTemplate('a') for i in range(1000)])
+        templates.extend([PseudoTemplate('b') for i in range(1000)])
+        self.assertEqual(len(templates), len(set(templates)))
