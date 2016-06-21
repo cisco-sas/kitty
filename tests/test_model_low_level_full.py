@@ -91,7 +91,7 @@ class ComplexTest(BaseTestCase):
     def testInclusiveSizeOfPacketWithHashAtTheEnd(self):
         container = Container(name='full packet', fields=[
             Container(name='hashed part', fields=[
-                SizeInBytes(name='packet size', sized_field='/full_packet', length=32, fuzzable=False, encoder=ENC_INT_BE),
+                SizeInBytes(name='packet size', sized_field='/', length=32, fuzzable=False, encoder=ENC_INT_BE),
                 String(name='some string', value='aaa'),
             ]),
             Sha256(name='hash', depends_on='hashed part', fuzzable=False)

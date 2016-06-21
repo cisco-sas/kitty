@@ -83,7 +83,7 @@ class CalculatedTestCase(BaseTestCase):
     @metaTest
     def testAbsoluteNameExists(self):
         original_field = self.get_original_field()
-        absolute_name = '/A/B/C/' + original_field.get_name()
+        absolute_name = '/B/C/' + original_field.get_name()
         self.depends_on_name = absolute_name
         calculated_field = self.get_default_field()
         container = Container(name='A', fields=[
@@ -105,7 +105,7 @@ class CalculatedTestCase(BaseTestCase):
     @metaTest
     def testAbsoluteNameDoesNotExist(self):
         original_field = self.get_original_field()
-        absolute_name = '/A/B/' + original_field.get_name()
+        absolute_name = '/B/' + original_field.get_name()
         self.depends_on_name = absolute_name
         calculated_field = self.get_default_field()
         container = Container(name='A', fields=[
@@ -438,7 +438,7 @@ class OffsetTests(BaseTestCase):
         self.assertEqual(32, uut_val)
 
     def testResolveFieldByAbsoluteName(self):
-        self.target_field = '/A/B/C/to'
+        self.target_field = '/B/C/to'
         uut = self.get_default_field()
         container = Container(name='A', fields=[
             uut,
@@ -545,7 +545,7 @@ class AbsoluteOffsetTests(BaseTestCase):
             self.assertEqual(len(pre_field.render()) + 5, uut_val)
 
     def testResolveFieldByAbsoluteName(self):
-        self.target_field = '/A/B/C/to'
+        self.target_field = '/B/C/to'
         uut = self.get_default_field()
         container = Container(name='A', fields=[
             uut,
