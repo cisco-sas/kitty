@@ -260,9 +260,12 @@ class BaseField(KittyObject):
         current = self
         while current.enclosing:
             current = current.enclosing
-        components = name.split('/')[2:]
-        for component in components:
-            current = current.get_field_by_name(component)
+        if name == '/':
+            return current
+        else:
+            components = name.split('/')[1:]
+            for component in components:
+                current = current.get_field_by_name(component)
         return current
 
     def get_field_by_name(self, name):
