@@ -191,7 +191,7 @@ class Container(BaseField):
         for field in self._fields:
             if not field.is_default():
                 return False
-        return True
+        return super(Container, self).is_default()
 
     def _init(self):
         '''
