@@ -53,7 +53,7 @@ class Calculated(BaseField):
     def __init__(self, depends_on, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :param depends_on: (name of) field we depend on
-        :type encoder: :class:`~kitty.model.low_levele.encoder.BitsEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.BitsEncoder`
         :param encoder: encoder for the field
         :param fuzzable: is container fuzzable
         :param name: (unique) name of the container
@@ -140,7 +140,7 @@ class CalculatedBits(Calculated):
     def __init__(self, depends_on, func, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :param depends_on: (name of) field we depend on
-        :type encoder: :class:`~kitty.model.low_levele.encoder.BitsEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.BitsEncoder`
         :param func: function for processing of the dependant data. func(Bits)->Bits
         :param encoder: encoder for the field
         :param fuzzable: is container fuzzable
@@ -163,13 +163,27 @@ class Clone(CalculatedBits):
     '''
     rendered the same as the field it depends on
     '''
+
     def __init__(self, depends_on, encoder=ENC_BITS_DEFAULT, fuzzable=False, name=None):
         '''
         :param depends_on: (name of) field we depend on
-        :type encoder: :class:`~kitty.model.low_levele.encoder.BitsEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.BitsEncoder`
         :param encoder: encoder for the field (default: ENC_BITS_DEFAULT)
         :param fuzzable: is container fuzzable
         :param name: (unique) name of the container
+
+        :example:
+
+            ::
+
+                Container(name='empty HTML body', fields=[
+                    Static('<'),
+                    String(name='opening tag', value='body'),
+                    Static('>'),
+                    Static('</'),
+                    Clone(name='closing tag', depends_on='opening tag'),
+                    Static('>'),
+                ])
         '''
         super(Clone, self).__init__(depends_on=depends_on, func=lambda x: x, encoder=encoder, fuzzable=fuzzable, name=name)
 
@@ -188,7 +202,7 @@ class CalculatedStr(Calculated):
         '''
         :param depends_on: (name of) field we depend on
         :param func: function for processing of the dependant data. func(str)->str
-        :type encoder: :class:`~kitty.model.low_levele.encoder.StrEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.StrEncoder`
         :param encoder: encoder for the field (default: ENC_STR_DEFAULT)
         :param fuzzable: is container fuzzable
         :param name: (unique) name of the container
@@ -230,10 +244,19 @@ class Hash(CalculatedStr):
         '''
         :param depends_on: (name of) field to be hashed
         :param algorithm: hash algorithm name (from Hash._algos) or a function to calculate the value of the field. func(str) -> str
-        :type encoder: :class:`~kitty.model.low_levele.encoder.StrEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.StrEncoder`
         :param encoder: encoder for the field (default: ENC_STR_DEFAULT)
         :param fuzzable: is field fuzzable (default: False)
         :param name: (unique) name of the field (default: None)
+
+        :example:
+
+            ::
+
+                Container(name='SHA1 hashed string', fields=[
+                    Meta(String(name='secret', value='s3cr3t')),
+                    Hash(name='secret_hash', algorithm='sha1', depends_on='secret')
+                ])
         '''
         if algorithm in Hash._algos:
             algo = Hash._algos[algorithm][0]
@@ -323,7 +346,7 @@ class CalculatedInt(Calculated):
 class FieldIntProperty(CalculatedInt):
     '''
     Calculate an int value based on some field property.
-    The main difference from :class:`~kitty.model.low_level.field.CalculatedInt`
+    The main difference from :class:`~kitty.model.low_level.calculated.CalculatedInt`
     is that it provides the field itself to the calculation function,
     not its rendered value.
     '''
@@ -333,7 +356,7 @@ class FieldIntProperty(CalculatedInt):
         :param length: length of the FieldIntProperty field (in bits)
         :type corrention: int or func(int) -> int
         :param correction: correction function, or value for the index
-        :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.BitFieldEncoder`
         :param encoder: encoder for the field (default: ENC_INT_DEFAULT)
         :param fuzzable: is container fuzzable
         :param name: (unique) name of the container (default: None)
@@ -360,6 +383,24 @@ class ElementCount(FieldIntProperty):
     '''
     Number of elements inside another field.
     The value depends on the number of fields in the field it depends on.
+
+    :example:
+
+        ::
+
+            Container(name='list with count', fields=[
+                ElementCount(  # will be rendered to '3'
+                    name='element count',
+                    depends_on='list of items',
+                    length=32,
+                    encoder=ENC_INT_DEC
+                ),
+                Container(name='list of items', fields=[
+                    Static('element 1'),
+                    Static('element 2'),
+                    Static('element 3'),
+                ])
+            ])
     '''
     def _calculate(self, field):
         return len(field.get_rendered_fields(RenderContext(self)))
@@ -373,6 +414,24 @@ class IndexOf(FieldIntProperty):
 
         - If field has no encloser - return 0
         - If field is not rendered - return len(rendered element list) as index/
+
+    :example:
+
+        ::
+
+            Container(name='indexed list', fields=[
+                IndexOf(  # will be rendered to '2'
+                    name='index of second',
+                    depends_on='second',
+                    length=32,
+                    encoder=ENC_INT_DEC
+                ),
+                Container(name='list of items', fields=[
+                    Static(name='first', value='A'),
+                    Static(name='second', value='B'),
+                    Static(name='third', value='C'),
+                ])
+            ])
     '''
 
     def _calculate(self, field):
@@ -406,10 +465,19 @@ class Checksum(CalculatedInt):
         :param depends_on: (name of) field to be checksummed
         :param length: length of the checksum field (in bits)
         :param algorithm: checksum algorithm name (from Checksum._algos) or a function to calculate the value of the field. func(Bits) -> int
-        :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.BitFieldEncoder`
         :param encoder: encoder for the field (default: ENC_INT_DEFAULT)
         :param fuzzable: is field fuzzable (default: False)
         :param name: (unique) name of the field (default: None)
+
+        :example:
+
+            ::
+
+                Container(name='checksummed chunk', fields=[
+                    RandomBytes(name='chunk', value='1234', min_length=0, max_length=75),
+                    Checksum(name='CRC', depends_on='chunk', length=32)
+                ])
         '''
         if algorithm in Checksum._algos:
             func = Checksum._algos[algorithm]
@@ -443,10 +511,40 @@ class Size(CalculatedInt):
         :param sized_field: (name of) field to be sized
         :param length: length of the size field (in bits)
         :param calc_func: function to calculate the value of the field. func(bits) -> int (default: length in bytes)
-        :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.BitFieldEncoder`
         :param encoder: encoder for the field (default: ENC_INT_DEFAULT)
         :param fuzzable: is field fuzzable (default: False)
         :param name: (unique) name of the field (default: None)
+
+        :examples:
+
+            Calculate the size of a field/container in bits
+
+            ::
+
+                Container(name='sized chunk', fields=[
+                    RandomBytes(name='chunk', value='1234', min_length=0, max_length=75),
+                    Size(
+                        name='size in bits',
+                        sized_field='chunk',
+                        length=32,
+                        calc_func=lambda x: len(x)
+                    )
+                ])
+
+            Calculate the size of a field/container in bytes, and add 5 to the result
+
+            ::
+
+                Container(name='sized chunk', fields=[
+                    RandomBytes(name='chunk', value='1234', min_length=0, max_length=75),
+                    Size(
+                        name='size in bytes plus 5',
+                        sized_field='chunk',
+                        length=32,
+                        calc_func=lambda x: len(x) / 8 + 5
+                    )
+                ])
         '''
         bit_field = BitField(value=0, length=length, encoder=encoder)
         super(Size, self).__init__(depends_on=sized_field, bit_field=bit_field, calc_func=calc_func, fuzzable=fuzzable, name=name)
@@ -469,10 +567,44 @@ class Offset(FieldIntProperty):
         :param length: length of the Offset field (in bits)
         :type corrention: int or func(int) -> int
         :param correction: correction function, or value for the index, (default: divide by 8 (bytes))
-        :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.BitFieldEncoder`
         :param encoder: encoder for the field (default: ENC_INT_DEFAULT)
         :param fuzzable: is container fuzzable
         :param name: (unique) name of the container (default: None)
+
+        :examples:
+
+            Calculate the offset of field C from field B, in bits
+
+            ::
+
+                Container(fields=[
+                    String(name='A', value='base string'),
+                    String(name='B', value='bar'),
+                    String(name='C', value='target string'),
+                    Offset(
+                        base_field='B',
+                        target_field='C',
+                        length=32,
+                        correction=lambda x: x,
+                    )
+                ])
+
+            Calculate the absolute offset of field C from the beginning of the payload
+            (also, see :class:`~kitty.model.low_level.calculated.AbsoluteOffset`)
+
+            ::
+
+                Container(fields=[
+                    String(name='A', value='base string'),
+                    String(name='B', value='bar'),
+                    String(name='C', value='target string'),
+                    Offset(
+                        base_field=None,
+                        target_field='C',
+                        length=32,
+                    )
+                ])
         '''
         if correction is None:
             correction = num_bits_to_bytes
@@ -518,10 +650,24 @@ class AbsoluteOffset(Offset):
         :param length: length of the AbsoluteOffset field (in bits)
         :type corrention: int or func(int) -> int
         :param correction: correction function, or value for the index, (default: divide by 8 (bytes))
-        :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.BitFieldEncoder`
         :param encoder: encoder for the field (default: ENC_INT_DEFAULT)
         :param fuzzable: is container fuzzable
         :param name: (unique) name of the container (default: None)
+
+        :example:
+
+            ::
+
+                Container(fields=[
+                    String(name='A', value='base string'),
+                    String(name='B', value='bar'),
+                    String(name='C', value='target string'),
+                    AbsoluteOffset(
+                        target_field='C',
+                        length=32,
+                    )
+                ])
         '''
         super(AbsoluteOffset, self).__init__(
             base_field=None, target_field=target_field, length=length,

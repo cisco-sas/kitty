@@ -46,7 +46,7 @@ class BaseField(KittyObject):
     def __init__(self, value, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :param value: default value
-        :type encoder: :class:`~kitty.model.low_levele.encoder.BaseEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.BaseEncoder`
         :param encoder: encoder for the field
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
@@ -202,7 +202,7 @@ class BaseField(KittyObject):
         '''
         info = {
             'name': self.name if self.name else '<no name>',
-            'path':  self.name if self.name else '<no name>',
+            'path': self.name if self.name else '<no name>',
             'field_type': type(self).__name__,
             'value': {
                 'raw': repr(self._current_value),
@@ -260,9 +260,12 @@ class BaseField(KittyObject):
         current = self
         while current.enclosing:
             current = current.enclosing
-        components = name.split('/')[2:]
-        for component in components:
-            current = current.get_field_by_name(component)
+        if name == '/':
+            return current
+        else:
+            components = name.split('/')[1:]
+            for component in components:
+                current = current.get_field_by_name(component)
         return current
 
     def get_field_by_name(self, name):
@@ -468,7 +471,7 @@ class Static(BaseField):
         '''
         :type value: str
         :param value: default value
-        :type encoder: :class:`~kitty.model.low_levele.encoder.StrEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.StrEncoder`
         :param encoder: encoder for the field (default: ENC_STR_DEFAULT)
         :param name: name of the object (default: None)
 
@@ -498,7 +501,7 @@ class String(_LibraryField):
         :type value: str
         :param value: default value
         :param max_size: maximal size of the string before encoding (default: None)
-        :type encoder: :class:`~kitty.model.low_levele.encoder.StrEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.StrEncoder`
         :param encoder: encoder for the field
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
@@ -666,7 +669,7 @@ class Delimiter(String):
         :type value: str
         :param value: default value
         :param max_size: maximal size of the string before encoding (default: None)
-        :type encoder: :class:`~kitty.model.low_levele.encoder.StrEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.StrEncoder`
         :param encoder: encoder for the field (default: ENC_STR_DEFAULT)
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
@@ -702,7 +705,7 @@ class Float(_LibraryField):
         '''
         :type value: float
         :param value: default value
-        :type encoder: :class:`~kitty.model.low_levele.encoder.FloatEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.FloatEncoder`
         :param encoder: encoder for the field (default: ENC_FLT_DEFAULT)
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
@@ -752,16 +755,26 @@ class BitField(_LibraryField):
         :param signed: are the values signed (default: False)
         :param min_value: minimal allowed value (default: None)
         :param max_value: maximal allowed value (default: None)
-        :type encoder: :class:`~kitty.model.low_levele.encoder.BitFieldEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.BitFieldEncoder`
         :param encoder: encoder for the field
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
 
         :examples:
 
+            This field will generate mutations within the range of -16385 and 1000,
+            will have the default value 123 and the value will be represented as 2's
+            complement binary value.
+
             ::
 
                 BitField(123, length=15, signed=True, max_value=1000)
+
+            This field will generate mutations within the range of 0 and 255,
+            will have a default value of 17, and will be encoded as a decimal number.
+
+            ::
+
                 UInt8(17, encoder=ENC_INT_DEC)
         '''
         self._length = length
@@ -897,12 +910,15 @@ class Group(_LibraryField):
         '''
         :type values: list of strings
         :param values: possible values for the field
-        :type encoder: :class:`~kitty.model.low_levele.encoder.StrEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.StrEncoder`
         :param encoder: encoder for the field (default: ENC_STR_DEFAULT)
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
 
         :example:
+
+            This field will generate exactly 3 mutations:
+            'GET', 'PUT' and 'POST'
 
             ::
 
@@ -939,7 +955,7 @@ class Dynamic(BaseField):
         :type default_value: str
         :param default_value: default value of the field
         :param length: length of the field in bytes. must be set if fuzzable=True (default: None)
-        :type encoder: :class:`~kitty.model.low_levele.encoder.StrEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.StrEncoder`
         :param encoder: encoder for the field (default: ENC_STR_DEFAULT)
         :param fuzzable: is field fuzzable (default: False)
         :param name: name of the object (default: None)
@@ -1020,7 +1036,7 @@ class RandomBits(BaseField):
         :param num_mutations: number of mutations to perform (if step is None) (default:25)
         :type step: int
         :param step: step between lengths of each mutation (default: None)
-        :type encoder: :class:`~kitty.model.low_levele.encoder.BitsEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.BitsEncoder`
         :param encoder: encoder for the field (default: ENC_BITS_DEFAULT)
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)
@@ -1102,7 +1118,7 @@ class RandomBytes(BaseField):
         :param num_mutations: number of mutations to perform (if step is None) (default:25)
         :type step: int
         :param step: step between lengths of each mutation (default: None)
-        :type encoder: :class:`~kitty.model.low_levele.encoder.StrEncoder`
+        :type encoder: :class:`~kitty.model.low_level.encoder.StrEncoder`
         :param encoder: encoder for the field (default: ENC_STR_DEFAULT)
         :param fuzzable: is field fuzzable (default: True)
         :param name: name of the object (default: None)

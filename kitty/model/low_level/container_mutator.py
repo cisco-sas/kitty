@@ -30,6 +30,12 @@ from kitty.model.low_level.encoder import ENC_BITS_DEFAULT
 from kitty.core import KittyException
 
 
+def _intersperse(seq, value):
+    res = [value] * (2 * len(seq) - 1)
+    res[0::2] = seq
+    return res
+
+
 class FieldRangeMutator(Container):
     '''
     Base class for mutating a field range,
@@ -38,11 +44,13 @@ class FieldRangeMutator(Container):
     not in the template declaration directly,
     and as such, they provide empty response when not mutated.
     '''
-    def __init__(self, field_count, fields=[], encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
+    def __init__(self, field_count, fields=[], delim=None, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :param field_count: how many fields to omit in each mutation
         :type fields: field or iterable of fields
         :param fields: enclosed field(s) (default: [])
+        :type delim: field
+        :param delim: delimiter between elements in the list (default: None)
         :type encoder: BitsEncoder
         :param encoder: encoder for the container (default: ENC_BITS_DEFAULT)
         :param fuzzable: is container fuzzable (default: True)
@@ -53,6 +61,7 @@ class FieldRangeMutator(Container):
         super(FieldRangeMutator, self).__init__(fields=fields, encoder=encoder, fuzzable=fuzzable, name=name)
         self._field_count = field_count
         self._orig_fields = []
+        self._delim = delim
 
     def _init(self):
         self._orig_fields = self._fields
@@ -88,6 +97,8 @@ class FieldRangeMutator(Container):
         current = self._mutate_fields_in_range(current)
         fields_to_render = pre + current + post
         self._fields = fields_to_render
+        if self._delim:
+            self._fields = _intersperse(self._fields, self._delim)
 
     def _mutate_fields_in_range(self, fields):
         return fields
@@ -124,12 +135,14 @@ class DuplicateMutator(FieldRangeMutator):
     Duplicate X fields Y times in the final payload
     '''
 
-    def __init__(self, field_count, dup_num, fields=[], encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
+    def __init__(self, field_count, dup_num, fields=[], delim=None, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :param field_count: how many (sequential) fields to duplicate
         :param dup_num: how many times to duplicate each of the field
         :type fields: field or iterable of fields
         :param fields: enclosed field(s) (default: [])
+        :type delim: field
+        :param delim: delimiter between elements in the list (default: None)
         :type encoder: BitsEncoder
         :param encoder: encoder for the container (default: ENC_BITS_DEFAULT)
         :param fuzzable: is container fuzzable (default: True)
@@ -148,7 +161,7 @@ class DuplicateMutator(FieldRangeMutator):
 
             will result in: AABBCD, ABBCCD, ABCCDD
         '''
-        super(DuplicateMutator, self).__init__(field_count=field_count, fields=fields, encoder=encoder, fuzzable=fuzzable, name=name)
+        super(DuplicateMutator, self).__init__(field_count=field_count, fields=fields, delim=delim, encoder=encoder, fuzzable=fuzzable, name=name)
         self._dup_num = dup_num
 
     def _mutate_fields_in_range(self, fields):
@@ -163,11 +176,13 @@ class RotateMutator(FieldRangeMutator):
     Perform rotation of X fields in the final payload
     '''
 
-    def __init__(self, field_count, fields=[], encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
+    def __init__(self, field_count, fields=[], delim=None, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :param field_count: how many fields to omit in each mutation
         :type fields: field or iterable of fields
         :param fields: enclosed field(s) (default: [])
+        :type delim: field
+        :param delim: delimiter between elements in the list (default: None)
         :type encoder: BitsEncoder
         :param encoder: encoder for the container (default: ENC_BITS_DEFAULT)
         :param fuzzable: is container fuzzable (default: True)
@@ -188,7 +203,7 @@ class RotateMutator(FieldRangeMutator):
         '''
         if field_count < 2:
             raise KittyException('field_count (%s) < 2' % (field_count))
-        super(RotateMutator, self).__init__(field_count=field_count, fields=fields, encoder=encoder, fuzzable=fuzzable, name=name)
+        super(RotateMutator, self).__init__(field_count=field_count, fields=fields, delim=delim, encoder=encoder, fuzzable=fuzzable, name=name)
 
     def _calculate_mutations(self, num):
         self._num_mutations = self._num_stages() * (self._field_count - 1)
@@ -209,10 +224,12 @@ class List(OneOf):
     a List also performs mutation of full elements,
     by reordering, duplicating and omitting them.
     '''
-    def __init__(self, fields=[], encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
+    def __init__(self, fields=[], delim=None, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :type fields: field or iterable of fields
         :param fields: enclosed field(s) (default: [])
+        :type delim: field
+        :param delim: delimiter between elements in the list (default: None)
         :type encoder: BitsEncoder
         :param encoder: encoder for the container (default: ENC_BITS_DEFAULT)
         :param fuzzable: is container fuzzable (default: True)
@@ -232,15 +249,18 @@ class List(OneOf):
         if isinstance(fields, BaseField):
             fields = [fields]
         self._final_fields = []
+        base_fields = fields
+        if delim:
+            base_fields = _intersperse(base_fields, Container(fields=delim, fuzzable=False))
         self._final_fields.append(
-            Container(name='internal_mutations', fields=fields)
+            Container(name='internal_mutations', fields=base_fields)
         )
-        self._final_fields.extend(self._get_dups(fields))
-        self._final_fields.extend(self._get_omits(fields))
-        self._final_fields.extend(self._get_rotations(fields))
+        self._final_fields.extend(self._get_dups(fields, delim))
+        self._final_fields.extend(self._get_omits(fields, delim))
+        self._final_fields.extend(self._get_rotations(fields, delim))
         super(List, self).__init__(fields=self._final_fields, encoder=encoder, fuzzable=fuzzable, name=name)
 
-    def _get_dups(self, fields):
+    def _get_dups(self, fields, delim):
         num_fields = len(fields)
         res = []
         for field_count in set(x for x in [1, 2, num_fields / 2, num_fields] if x > 0):
@@ -250,12 +270,13 @@ class List(OneOf):
                         field_count=field_count,
                         dup_num=i,
                         fields=fields,
+                        delim=delim,
                         name='duplicate_%s_%s' % (field_count, i)
                     )
                 )
         return res
 
-    def _get_omits(self, fields):
+    def _get_omits(self, fields, delim):
         num_fields = len(fields)
         res = []
         for field_count in set([1, 2, num_fields / 2, num_fields]):
@@ -264,12 +285,13 @@ class List(OneOf):
                     OmitMutator(
                         field_count=field_count,
                         fields=fields,
+                        delim=delim,
                         name='omit_%s' % field_count
                     )
                 )
         return res
 
-    def _get_rotations(self, fields):
+    def _get_rotations(self, fields, delim):
         num_fields = len(fields)
         res = []
         counts = set([2, 5, 10, num_fields / 3, num_fields / 2, num_fields])
@@ -281,6 +303,7 @@ class List(OneOf):
                     RotateMutator(
                         field_count=field_count,
                         fields=fields,
+                        delim=delim,
                         name='rotation_%s' % field_count
                     )
                 )

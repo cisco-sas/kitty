@@ -144,6 +144,9 @@ class InList(ListCondition):
 
     :example:
 
+        Render the content of the `If` container only if the current
+        rendered value of the 'numbers' field is '1', '5' or '7'.
+
         ::
 
             Template([
@@ -162,6 +165,21 @@ class InList(ListCondition):
 class FieldMutating(FieldCondition):
     '''
     Condition applies if the field is currently mutating
+
+    :example:
+
+        Render the content of the `If` container only if 'kittyfield'
+        is currently mutating.
+
+        ::
+
+            Template([
+                String('kitty', name='kittyfield'),
+                String('fritty', name='frittyfield'),
+                If(FieldMutating('kittyfield'), [
+                    String('kitty is now mutating')
+                ])
+            ])
     '''
 
     def _applies(self, container):
@@ -194,12 +212,15 @@ class Compare(FieldCondition):
 
         :example:
 
+            Render the content of the `If` container only if the value
+            in the field called "name" is not 'kitty'
+
             ::
 
                 Template([
-                    String(['kitty'], name='name'),
+                    String('kitty', name='name'),
                     If(Compare('name', '!=', 'kitty'), [
-                        String('123')
+                        String('current name is not kitty')
                     ])
                 ])
         '''

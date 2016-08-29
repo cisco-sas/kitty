@@ -17,7 +17,7 @@
 '''
 Containers are fields that group multiple fields into a single logical unit,
 they all inherit from ``Container``, which inherits from
-:class:`~kitty.model.low_levele.field.BaseField`.
+:class:`~kitty.model.low_level.field.BaseField`.
 '''
 from bitstring import Bits, BitArray
 import random
@@ -191,7 +191,7 @@ class Container(BaseField):
         for field in self._fields:
             if not field.is_default():
                 return False
-        return True
+        return super(Container, self).is_default()
 
     def _init(self):
         '''
@@ -586,6 +586,15 @@ class Pad(Container):
         :param fields: enclosed field(s) (default: [])
         :param fuzzable: is fuzzable (default: True)
         :param name: (unique) name of the template (default: None)
+
+        :example:
+
+            Pad a string with ' 's so it is at least 20 bytes
+
+            ::
+
+                Pad(fields=String('padded'), pad_data=' ', pad_length=20)
+                # default result will be: 'padded              '
         '''
         super(Pad, self).__init__(fields=fields, encoder=ENC_BITS_DEFAULT, fuzzable=fuzzable, name=name)
         self._pad_length = pad_length
@@ -709,6 +718,18 @@ class Repeat(Container):
 class OneOf(Container):
     '''
     Render a single field from the fields (also mutates only one field each time)
+
+    :example:
+
+        ::
+
+            OneOf(fields=[
+                String('A'),
+                String('B'),
+                String('C'),
+                String('D'),
+            ])
+            # 'A', 'AAAA', '%s' ... 'B', 'BBBB' ... 'C' .. 'D'
     '''
 
     def render(self, ctx=None):
@@ -865,6 +886,15 @@ class TakeFrom(OneOf):
         :param encoder: encoder for the container (default: ENC_BITS_DEFAULT)
         :param fuzzable: is container fuzzable (default: True)
         :param name: (unique) name of the container (default: None)
+
+        :example:
+
+            TakeFrom(fields=[
+                Static('A'), Static('B'), Static('C'),
+                Static('D'), Static('E'), Static('F'),
+            ])
+            # 'E', 'B', 'D', 'F', 'C', 'A', 'CE', 'FC', 'CF', 'BD', 'AF', 'BED',
+            # 'EBC', 'CDB', 'DCA', 'BFAD', 'FCBD', 'DBCF', 'BFACD' ...
         '''
         super(TakeFrom, self).__init__(fields, ENC_BITS_DEFAULT, fuzzable, name)
         self.subcontainer_encoder = encoder
@@ -1054,8 +1084,10 @@ class PseudoTemplate(Template):
         '''
         :param name: name of the template
         '''
-        PseudoTemplate._counter_ += 1
-        field = Meta(fields=BitField(value=PseudoTemplate._counter_, length=32))
+        val = PseudoTemplate._counter_
+        PseudoTemplate._counter_ += 2
+        val = val * 123
+        field = Meta(fields=BitField(value=val, length=32))
         super(PseudoTemplate, self).__init__(name=name, fuzzable=False, fields=field)
 
 
