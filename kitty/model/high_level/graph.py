@@ -190,9 +190,9 @@ class GraphModel(BaseModel):
         for key in skeys:
             for conn in self._graph[key]:
                 t_hashed = conn.dst.hash()
-                self.logger.info('hash of template %s is %s' % (conn.dst.get_name(), t_hashed))
+                self.logger.debug('hash of template %s is %s' % (conn.dst.get_name(), t_hashed))
                 hashed = khash(hashed, t_hashed)
-        self.logger.info('hash of model is %s' % hashed)
+        self.logger.debug('hash of model is %s' % hashed)
         return hashed
 
     def get_model_info(self):
