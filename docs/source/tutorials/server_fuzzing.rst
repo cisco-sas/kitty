@@ -102,10 +102,10 @@ Data model, version 2
         String('HTTP', name='protocol name'),       # 3.a Protocol Name - a string with the value "HTTP"
         Delimiter('/', name='fws1'),                # 3.b The '/' after "HTTP"
         Dword(1, name='major version',              # 3.c Major Version - a number with the value 1
-              encoder=ENC_INT_DEC)                  # encode the major version as decimal number
+              encoder=ENC_INT_DEC),                 # encode the major version as decimal number
         Delimiter('.', name='dot1'),                # 3.d The '.' between 1 and 1
-        Dword(1, name='major version',              # 3.e Minor Version - a number with the value 1
-              encoder=ENC_INT_DEC)                  # encode the minor version as decimal number
+        Dword(1, name='minor version',              # 3.e Minor Version - a number with the value 1
+              encoder=ENC_INT_DEC),                 # encode the minor version as decimal number
         Delimiter('\r\n\r\n', name='eom')           # 4. The double "new lines" ("\r\n\r\n") at the end of the request
     ])
 
@@ -154,10 +154,10 @@ Data model, version 3
         String('HTTP', name='protocol name'),           # 3.a Protocol Name - a string with the value "HTTP"
         Delimiter('/', name='fws1'),                    # 3.b The '/' after "HTTP"
         Dword(1, name='major version',                  # 3.c Major Version - a number with the value 1
-              encoder=ENC_INT_DEC)                      # encode the major version as decimal number
+              encoder=ENC_INT_DEC),                     # encode the major version as decimal number
         Delimiter('.', name='dot1'),                    # 3.d The '.' between 1 and 1
-        Dword(1, name='major version',                  # 3.e Minor Version - a number with the value 1
-              encoder=ENC_INT_DEC)                      # encode the minor version as decimal number
+        Dword(1, name='minor version',                  # 3.e Minor Version - a number with the value 1
+              encoder=ENC_INT_DEC),                     # encode the minor version as decimal number
         Static('\r\n\r\n', name='eom')                  # 4. The double "new lines" ("\r\n\r\n") at the end of the request
     ])
 
@@ -273,9 +273,9 @@ pre\_test and post\_test
 .. code:: python
 
         def pre_test(self, test_num):
-        '''
-        prepare to the test, create a socket
-        '''
+            '''
+            prepare to the test, create a socket
+            '''
             ## call the super (report preparation etc.)
             super(TcpTarget, self).pre_test(test_num)
             ## only create a socket if we don't have one
@@ -418,7 +418,7 @@ pre\_test
         def pre_test(self, test_num):
             '''start the victim'''
             ## call the super
-            super(LocalProcessController, self).post_test()
+            super(LocalProcessController, self).pre_test(test_num)
             ## stop the process if it still runs for some reason
             if self._process:
                 self._stop_process()
@@ -464,8 +464,8 @@ teardown
 
         def teardown(self):
             '''
-    Called at the end of the fuzzing session, override with victim teardown
-    '''
+            Called at the end of the fuzzing session, override with victim teardown
+            '''
             self._stop_process()
             self._process = None
             super(LocalProcessController, self).teardown()
