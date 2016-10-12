@@ -397,7 +397,7 @@ class definition and constructor
             :param process_args: arguments to pass to the process
             :param logger: logger for this object (default: None)
             '''
-            super(ClientProcessController, self).__init__(name, logger)
+            super(LocalProcessController, self).__init__(name, logger)
             assert(process_path)
             assert(os.path.exists(process_path))
             self._process_path = process_path
@@ -417,6 +417,8 @@ pre\_test
 
         def pre_test(self, test_num):
             '''start the victim'''
+            ## call the super
+            super(LocalProcessController, self).post_test()
             ## stop the process if it still runs for some reason
             if self._process:
                 self._stop_process()
@@ -451,7 +453,7 @@ post\_test
             self.report.add('failed', self._process.returncode != 0)
             self._process = None
             ## call the super
-            super(ClientProcessController, self).post_test()
+            super(LocalProcessController, self).post_test()
 
 When all fuzzing is over, we perform the ``teardown``:
 
@@ -466,7 +468,7 @@ teardown
     '''
             self._stop_process()
             self._process = None
-            super(ClientProcessController, self).teardown()
+            super(LocalProcessController, self).teardown()
 
 Finally, here is the implementation of the ``_stop_process`` method
 
@@ -487,4 +489,3 @@ Finally, here is the implementation of the ``_stop_process`` method
 
         def _is_victim_alive(self):
             return self._process and (self._process.poll() is None)
-
