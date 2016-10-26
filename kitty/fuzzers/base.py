@@ -104,6 +104,14 @@ class BaseFuzzer(KittyObject):
         self._started = False
         self._handle_options(option_line)
 
+    def _next_mutation(self):
+        '''
+        :return: True if mutated, False otherwise
+        '''
+        if self._keep_running():
+            return self.model.mutate()
+        return False
+
     def _handle_options(self, option_line):
         '''
         Handle options from command line, in docopt style.

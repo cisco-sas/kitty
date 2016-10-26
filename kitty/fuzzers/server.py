@@ -37,7 +37,7 @@ class ServerFuzzer(BaseFuzzer):
 
     def _start(self):
         self.logger.info('should keep running? %s' % self._keep_running())
-        while self._keep_running() and self.model.mutate():
+        while self._next_mutation():
             sequence = self.model.get_sequence()
             try:
                 self._run_sequence(sequence)

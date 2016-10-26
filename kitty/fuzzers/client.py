@@ -86,7 +86,7 @@ class ClientFuzzer(BaseFuzzer):
     def _do_trigger(self):
         self.logger.debug('_do_trigger called')
         self._check_pause()
-        if self._keep_running() and self.model.mutate():
+        if self._next_mutation():
             self._fuzz_path = self.model.get_sequence()
             self._index_in_path = 0
             self._pre_test()
