@@ -1,3 +1,11 @@
+Version 0.6.10 (2016-10-26)
+===========================
+
+* new feature: [DataModel] List supports a delimiter field
+* bugfix: [DataModel] fixed hash of PsuedoTemplate to avoid collision
+* enhancement: [DataModel] absolute name does not require the template name anymore
+* bugfix: [DataModel] self mutations of containers are not ignored anymore if they are the only mutations
+
 Version 0.6.9 (2016-06-04)
 ==========================
 
