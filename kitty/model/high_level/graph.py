@@ -100,8 +100,6 @@ class GraphModel(BaseModel):
         self._graph[self._root_id] = []
         self._sequence_idx = -1
         self._current_node = None
-        self._unique_set = set([])
-        self._duplication_count = 0
 
     def _get_ready(self):
         if not self._ready:
@@ -146,15 +144,9 @@ class GraphModel(BaseModel):
         for i in range(self._sequence_idx, len(self._sequences)):
             self._update_state(i)
             node = self._get_node()
-            while node.mutate():
-                rendered = node.render().tobytes()
-                if rendered not in self._unique_set:
-                    self._unique_set.add(rendered)
-                    return
-                self._current_index += 1
-                self._duplication_count += 1
+            if node.mutate():
+                return
             node.reset()
-            self._unique_set = set([])
 
     def connect(self, src, dst=None, callback=None):
         '''
@@ -206,7 +198,6 @@ class GraphModel(BaseModel):
         node_info = self._get_node().get_info()
         info['node'] = node_info
         info['sequence']['index'] = self._sequence_idx
-        info['duplicated'] = self._duplication_count
         return info
 
     def get_template_info(self):

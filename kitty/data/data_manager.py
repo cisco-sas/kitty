@@ -452,7 +452,8 @@ class SessionInfoTable(Table):
         ('current_index', 'INT'),
         ('failure_count', 'INT'),
         ('kitty_version', 'BLOB'),
-        ('data_model_hash', 'INT')
+        ('data_model_hash', 'INT'),
+        ('test_list_str', 'BLOB')
     ]
 
     def __init__(self, connection, cursor):
@@ -522,6 +523,7 @@ class SessionInfo(object):
         self.failure_count = 0
         self.kitty_version = ''
         self.data_model_hash = 0
+        self.test_list_str = ''
         if orig:
             self.copy(orig)
 

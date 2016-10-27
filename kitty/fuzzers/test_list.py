@@ -50,6 +50,12 @@ class StartEndList(object):
     def get_count(self):
         return self._end - self._start
 
+    def get_progress(self):
+        if self.current():
+            return self._current - self._start
+        else:
+            return self.get_count()
+
 
 class RangesList(object):
 
@@ -148,3 +154,9 @@ class RangesList(object):
 
     def get_count(self):
         return len(self._list)
+
+    def get_progress(self):
+        if self.current():
+            return self._current - self._start
+        else:
+            return self.get_count()

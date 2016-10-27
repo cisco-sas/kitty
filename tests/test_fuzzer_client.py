@@ -117,12 +117,10 @@ class TestClientFuzzer(unittest.TestCase):
         # reports = self.fuzzer._get_reports_manager()
         # self.assertEqual(len(reports), 0)
         self.assertEqual(info.failure_count, 0)
-        self.assertEqual(info.current_index, self.end_index)
+        self.assertEqual(info.current_index, None)
         # self.assertEqual(info.original_start_index, 10)
         self.assertEqual(info.start_index, self.start_index)
         self.assertEqual(info.end_index, self.end_index)
-        mutations_tested = info.current_index - info.start_index
-        self.assertEqual(mutations_tested, self.end_index - self.start_index)
 
     def testStartingFromStartIndex(self):
         start_index = self.model.num_mutations() - 2
@@ -131,7 +129,7 @@ class TestClientFuzzer(unittest.TestCase):
         self.fuzzer.wait_until_done()
 
         info = self.fuzzer._get_session_info()
-        self.assertEqual(info.current_index, self.model.last_index())
+        self.assertEqual(info.current_index, None)
         self.assertEqual(info.end_index, self.model.last_index())
 
     def testEndingAtEndIndex(self):
@@ -144,7 +142,7 @@ class TestClientFuzzer(unittest.TestCase):
         info = self.fuzzer._get_session_info()
         self.assertEqual(info.start_index, 0)
         self.assertEqual(info.end_index, 3)
-        self.assertEqual(info.current_index, 3)
+        self.assertEqual(info.current_index, None)
 
     def testFullMutationRange(self):
         self.fuzzer.set_range()
@@ -154,7 +152,7 @@ class TestClientFuzzer(unittest.TestCase):
         info = self.fuzzer._get_session_info()
         self.assertEqual(info.start_index, 0)
         self.assertEqual(info.end_index, self.model.last_index())
-        self.assertEqual(info.current_index, self.model.last_index())
+        self.assertEqual(info.current_index, None)
 
     def testTestFailedWhenReportIsFailed(self):
         config = {
@@ -210,15 +208,12 @@ class TestClientFuzzer(unittest.TestCase):
         start_index = self.model.num_mutations() - 5
         self.model.connect(self.t_str, self.t_int)
         expected_end_index = self.model.last_index()
-        expected_num_mutations = expected_end_index - start_index
         self.fuzzer.set_range(start_index)
         self.fuzzer.start()
         self.fuzzer.wait_until_done()
         info = self.fuzzer._get_session_info()
         self.assertEqual(info.failure_count, 0)
-        self.assertEqual(info.current_index, expected_end_index)
-        mutations_tested = info.current_index - info.start_index
-        self.assertEqual(mutations_tested, expected_num_mutations)
+        self.assertEqual(info.current_index, None)
         self.assertEqual(info.start_index, start_index)
         self.assertEqual(info.end_index, expected_end_index)
 

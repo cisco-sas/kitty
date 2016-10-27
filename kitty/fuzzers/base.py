@@ -31,6 +31,7 @@ from threading import Event
 from kitty.core import KittyException, KittyObject
 from kitty.data.data_manager import DataManager, SessionInfo
 from kitty.data.report import Report
+from kitty.fuzzers.test_list import RangesList, StartEndList
 from pkg_resources import get_distribution
 
 
@@ -102,6 +103,7 @@ class BaseFuzzer(KittyObject):
         self._skip_env_test = False
         self._in_environment_test = True
         self._started = False
+        self._test_list = None
         self._handle_options(option_line)
 
     def _next_mutation(self):
@@ -109,7 +111,17 @@ class BaseFuzzer(KittyObject):
         :return: True if mutated, False otherwise
         '''
         if self._keep_running():
-            return self.model.mutate()
+            current_idx = self.model.current_index()
+            self.session_info.current_index = current_idx
+            next_idx = self._test_list.current()
+            if next_idx is None:
+                return False
+            skip = next_idx - current_idx - 1
+            if skip > 0:
+                self.model.skip(skip)
+            self._test_list.next()
+            resp = self.model.mutate()
+            return resp
         return False
 
     def _handle_options(self, option_line):
@@ -132,27 +144,44 @@ class BaseFuzzer(KittyObject):
                 -e --end <end-index>            fuzzing end index, ignored if session-file loaded
                 -f --session <session-file>     session file name to use
                 -s --start <start-index>        fuzzing start index, ignored if session-file loaded
+                -t --test-list <test-list>      a comma delimited test list string of the form "-10,12,15-20,30-"
                 -n --no-env-test                don't perform environment test before the fuzzing session
                 -v --verbose                    be more verbose in the log
             '''
             options = docopt.docopt(usage, shlex.split(option_line))
-            s = options['--start']
-            s = 0 if s is None else int(s)
-            e = options['--end']
-            e = e if e is None else int(e)
-            if (s is not None) or (e is not None):
-                self.set_range(s, e)
+
+            # ranges
+            if options['--start'] or options['--end']:
+                if options['--test-list']:
+                    raise KittyException('You can\'t specify both range AND start/end')
+            self._set_test_ranges(options['--start'], options['--end'], options['--test-list'])
+
+            # session file
             session_file = options['--session']
             if session_file is not None:
                 self.set_session_file(session_file)
+
+            # delay between tests
             delay = options['--delay']
             if delay is not None:
                 self.set_delay_between_tests(float(delay))
+
+            # environment test
             skip_env_test = options['--no-env-test']
             if skip_env_test:
                 self.set_skip_env_test(True)
+
+            # verbosity
             verbosity = options['--verbose']
             self.set_verbosity(verbosity)
+
+    def _set_test_ranges(self, start, end, test_list_str):
+        if test_list_str and test_list_str.strip():
+            self.set_test_list(test_list_str)
+        else:
+            s = 0 if start is None else int(start)
+            e = end if end is None else int(end)
+            self.set_range(s, e)
 
     def set_skip_env_test(self, skip_env_test=True):
         '''
@@ -229,13 +258,37 @@ class BaseFuzzer(KittyObject):
         '''
         Set range of tests to run
 
+        .. deprecated::
+            use :func:`~kitty.fuzzers.base.BaseFuzzer.set_test_list`
+
         :param start_index: index to start at (default=0)
         :param end_index: index to end at(default=None)
         '''
+        if end_index is not None:
+            end_index += 1
+        self._test_list = StartEndList(start_index, end_index)
         self.session_info.start_index = start_index
-        self.session_info.current_index = start_index
+        self.session_info.current_index = 0
         self.session_info.end_index = end_index
         return self
+
+    def set_test_list(self, test_list_str=''):
+        '''
+        :param test_list_str: listing of the test to execute
+
+        The test list should be a comma-delimited string, and each element
+        should be one of the following forms:
+
+        '-x' - run from test 0 to test x
+        'x-' - run from test x to the end
+        'x' - run test x
+        'x-y' - run from test x to test y
+
+        To execute all tests, pass None or an empty string
+        '''
+        self.session_info.test_list_str = test_list_str
+        self.session_info.current_index = 0
+        self._test_list = RangesList(test_list_str)
 
     def set_interface(self, interface):
         '''
@@ -273,15 +326,27 @@ class BaseFuzzer(KittyObject):
 
         if self._load_session():
             self._check_session_validity()
+            self._set_test_ranges(
+                self.session_info.start_index,
+                self.session_info.end_index,
+                self.session_info.test_list_str
+            )
         else:
             self.session_info.kitty_version = _get_current_version()
             # TODO: write hash for high level
             self.session_info.data_model_hash = self.model.hash()
-        if self.session_info.end_index is None:
-            self.session_info.end_index = self.model.last_index()
+        # if self.session_info.end_index is None:
+        #     self.session_info.end_index = self.model.last_index()
+        if self._test_list is None:
+            self._test_list = StartEndList(0, self.model.last_index())
+        else:
+            self._test_list.set_last(self.model.num_mutations())
+        list_count = self._test_list.get_count()
+        self._test_list.skip(list_count - 1)
+        self.session_info.end_index = self._test_list.current()
+        self._test_list.reset()
         self._store_session()
-        if self.session_info.start_index > self.session_info.current_index:
-            self.session_info.current_index = self.session_info.start_index
+        self._test_list.skip(self.session_info.current_index)
 
         self._set_signal_handler()
         self.user_interface.set_data_provider(self.dataman)
@@ -292,15 +357,17 @@ class BaseFuzzer(KittyObject):
         try:
             self._start_message()
             self.target.setup()
-            start_index = self.session_info.current_index
+            start_from = self.session_info.current_index
             if self._skip_env_test:
                 self.logger.info('Skipping environment test')
             else:
                 self.logger.info('Performing environment test')
                 self._test_environment()
             self._in_environment_test = False
-            self.session_info.current_index = start_index
-            self.model.skip(self.session_info.current_index)
+            self._test_list.reset()
+            self._test_list.skip(start_from)
+            self.session_info.current_index = start_from
+            self.model.skip(self._test_list.current())
             self._start()
             return True
         except Exception as e:
@@ -336,7 +403,7 @@ class BaseFuzzer(KittyObject):
 
     def _pre_test(self):
         self._update_test_info()
-        self.session_info.current_index = self.model.current_index()
+        self.session_info.current_index = self._test_list.current()
         self.target.pre_test(self.model.current_index())
 
     def _post_test(self):
@@ -378,7 +445,6 @@ class BaseFuzzer(KittyObject):
                  Log: %s
 
                  Total possible mutation count: %d
-                 Fuzzing the mutation range: %d to %d
                  --------------------------------------------------
                                  Happy hacking
                  --------------------------------------------------
@@ -387,12 +453,10 @@ class BaseFuzzer(KittyObject):
             self.user_interface.get_description(),
             self.get_log_file_name(),
             self.model.num_mutations(),
-            self.session_info.current_index,
-            self.session_info.end_index
         )
 
     def _end_message(self):
-        tested = max(0, self.model.current_index() - self.session_info.start_index + 1)
+        tested = self._test_list.get_progress()
         self.logger.info(
             '''
                          --------------------------------------------------
@@ -400,15 +464,12 @@ class BaseFuzzer(KittyObject):
                          Target: %s
 
                          Tested %d mutation%s
-                         Mutation range: %d to %d
                          Failure count: %d
                          --------------------------------------------------
             ''',
             self.target.get_description(),
             tested,
             's' if tested > 1 else '',
-            self.session_info.start_index,
-            self.model.current_index(),
             self.session_info.failure_count
         )
 
@@ -519,7 +580,7 @@ class BaseFuzzer(KittyObject):
         if self.config.max_failures:
             if self.session_info.failure_count >= self.config.max_failures:
                 return False
-        return self.model.current_index() < self.session_info.end_index
+        return self._test_list.current() is not None
 
     def _set_signal_handler(self):
         '''

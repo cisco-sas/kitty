@@ -144,8 +144,12 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         end_index = info.end_index
         current_index = info.current_index
         start_index = info.start_index
-        tests_left = end_index - current_index
-        tests_passed = current_index - start_index
+        if current_index is None:
+            tests_left = 0
+            tests_passed = end_index - start_index
+        else:
+            tests_left = end_index - current_index
+            tests_passed = current_index - start_index
         current_time = time.time()
         time_passed = current_time - info.start_time
         if tests_passed == 0:

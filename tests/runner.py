@@ -31,6 +31,7 @@ from test_model_low_level_full import *
 from test_model_low_level_mutated import *
 from test_remote_rpc import *
 from test_target import *
+from test_test_list import *
 
 
 if __name__ == '__main__':
