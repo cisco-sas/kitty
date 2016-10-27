@@ -202,8 +202,7 @@
     }
 
     function add_node_if_missing(elements, node) {
-        if(has_node(elements, node) == false)
-        {
+        if(has_node(elements, node) == false) {
             elements.nodes.push({data: {id: node}});
         }
     }
@@ -271,7 +270,7 @@
     /* Fetch all reports, return a dictionary - testname/report */
     function getAllReports() {
         var res = {};
-        $.each(state.reports, function(index, entry){
+        $.each(state.reports, function(index, entry) {
             var test_number = entry[0];
             var report = $.ajax({
                 type: 'GET',
@@ -297,8 +296,7 @@
     }
 
     function updatePauseState(paused) {
-        if(paused != state.paused)
-        {
+        if(paused != state.paused) {
             var btn_text = (paused == true) ? 'Resume' : 'Pause';
             var btn_action = (paused == true) ? 'doResume();' : 'doPause();';
             $('#pause_button').text(btn_text);
@@ -307,17 +305,16 @@
         }            
     }
 
-    function updateFieldFromDict(field, d)
-    {
-        if(state[field] != d[field])
-        {
+    function updateFieldFromDict(field, d) {
+        if(state[field] != d[field]) {
             state[field] = d[field];
-            $('#' + field).text(state[field]);
+            disp = state[field] == null ? '--' : state[field];
+            $('#' + field).text(disp);
         }
     }
+
     function updateStats(stats) {
-        if(stats.start_time != state.start_time)
-        {
+        if(stats.start_time != state.start_time) {
             updateFieldFromDict('kitty_version', stats)
             updateFieldFromDict('start_index', stats);
             updateFieldFromDict('end_index', stats);
@@ -329,35 +326,26 @@
         updateFieldFromDict('current_index', stats);
     }
 
-    function updateCurrentPayload(test_details)
-    {
+    function updateCurrentPayload(test_details) {
         var curr = test_details.node.value.rendered.base64;
-        if(state.current_payload != curr)
-        {
+        if(state.current_payload != curr) {
             $('#current_payload_hexdump').html(convertToHtml(Hexdump.dump(atob(curr))));
             state.current_payload = curr;
         }
     }
 
-    function convertToHtml(text)
-    {
+    function convertToHtml(text) {
         var text = $('<div>').text(text).html();
         text = text.replace(/ /g, '&nbsp;');
         text = text.replace(/\n/g, '<br>');   
         return text;
     }
 
-    function updateTemplateStructure(test_details)
-    {
+    function updateTemplateStructure(test_details) {
         var hash  = test_details['node']['hash'];
-        if(!state.waiting_for_template_structure)
-        {
-            if(hash != state.template_info.hash)
-            {
-                $.getJSON('api/template_info.json', function (data)
-                {
-                    console.log(data);
-                    console.log(state.template_info);
+        if(!state.waiting_for_template_structure) {
+            if(hash != state.template_info.hash) {
+                $.getJSON('api/template_info.json', function (data) {
                     state.template_info = data;
                     state.template_info.hash = hash;
                     state.waiting_for_template_structure = false;
@@ -365,31 +353,26 @@
                 });
                 state.waiting_for_template_structure = true;
             }
-            else
-            {
+            else {
                 updateTemplateWithCurrentState(test_details);
             }
         }
     }
 
-    function updateTemplateWithCurrentState(test_details)
-    {
+    function updateTemplateWithCurrentState(test_details) {
         var tree_string = buildTree(state.template_info, test_details, 0, test_details.node.mutation.current_index);
         $('#template_structure').html(tree_string);
     }
 
-    function buildTree(node, test_details, depth, relative_mutation_index)
-    {
+    function buildTree(node, test_details, depth, relative_mutation_index) {
         var res = '';
         var node_total_number = node.mutation.total_number;
         var mutating = relative_mutation_index < node_total_number && relative_mutation_index > 0;
         res += '&nbsp;'.repeat(depth * 2);
         res += '<b>' + node.name + '</b>';
         res += ' (' + node.field_type + ')';
-        if(mutating)
-        {
-            if(node_total_number > 0)
-            {
+        if(mutating) {
+            if(node_total_number > 0) {
                 node_total_number -= 1;
             }
             res += '(' + relative_mutation_index.toString() + '/' + (node_total_number).toString() + ')';
@@ -409,11 +392,17 @@
         var start = stats.start_index;
         var end = stats.end_index;
         var current = stats.current_index;
-        var percent = Math.round(100.0 / (end - start) * (current - start));
+        var percent;
+        if(current == null) {
+            percent = 100;
+        }
+        else {
+            percent = Math.round(100.0 / (end - start) * (current - start));
+        }
         $('#progress_bar').text(percent + '%');
         $('#progress_bar').css('width', percent + '%').attr('aria-valuenow', percent); 
         var msg;
-        if (current >= end) {
+        if (current == null) {
             msg = 'Fuzzing session completed';
         }
         else {
@@ -433,8 +422,7 @@
     }
 
     function updateFuzzingStage(test_details){
-        if(test_details.sequence.current != state.current_sequence)
-        {
+        if(test_details.sequence.current != state.current_sequence) {
             test_details.sequence.current = state.current_sequence;
             triggerStageGraphUpdate();
         }
@@ -450,7 +438,7 @@
             updateStats(data.stats);
             updateProgress(data.stats, data.eta);
         }
-        if(data.current_test != null) {
+        if(data.current_test != null){
             updateTemplateStructure(data.current_test);
             updateFuzzingStage(data.current_test);
             updateCurrentPayload(data.current_test);

@@ -106,8 +106,7 @@
         }
 
         /* Set a value in a field and return the field */
-        function set_value_in_field(field, value)
-        {
+        function set_value_in_field(field, value) {
             value = kunescape(value);
             if(is_multiline(value)) {
                 field.append($('<pre>').text(value));
@@ -135,13 +134,11 @@
         }
 
         /* Set value of existing field in the table */
-        function set_in_table(base_name, key, value)
-        {
+        function set_in_table(base_name, key, value) {
             set_value_in_field(field_by_key(base_name, key), value);
         }
 
-        function highlight_failed_row(base_name, key)
-        {
+        function highlight_failed_row(base_name, key) {
             var status_row = field_by_key(base_name, key);
             status_row.parent().css('background', '#dc9696');
         }
@@ -152,14 +149,12 @@
             var passed = false;
             $.each(first_fields, function(idx, key){
                 set_in_table(base_name, key, report[key]);
-                if((key == 'status') && (window.atob(report[key]) == 'passed'))
-                {
+                if((key == 'status') && (window.atob(report[key]) == 'passed')) {
                     passed = true;
                 }
                 delete report[key];
             });
-            if(passed == false)
-            {
+            if(passed == false) {
                 highlight_failed_row(base_name, 'status');
                 highlight_failed_row(base_name, 'reason');
             }
