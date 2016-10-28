@@ -143,9 +143,9 @@ class BaseFuzzer(KittyObject):
                 -d --delay <delay>              delay between tests in secodes, float number
                 -e --end <end-index>            fuzzing end index, ignored if session-file loaded
                 -f --session <session-file>     session file name to use
+                -n --no-env-test                don't perform environment test before the fuzzing session
                 -s --start <start-index>        fuzzing start index, ignored if session-file loaded
                 -t --test-list <test-list>      a comma delimited test list string of the form "-10,12,15-20,30-"
-                -n --no-env-test                don't perform environment test before the fuzzing session
                 -v --verbose                    be more verbose in the log
             '''
             options = docopt.docopt(usage, shlex.split(option_line))
