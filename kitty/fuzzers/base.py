@@ -143,16 +143,25 @@ class BaseFuzzer(KittyObject):
                 -d --delay <delay>              delay between tests in secodes, float number
                 -f --session <session-file>     session file name to use
                 -n --no-env-test                don't perform environment test before the fuzzing session
+                -r --retest <session-file>      retest failed/error tests from a session file
                 -t --test-list <test-list>      a comma delimited test list string of the form "-10,12,15-20,30-"
                 -v --verbose                    be more verbose in the log
 
             Removed options:
-                end & start - use --test-list instead
+                end, start - use --test-list instead
             '''
             options = docopt.docopt(usage, shlex.split(option_line))
 
             # ranges
-            self._set_test_ranges(None, None, options['--test-list'])
+            if options['--retest']:
+                retest_file = options['--retest']
+                try:
+                    test_list_str = self._get_test_list_from_session_file(retest_file)
+                except Exception as ex:
+                    raise KittyException('Failed to open session file (%s) for retesting: %s' % (retest_file, ex))
+            else:
+                test_list_str = options['--test-list']
+            self._set_test_ranges(None, None, test_list_str)
 
             # session file
             session_file = options['--session']
@@ -172,6 +181,16 @@ class BaseFuzzer(KittyObject):
             # verbosity
             verbosity = options['--verbose']
             self.set_verbosity(verbosity)
+
+    def _get_test_list_from_session_file(self, session_file):
+        dm = DataManager(session_file)
+        dm.start()
+        test_ids = dm.get_report_test_ids()
+        if len(test_ids) == 0:
+            raise KittyException('No failed tests in the session file %s' % session_file)
+        test_list_str = ','.join('%s' % i for i in test_ids)
+        dm.stop()
+        return test_list_str
 
     def _set_test_ranges(self, start, end, test_list_str):
         if test_list_str and test_list_str.strip():
