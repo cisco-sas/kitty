@@ -287,6 +287,7 @@ class BaseFuzzer(KittyObject):
         self.session_info.start_index = start_index
         self.session_info.current_index = 0
         self.session_info.end_index = end_index
+        self.session_info.test_list_str = self._test_list.as_test_list_str()
         return self
 
     def set_test_list(self, test_list_str=''):
@@ -364,6 +365,7 @@ class BaseFuzzer(KittyObject):
         self._test_list.reset()
         self._store_session()
         self._test_list.skip(self.session_info.current_index)
+        self.session_info.test_list_str = self._test_list.as_test_list_str()
 
         self._set_signal_handler()
         self.user_interface.set_data_provider(self.dataman)

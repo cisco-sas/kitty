@@ -56,6 +56,12 @@ class StartEndList(object):
         else:
             return self.get_count()
 
+    def as_test_list_str(self):
+        res = '%d-' % self._start
+        if self._end is not None:
+            res += '%d' % self._end
+        return res
+
 
 class RangesList(object):
 
@@ -160,3 +166,6 @@ class RangesList(object):
             return self._current - self._start
         else:
             return self.get_count()
+
+    def as_test_list_str(self):
+        return self._ranges_str

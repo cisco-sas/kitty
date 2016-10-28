@@ -49,9 +49,8 @@
                                     <col class="col-lg-3"/>    
                                 </colgroup>
                                 <tbody>
-                                    <tr><td>Start Index</td><td id="start_index">N/A</td></tr>
+                                    <tr><td>Test numbers</td><td id="test_list_str">N/A</td></tr>
                                     <tr><td>Current Index</td><td id="current_index">N/A</td></tr>
-                                    <tr><td>End Index</td><td id="end_index">N/A</td></tr>
                                     <tr><td>Start Time</td><td id="start_time">N/A</td></tr>
                                     <tr><td>ETA</td><td id="eta">N/A</td></tr>
                                 </tbody>
@@ -315,9 +314,8 @@
 
     function updateStats(stats) {
         if(stats.start_time != state.start_time) {
-            updateFieldFromDict('kitty_version', stats)
-            updateFieldFromDict('start_index', stats);
-            updateFieldFromDict('end_index', stats);
+            updateFieldFromDict('kitty_version', stats);
+            updateFieldFromDict('test_list_str', stats);
             updateFieldFromDict('fuzzer_name', stats);
             state.start_time = stats.start_time;
             $('#start_time').text(new Date(Math.floor(stats.start_time * 1000)).toISOString().slice(0,19).replace(/T|Z/g," "));    
