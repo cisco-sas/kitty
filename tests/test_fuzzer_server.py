@@ -98,35 +98,6 @@ class TestServerFuzzer(unittest.TestCase):
         self.assertRaises(AssertionError, self.fuzzer.start)
         self.fuzzer = None
 
-    def testCommandLineArgumentsStart(self):
-        self.start_index = 10
-        cmd_line = '--start=%d' % self.start_index
-        self.fuzzer = ServerFuzzer(name="TestServerFuzzer", logger=self.logger, option_line=cmd_line)
-        self.fuzzer.set_interface(self.interface)
-        self.fuzzer.set_model(self.model)
-        self.fuzzer.set_target(self.target)
-        self.fuzzer.set_delay_between_tests(self.delay_duration)
-        self.fuzzer.start()
-
-        info = self.fuzzer._get_session_info()
-        self.assertEqual(info.current_index, None)
-        self.assertEqual(info.start_index, self.start_index)
-
-    def testCommandLineArgumentsEnd(self):
-        self.end_index = 10
-        cmd_line = '--end=%d' % self.end_index
-        self.fuzzer = ServerFuzzer(name="TestServerFuzzer", logger=self.logger, option_line=cmd_line)
-        self.fuzzer.set_interface(self.interface)
-        self.fuzzer.set_model(self.model)
-        self.fuzzer.set_target(self.target)
-        self.fuzzer.set_delay_between_tests(self.delay_duration)
-        self.fuzzer.start()
-
-        info = self.fuzzer._get_session_info()
-        self.assertEqual(info.start_index, 0)
-        self.assertEqual(info.end_index, self.end_index)
-        self.assertEqual(info.current_index, None)
-
     def testCommandLineArgumentDelay(self):
         self.delay_duration = 0.1
         cmd_line = '--delay=%s' % self.delay_duration
