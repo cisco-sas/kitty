@@ -126,17 +126,21 @@ class DataManager(Thread):
         self._session_info = None
         self._reports = None
         self._volatile_data = {}
+        self._stopped_event = Event()
 
     def run(self):
         '''
         thread function
         '''
+        self._stopped_event.clear()
         self.open()
         while True:
             task = self._queue.get()
             if task is None:
                 break
             task.execute(self)
+        self.close()
+        self._stopped_event.set()
 
     def submit_task(self, task):
         '''
@@ -162,6 +166,13 @@ class DataManager(Thread):
         close the database connection
         '''
         self._connection.close()
+
+    def stop(self):
+        '''
+        Stop the data manager
+        '''
+        self.submit_task(None)
+        self._stopped_event.wait()
 
     @synced
     def get_session_info_manager(self):
