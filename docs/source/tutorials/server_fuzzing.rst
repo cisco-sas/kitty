@@ -368,9 +368,9 @@ Each of those steps is reflected in the ``ServerTarget`` API:
 +=============================+===========================+==========================================================+
 | set up the environment      | ``setup()``               | preparations                                             |
 +-----------------------------+---------------------------+----------------------------------------------------------+
-| perform pre-test actions    | ``pre_test(test_num)``    | prepare the victim to the test (make sure its up)        |
+| perform pre-test actions    | ``pre_test(test_number)``    | prepare the victim to the test (make sure its up)        |
 +-----------------------------+---------------------------+----------------------------------------------------------+
-| cleanup after test          | ``post_test(test_num)``   | check the status of the victim, shut it down if needed   |
+| cleanup after test          | ``post_test()``   | check the status of the victim, shut it down if needed   |
 +-----------------------------+---------------------------+----------------------------------------------------------+
 | provide a test report       | ``get_report()``          | provide a report                                         |
 +-----------------------------+---------------------------+----------------------------------------------------------+
@@ -415,7 +415,7 @@ pre\_test
 
 .. code:: python
 
-        def pre_test(self, test_num):
+        def pre_test(self, test_number):
             '''start the victim'''
             ## call the super
             super(LocalProcessController, self).pre_test(test_num)
