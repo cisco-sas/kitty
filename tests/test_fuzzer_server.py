@@ -61,6 +61,14 @@ class TestServerFuzzer(unittest.TestCase):
             if os.path.exists(self.session_file_name):
                 os.remove(self.session_file_name)
 
+    def new_model(self):
+        model = GraphModel()
+        model.logger = self.logger
+        model.connect(
+            Template(name='simple_str_template', fields=[String(name='str1', value='kitty')])
+        )
+        return model
+
     def prepare(self):
         self.start_index = 10
         self.end_index = 20
@@ -69,9 +77,7 @@ class TestServerFuzzer(unittest.TestCase):
 
         self.interface = EmptyInterface()
 
-        self.model = GraphModel()
-        self.model.logger = self.logger
-        self.model.connect(self.t_str)
+        self.model = self.new_model()
 
         self.target = ServerTargetMock({}, logger=self.logger)
 
@@ -167,7 +173,6 @@ class TestServerFuzzer(unittest.TestCase):
         self.assertListEqual(pre_test_list, [-1, 0, 1, 2, 3])
 
     def testSessionResume(self):
-        print
         session_file_name = 'testSessionResume.session'
         try:
             os.remove(session_file_name)
@@ -182,7 +187,7 @@ class TestServerFuzzer(unittest.TestCase):
         cmd_line = '--test-list=0-10 --session=%s' % (session_file_name)
         self.fuzzer = ServerFuzzer(name='TestServerFuzzer', logger=self.logger, option_line=cmd_line)
         self.fuzzer.set_interface(self.interface)
-        self.fuzzer.set_model(self.model)
+        self.fuzzer.set_model(self.new_model())
         self.fuzzer.set_target(self.target)
         self.fuzzer.set_max_failures(1)
         self.fuzzer.start()
@@ -195,11 +200,48 @@ class TestServerFuzzer(unittest.TestCase):
         self.target = ServerTargetMock({}, logger=self.logger)
         self.fuzzer = ServerFuzzer(name='TestServerFuzzer', logger=self.logger, option_line=cmd_line)
         self.fuzzer.set_interface(self.interface)
-        self.fuzzer.set_model(self.model)
+        self.fuzzer.set_model(self.new_model())
         self.fuzzer.set_target(self.target)
         self.fuzzer.start()
         pre_test_list = self.target.instrument.list_get('pre_test')
         self.assertListEqual(pre_test_list, range(2, 11))
+
+        os.remove(session_file_name)
+
+    def testRetest(self):
+        session_file_name = 'testSessionResume.session'
+        try:
+            os.remove(session_file_name)
+        except:
+            pass
+
+        self.logger.info('Make the fuzzer stop after 2 tests by reaching max failures')
+        target_config = {
+            '1': {'send': {"raise exception": True}},
+            '3': {'send': {"raise exception": True}},
+            '5': {'send': {"raise exception": True}},
+        }
+        self.target = ServerTargetMock(target_config, logger=self.logger)
+        cmd_line = '--test-list=0-10 --session=%s' % (session_file_name)
+        self.fuzzer = ServerFuzzer(name='TestServerFuzzer', logger=self.logger, option_line=cmd_line)
+        self.fuzzer.set_interface(self.interface)
+        self.fuzzer.set_model(self.new_model())
+        self.fuzzer.set_target(self.target)
+        self.fuzzer.start()
+        pre_test_list = self.target.instrument.list_get('pre_test')
+        self.assertListEqual(pre_test_list, range(-1, 11))
+        self.fuzzer.stop()
+
+        self.logger.info('Now use the same session file to rerun failed tests')
+        cmd_line = '--retest=%s --no-env-test' % (session_file_name)
+        self.target = ServerTargetMock({}, logger=self.logger)
+        self.fuzzer = ServerFuzzer(name='TestServerFuzzer', logger=self.logger, option_line=cmd_line)
+        self.fuzzer.set_interface(self.interface)
+        self.fuzzer.set_model(self.new_model())
+        self.fuzzer.set_target(self.target)
+        self.fuzzer.start()
+        pre_test_list = self.target.instrument.list_get('pre_test')
+        self.assertListEqual(pre_test_list, [1, 3, 5])
 
         os.remove(session_file_name)
 
