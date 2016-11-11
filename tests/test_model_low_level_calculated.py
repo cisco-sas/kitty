@@ -25,8 +25,8 @@ import hashlib
 from struct import unpack
 from kitty.model import String, Static
 from kitty.model import BitField, UInt32
-from kitty.model import Clone, Size, SizeInBytes, Md5, Sha1, Sha224, Sha256, Sha384, Sha512
-from kitty.model import ElementCount, IndexOf, Offset, AbsoluteOffset
+from kitty.model import Clone, Size, SizeInBytes, Md5, Sha1, Sha224, Sha256, Sha384, Sha512, Hash
+from kitty.model import ElementCount, IndexOf, Offset, AbsoluteOffset, CalculatedBits, CalculatedStr
 from kitty.model import Container
 from kitty.model import ENC_INT_BE
 from kitty.core import KittyException
@@ -46,7 +46,7 @@ class CalculatedTestCase(BaseTestCase):
         :param field: field to base calculation on
         :return: calculated value
         '''
-        raise NotImplemented
+        raise NotImplementedError
 
     def get_default_field(self, fuzzable=False):
         return self.cls(self.depends_on_name, fuzzable=fuzzable, name=self.uut_name)
@@ -134,6 +134,118 @@ class CalculatedTestCase(BaseTestCase):
             self.uut_name = 'invalid/name'
             self.get_default_field()
 
+    @metaTest
+    def testNameIsNotAString(self):
+        self.depends_on_name = 1
+        with self.assertRaises(KittyException):
+            self.get_default_field()
+
+
+class CalculatedBitsTests(CalculatedTestCase):
+    __meta__ = False
+
+    def calc_func(self, bits):
+        return bits
+
+    def setUp(self, cls=CalculatedBits):
+        super(CalculatedBitsTests, self).setUp(cls)
+
+    def get_default_field(self, fuzzable=False, func=None):
+        if func is None:
+            func = self.calc_func
+        return self.cls(self.depends_on_name, func=func, fuzzable=fuzzable, name=self.uut_name)
+
+    def get_original_field(self):
+        return String(self.depends_on_value, name=self.depends_on_name)
+
+    def calculate(self, field):
+        return field.render()
+
+    def testExceptionWhenFuncNotCallable(self):
+        with self.assertRaises(KittyException):
+            self.get_default_field(func=123)
+
+    def testExceptionWhenFuncRaisesException(self):
+        def func(bits):
+            raise Exception('boom')
+
+        with self.assertRaises(KittyException):
+            self.get_default_field(func=func)
+
+    def testExceptionWhenFuncReturnsNone(self):
+        def func(bits):
+            return None
+
+        with self.assertRaises(KittyException):
+            self.get_default_field(func=func)
+
+    def testExceptionWhenFuncReturnsString(self):
+        def func(bits):
+            return 'boom'
+
+        with self.assertRaises(KittyException):
+            self.get_default_field(func=func)
+
+    def testExceptionWhenFuncReturnsInt(self):
+        def func(bits):
+            return 1
+
+        with self.assertRaises(KittyException):
+            self.get_default_field(func=func)
+
+
+class CalculatedStrTests(CalculatedTestCase):
+    __meta__ = False
+
+    def calc_func(self, s):
+        return s
+
+    def setUp(self, cls=CalculatedStr):
+        super(CalculatedStrTests, self).setUp(cls)
+
+    def get_default_field(self, fuzzable=False, func=None):
+        if func is None:
+            func = self.calc_func
+        return self.cls(self.depends_on_name, func=func, fuzzable=fuzzable, name=self.uut_name)
+
+    def get_original_field(self):
+        return String(self.depends_on_value, name=self.depends_on_name)
+
+    def calculate(self, field):
+        return field.render()
+
+    def testExceptionWhenFuncNotCallable(self):
+        with self.assertRaises(KittyException):
+            self.get_default_field(func=123)
+
+    def testExceptionWhenFuncRaisesException(self):
+        def func(s):
+            raise Exception('boom')
+
+        with self.assertRaises(KittyException):
+            self.get_default_field(func=func)
+
+    def testExceptionWhenFuncReturnsNone(self):
+        def func(s):
+            return None
+
+        with self.assertRaises(KittyException):
+            self.get_default_field(func=func)
+
+    def testExceptionWhenFuncReturnsBits(self):
+        def func(s):
+            return Bits('')
+
+        with self.assertRaises(KittyException):
+            self.get_default_field(func=func)
+
+    def testExceptionWhenFuncReturnsInt(self):
+        def func(s):
+            return 1
+
+        with self.assertRaises(KittyException):
+            self.get_default_field(func=func)
+
 
 class CloneTests(CalculatedTestCase):
     __meta__ = False
@@ -154,8 +266,8 @@ class ElementCountTests(CalculatedTestCase):
         self.length = 32
         self.bit_field = BitField(value=0, length=self.length)
 
-    def get_default_field(self, fuzzable=False):
-        return self.cls(self.depends_on_name, length=self.length, fuzzable=fuzzable, name=self.uut_name)
+    def get_default_field(self, fuzzable=False, correction=None):
+        return self.cls(self.depends_on_name, correction=correction, length=self.length, fuzzable=fuzzable, name=self.uut_name)
 
     def calculate(self, field):
         self.bit_field.set_current_value(len(field.get_rendered_fields()))
@@ -199,6 +311,10 @@ class ElementCountTests(CalculatedTestCase):
         full.render()
         self.assertEqual(uut.render(), self.calculate(internal_container))
         del full
+
+    def testInvalidCorrectionStr(self):
+        with self.assertRaises(KittyException):
+            self.get_default_field(correction='boom')
 
 
 class IndexOfTestCase(CalculatedTestCase):
@@ -582,6 +698,55 @@ class HashTests(CalculatedTestCase):
         value = field.render()
         digest = self.hasher(value.bytes).digest()
         return Bits(bytes=digest)
+
+
+class GenericHashTests(CalculatedTestCase):
+
+    __meta__ = False
+
+    def setUp(self):
+        super(GenericHashTests, self).setUp(Hash)
+        self.hasher = hashlib.md5
+
+    def get_default_field(self, fuzzable=False):
+        return self.cls(self.depends_on_name, algorithm='md5', fuzzable=fuzzable, name=self.uut_name)
+
+    def calculate(self, field):
+        value = field.render()
+        digest = self.hasher(value.bytes).digest()
+        return Bits(bytes=digest)
+
+    def testInvalidAlgorithmName(self):
+        with self.assertRaises(KittyException):
+            Hash(self.depends_on_name, algorithm='boom')
+
+    def testInvalidHashFunctionRaisesException(self):
+        def func(data):
+            raise Exception('boom')
+
+        with self.assertRaises(KittyException):
+            Hash(self.depends_on_name, algorithm='boom')
+
+    def testInvalidHashFunctionReturnsInt(self):
+        def func(data):
+            return 1
+
+        with self.assertRaises(KittyException):
+            Hash(self.depends_on_name, algorithm='boom')
+
+    def testInvalidHashFunctionReturnsNone(self):
+        def func(data):
+            return None
+
+        with self.assertRaises(KittyException):
+            Hash(self.depends_on_name, algorithm='boom')
+
+    def testInvalidHashFunctionReturnsBits(self):
+        def func(data):
+            return Bits()
+
+        with self.assertRaises(KittyException):
+            Hash(self.depends_on_name, algorithm='boom')
 
 
 class Md5Tests(HashTests):
