@@ -356,9 +356,9 @@ class BaseFuzzer(KittyObject):
         # if self.session_info.end_index is None:
         #     self.session_info.end_index = self.model.last_index()
         if self._test_list is None:
-            self._test_list = StartEndList(0, self.model.last_index())
+            self._test_list = StartEndList(0, self.model.num_mutations())
         else:
-            self._test_list.set_last(self.model.num_mutations())
+            self._test_list.set_last(self.model.last_index())
         list_count = self._test_list.get_count()
         self._test_list.skip(list_count - 1)
         self.session_info.end_index = self._test_list.current()

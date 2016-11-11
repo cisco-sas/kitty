@@ -29,8 +29,8 @@ class StartEndList(object):
         self._current = self._start
 
     def set_last(self, last):
-        if self._end is None or (self._end > last):
-            self._end = last
+        if self.open_ended() or (self._end > last):
+            self._end = last + 1
 
     def next(self):
         if self._current < self._end:
@@ -45,7 +45,13 @@ class StartEndList(object):
         self._current = self._start
 
     def skip(self, count):
-        self._current += count
+        if count < self._end - self._current:
+            self._current += count
+            skipped = count
+        else:
+            skipped = self._end - self._current
+            self._current = self._end
+        return skipped
 
     def get_count(self):
         return self._end - self._start
@@ -58,18 +64,22 @@ class StartEndList(object):
 
     def as_test_list_str(self):
         res = '%d-' % self._start
-        if self._end is not None:
+        if not self.open_ended():
             res += '%d' % self._end
         return res
+
+    def open_ended(self):
+        return self._end is None
 
 
 class RangesList(object):
 
     def __init__(self, ranges_str):
         self._ranges_str = ranges_str
-        self._list = []
+        self._lists = []
         self._idx = 0
-        self._open_end_start = None
+        self._list_idx = 0
+        self._count = None
         self._parse()
 
     def _parse(self):
@@ -77,40 +87,36 @@ class RangesList(object):
         Crazy function to check and parse the range list string
         '''
         if not self._ranges_str:
-            self._open_end_start = 0
+            self._lists = [StartEndList(0, None)]
         else:
+            lists = []
             p_single = re.compile(r'(\d+)$')
             p_open_left = re.compile(r'-(\d+)$')
             p_open_right = re.compile(r'(\d+)-$')
             p_closed = re.compile(r'(\d+)-(\d+)$')
-            open_left_found = False
-            open_right_found = False
             for entry in self._ranges_str.split(','):
                 entry = entry.strip()
 
                 # single number
                 match = p_single.match(entry)
                 if match:
-                    self._list.append(int(match.groups()[0]))
+                    num = int(match.groups()[0])
+                    lists.append(StartEndList(num, num + 1))
                     continue
 
                 # open left
                 match = p_open_left.match(entry)
                 if match:
-                    if open_left_found:
-                        raise KittyException('You have two test ranges that start from zero')
-                    open_left_found = True
                     end = int(match.groups()[0])
-                    self._list.extend(list(range(0, end + 1)))
+                    lists.append(StartEndList(0, end + 1))
                     continue
 
                 # open right
                 match = p_open_right.match(entry)
                 if match:
-                    if open_right_found:
-                        raise KittyException('You have two test ranges that does not end')
-                    open_right_found = True
-                    self._open_end_start = int(match.groups()[0])
+                    start = int(match.groups()[0])
+                    self._open_end_start = start
+                    lists.append(StartEndList(start, None))
                     continue
 
                 # closed range
@@ -118,52 +124,68 @@ class RangesList(object):
                 if match:
                     start = int(match.groups()[0])
                     end = int(match.groups()[1])
-                    self._list.extend(list(range(start, end + 1)))
+                    lists.append(StartEndList(start, end + 1))
                     continue
 
                 # invalid expression
                 raise KittyException('Invalid range found: %s' % entry)
-            as_set = set(self._list)
-            if len(as_set) < len(self._list):
-                raise KittyException('Overlapping ranges in range list')
-            self._list = sorted(list(as_set))
-            if self._open_end_start and len(self._list) and self._list[-1] >= self._open_end_start:
-                raise KittyException('Overlapping ranges in range list')
+
+            lists = sorted(lists, key=lambda x: x._start)
+            for i in range(len(lists) - 1):
+                if lists[i]._end is None:
+                    # there is an open end which is not the last in our lists
+                    # this is a clear overlap with the last one ...
+                    raise KittyException('Overlapping ranges in range list')
+                elif lists[i]._end > lists[i + 1]._start:
+                    raise KittyException('Overlapping ranges in range list')
+            self._lists = lists
 
     def set_last(self, last):
         exceeds = False
-        if self._open_end_start is not None:
-            if last < self._open_end_start:
-                exceeds = True
-            else:
-                self._list.extend(range(self._open_end_start, last + 1))
-        else:
-            if self._list[-1] > last:
-                exceeds = True
+        last_list = self._lists[-1]
+        if last <= last_list._start:
+            exceeds = True
+        elif last_list.open_ended():
+            last_list.set_last(last)
         if exceeds:
             raise KittyException('Specified test range exceeds the maximum mutation count')
 
     def next(self):
-        if self._idx < len(self._list):
-            self._idx += 1
+        if self._idx < self.get_count():
+            if self._list_idx < len(self._lists):
+                curr_list = self._lists[self._list_idx]
+                curr_list.next()
+                if curr_list.current() is None:
+                    self._list_idx += 1
+        self._idx += 1
 
     def current(self):
-        if self._idx < len(self._list):
-            return self._list[self._idx]
+        if self._idx < self.get_count():
+            return self._lists[self._list_idx].current()
         return None
 
     def reset(self):
         self._idx = 0
+        self._list_idx = 0
+        for l in self._lists:
+            l.reset()
 
     def skip(self, count):
-        self._idx += count
+        while count > 0:
+            skipped = self._lists[self._list_idx].skip(count)
+            self._idx += skipped
+            count -= skipped
+            if count > 0:
+                self._list_idx += 1
 
     def get_count(self):
-        return len(self._list)
+        if self._count is None:
+            self._count = sum(l.get_count() for l in self._lists)
+        return self._count
 
     def get_progress(self):
         if self.current():
-            return self._current - self._start
+            return self._current
         else:
             return self.get_count()
 
