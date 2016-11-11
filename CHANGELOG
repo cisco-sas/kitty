@@ -1,10 +1,20 @@
+Version 0.7.0 (2016-11-11)
+==========================
+
+* bugfix: [DataModel] set default sequence for StagedSequenceModel (issue #62)
+* bugfix: [Fuzzer] fixed start indices when resuming from session file
+* enhancement: [WebInterface] Improved display of test list in user interface/html
+* new feature: [Fuzzer] add "retest" option (issue #26)
+* new feature: [Fuzzer] New test listing options (issue #26)
+* removed feature: [Fuzzer] removed --start and --end command line arguments
+
 Version 0.6.10 (2016-10-26)
 ===========================
 
-* new feature: [DataModel] List supports a delimiter field
 * bugfix: [DataModel] fixed hash of PsuedoTemplate to avoid collision
-* enhancement: [DataModel] absolute name does not require the template name anymore
 * bugfix: [DataModel] self mutations of containers are not ignored anymore if they are the only mutations
+* enhancement: [DataModel] absolute name does not require the template name anymore
+* new feature: [DataModel] List supports a delimiter field
 
 Version 0.6.9 (2016-06-04)
 ==========================
