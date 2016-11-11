@@ -23,7 +23,7 @@ from bitstring import Bits
 from struct import unpack
 from kitty.model.low_level import String, Static, Group, BE32
 from kitty.model.low_level.container import Container, ForEach, If, IfNot, Repeat, Template, Switch
-from kitty.model.low_level.container import Meta, Pad, Trunc, PseudoTemplate, OneOf
+from kitty.model.low_level.container import Meta, Pad, Trunc, PseudoTemplate, OneOf, TakeFrom
 from kitty.model.low_level.condition import Condition
 from kitty.model.low_level.aliases import Equal, NotEqual
 from kitty.core import KittyException
@@ -979,6 +979,42 @@ class SwitchTest(BaseTestCase):
                 3: String('3'),
             }
             self.get_uut(field_dict, 0)
+
+
+class TakeFromTest(BaseTestCase):
+
+    __meta__ = False
+
+    def setUp(self):
+        super(TakeFromTest, self).setUp(TakeFrom)
+
+    def get_uut(self, fields=None, fuzzable=True):
+        return TakeFrom(fields=fields, fuzzable=fuzzable)
+
+    def default_fields(self):
+        return [
+            String('String1'),
+            String('String2'),
+            Static('Static1'),
+        ]
+
+    def testCopy(self):
+        tf1 = self.get_uut(self.default_fields())
+        tf2 = tf1.copy()
+        tf1_mutations = self.get_all_mutations(tf1, False)
+        tf2_mutations = self.get_all_mutations(tf2, False)
+        self.assertListEqual(tf1_mutations, tf2_mutations)
+
+    def testNumMutationCorrect(self):
+        tf = self.get_uut(self.default_fields())
+        self.assertEqual(tf.num_mutations(), len(self.get_all_mutations(tf)))
+
+    def testSameAfterReset(self):
+        tf = self.get_uut(self.default_fields())
+        before_reset = self.get_all_mutations(tf)
+        tf.reset()
+        after_reset = self.get_all_mutations(tf)
+        self.assertEqual(before_reset, after_reset)
 
 
 class TemplateTest(ContainerTest):
