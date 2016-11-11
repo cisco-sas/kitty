@@ -456,12 +456,12 @@ class OneOfTests(ContainerTest):
                 self.assertEqual(len(container.get_rendered_fields()), 0)
 
 
-class ForEachTests(ContainerTest):
+class ForEachTest(ContainerTest):
 
     __meta__ = False
 
     def setUp(self, cls=ForEach):
-        super(ForEachTests, self).setUp(cls)
+        super(ForEachTest, self).setUp(cls)
 
     def get_default_container(self, fields=[], fuzzable=True, mutated_field=None):
         if mutated_field is None:
