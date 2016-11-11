@@ -465,7 +465,7 @@ class ForEachTest(ContainerTest):
 
     def get_default_container(self, fields=[], fuzzable=True, mutated_field=None):
         if mutated_field is None:
-            mutated_field = String('static field')
+            mutated_field = Static('static field')
         return ForEach(mutated_field=mutated_field, fields=fields, fuzzable=fuzzable, name=self.uut_name)
 
     def _test_basic(self, mutated, field):
