@@ -386,6 +386,7 @@ class BaseFuzzer(KittyObject):
             self._test_list.reset()
             self._test_list.skip(start_from)
             self.session_info.current_index = start_from
+            self.model.skip(self._test_list.current())
             self._start()
             return True
         except Exception as e:
