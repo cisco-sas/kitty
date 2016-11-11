@@ -23,7 +23,7 @@ from bitstring import Bits
 from struct import unpack
 from kitty.model.low_level import String, Static, Group, BE32
 from kitty.model.low_level.container import Container, ForEach, If, IfNot, Repeat, Template, Switch
-from kitty.model.low_level.container import Meta, Pad, Trunc, PseudoTemplate
+from kitty.model.low_level.container import Meta, Pad, Trunc, PseudoTemplate, OneOf
 from kitty.model.low_level.condition import Condition
 from kitty.model.low_level.aliases import Equal, NotEqual
 from kitty.core import KittyException
@@ -416,6 +416,46 @@ class IfNotTest(ConditionTest):
         return ConditionTest.AlwaysTrue()
 
 
+class OneOfTests(ContainerTest):
+    __meta__ = False
+
+    def setUp(self, cls=OneOf):
+        super(OneOfTests, self).setUp(cls)
+
+    def get_default_container(self, fields=[], fuzzable=True, mutated_field=None):
+        if mutated_field is None:
+            mutated_field = String('static field')
+        return OneOf(fields=fields, fuzzable=fuzzable, name=self.uut_name)
+
+    def _test_fields(self, init_fields=[], push_fields=[]):
+        all_fields = init_fields + push_fields
+        container = self.get_default_container(fields=init_fields, fuzzable=True)
+        for f in push_fields:
+            container.push(f)
+            if isinstance(f, Container):
+                # default is to pop the container immediatly in the tests...
+                container.pop()
+        fields_num_mutations = sum(f.num_mutations() for f in all_fields) + len(all_fields)
+        container_num_mutations = container.num_mutations()
+        self.assertEqual(fields_num_mutations, container_num_mutations)
+
+    def testGetRenderedFieldsCorrect(self):
+        fields = [
+            String('test_string', name='field1'),
+            If(Equal('test_group_5', 'A'), String('if', name='if_field3'), name='if2'),
+            IfNot(Equal('test_group_5', 'A'), String('ifnot', name='ifnot_field5'), name='ifnot4'),
+            Group(name='test_group_5', values=['A', 'B', 'C'])
+        ]
+        container = self.get_default_container(fields)
+        if len(container.render()):
+            self.assertEqual(len(container.get_rendered_fields()), 1)
+        while container.mutate():
+            if len(container.render()):
+                self.assertEqual(len(container.get_rendered_fields()), 1)
+            else:
+                self.assertEqual(len(container.get_rendered_fields()), 0)
+
+
 class ForEachTests(ContainerTest):
 
     __meta__ = False
@@ -425,7 +465,7 @@ class ForEachTests(ContainerTest):
 
     def get_default_container(self, fields=[], fuzzable=True, mutated_field=None):
         if mutated_field is None:
-            mutated_field = Static('static field')
+            mutated_field = String('static field')
         return ForEach(mutated_field=mutated_field, fields=fields, fuzzable=fuzzable, name=self.uut_name)
 
     def _test_basic(self, mutated, field):
