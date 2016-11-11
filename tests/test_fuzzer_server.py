@@ -83,7 +83,6 @@ class TestServerFuzzer(unittest.TestCase):
         self.fuzzer.set_delay_between_tests(self.delay_duration)
 
     def testRaisesExceptionWhenStartedWithoutModel(self):
-
         self.fuzzer.set_model(None)
         self.assertRaises(AssertionError, self.fuzzer.start)
         self.fuzzer = None
@@ -125,6 +124,47 @@ class TestServerFuzzer(unittest.TestCase):
         self.fuzzer.set_range(self.start_index, self.end_index)
         self.assertEqual(self.session_file_name, self.fuzzer.config.session_file_name)
         self.fuzzer.start()
+
+    def testCommandLineArgumentTestList(self):
+        cmd_line = '--test-list=%s' % (','.join(str(i) for i in [1, 3, 5, 7]))
+        self.fuzzer = ServerFuzzer(name='TestServerFuzzer', logger=self.logger, option_line=cmd_line)
+        self.fuzzer.set_interface(self.interface)
+        self.fuzzer.set_model(self.model)
+        self.fuzzer.set_target(self.target)
+        self.fuzzer.start()
+        # check what tests were started by the fuzzer
+        pre_test_list = self.target.instrument.list_get('pre_test')
+        self.assertListEqual(pre_test_list, [-1, 1, 3, 5, 7])
+
+    def testCommandLineArgumentNoEnvTest(self):
+        cmd_line = '--test-list=%s' % (','.join(str(i) for i in [1, 3, 5, 7]))
+        cmd_line += ' --no-env-test'
+        self.fuzzer = ServerFuzzer(name='TestServerFuzzer', logger=self.logger, option_line=cmd_line)
+        self.fuzzer.set_interface(self.interface)
+        self.fuzzer.set_model(self.model)
+        self.fuzzer.set_target(self.target)
+        self.fuzzer.start()
+        # check what tests were started by the fuzzer
+        pre_test_list = self.target.instrument.list_get('pre_test')
+        self.assertListEqual(pre_test_list, [1, 3, 5, 7])
+
+    def testMaxFailures(self):
+        target_config = {
+            '1': {'send': {"raise exception": True}},
+            '2': {'send': {"raise exception": True}},
+            '3': {'send': {"raise exception": True}},
+        }
+        self.target = ServerTargetMock(target_config, logger=self.logger)
+        cmd_line = '--test-list=0-10'
+        self.fuzzer = ServerFuzzer(name='TestServerFuzzer', logger=self.logger, option_line=cmd_line)
+        self.fuzzer.set_interface(self.interface)
+        self.fuzzer.set_model(self.model)
+        self.fuzzer.set_target(self.target)
+        self.fuzzer.set_max_failures(3)
+        self.fuzzer.start()
+        # check what tests were started by the fuzzer
+        pre_test_list = self.target.instrument.list_get('pre_test')
+        self.assertListEqual(pre_test_list, [-1, 0, 1, 2, 3])
 
     def testVanilla(self):
         self.fuzzer.start()
