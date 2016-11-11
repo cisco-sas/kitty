@@ -69,6 +69,12 @@ class WebInterfaceTest(BaseTestCase):
     def _webGetReport(self, report_id):
         return self._webValidRequest('%s/api/report?report_id=%s' % (self.url, report_id))
 
+    def _webGetTemplateInfo(self):
+        return self._webValidRequest('%s/api/template_info.json' % self.url)
+
+    def _webGetStages(self):
+        return self._webValidRequest('%s/api/stages.json' % self.url)
+
     def _webGetReportList(self):
         resp = self._webGetStats()
         self.assertIn('reports_extended', resp)
@@ -106,11 +112,26 @@ class WebInterfaceTest(BaseTestCase):
     def testStatsApiReportListAll(self):
         self._testStatsApiReportList([x for x in range(self.end_index)])
 
-    def _testStatsApi(self):
-        '''
-        .. todo:: other stats API tests
-        '''
-        pass
+    def testTemplateInfoApi(self):
+        #
+        # This is based on the usage in index.html
+        #
+        uut = WebInterface(host=self.host, port=self.port)
+        self._runFuzzerWithReportList(uut, [])
+        template_info = self._webGetTemplateInfo()
+        self.assertIn('name', template_info)
+        self.assertIn('field_type', template_info)
+        self.assertIn('fields', template_info)
+        self.assertIn('mutation', template_info)
+        self.assertIn('total_number', template_info['mutation'])
+        self.assertIn('current_index', template_info['mutation'])
+
+    def testGetStagesApi(self):
+        uut = WebInterface(host=self.host, port=self.port)
+        self._runFuzzerWithReportList(uut, [])
+        resp = self._webGetStages()
+        self.assertIn('current', resp)
+        self.assertIn('stages', resp)
 
     def _testReportApiReportExists(self, report_list):
         for report_id in report_list:
