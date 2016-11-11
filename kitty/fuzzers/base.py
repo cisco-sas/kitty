@@ -305,7 +305,6 @@ class BaseFuzzer(KittyObject):
         To execute all tests, pass None or an empty string
         '''
         self.session_info.test_list_str = test_list_str
-        self.session_info.current_index = 0
         self._test_list = RangesList(test_list_str)
 
     def set_interface(self, interface):
@@ -359,6 +358,7 @@ class BaseFuzzer(KittyObject):
             self._test_list = StartEndList(0, self.model.num_mutations())
         else:
             self._test_list.set_last(self.model.last_index())
+
         list_count = self._test_list.get_count()
         self._test_list.skip(list_count - 1)
         self.session_info.end_index = self._test_list.current()
@@ -386,7 +386,6 @@ class BaseFuzzer(KittyObject):
             self._test_list.reset()
             self._test_list.skip(start_from)
             self.session_info.current_index = start_from
-            self.model.skip(self._test_list.current())
             self._start()
             return True
         except Exception as e:
