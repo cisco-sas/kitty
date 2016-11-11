@@ -21,6 +21,7 @@ GraphModel
 RandomSequenceModel
 StagedSequenceModel & Stage
 '''
+import os
 import unittest
 import logging
 from kitty.model import GraphModel
@@ -352,17 +353,28 @@ class StagedSequenceModelTests(unittest.TestCase):
             self.dst_templates.append(dst)
             self.cb_call_count += 1
             return self.cb_call_count
+        first_time = True
 
         model = StagedSequenceModel(name='uut', callback_generator=cb_gen, num_mutations=100)
         for stage in self.stages:
             model.add_stage(stage)
         while model.mutate():
             sequence = model.get_sequence()
+            # this ugly piece of code is needed because we want to ignore the
+            # default sequence generation
+            delta = 0
+            def_len = len(model._default_sequence)
+            if first_time:
+                self.src_templates = self.src_templates[def_len:]
+                self.dst_templates = self.dst_templates[def_len:]
+                self.cb_call_count -= def_len
+                delta = def_len
+                first_time = False
             self.assertEqual(len(sequence), self.cb_call_count)
             for i in range(len(sequence)):
                 self.assertEqual(self.src_templates[i], sequence[i].src)
                 self.assertEqual(self.dst_templates[i], sequence[i].dst)
-                self.assertEqual(i + 1, sequence[i].callback)
+                self.assertEqual(delta + i + 1, sequence[i].callback)
             self.src_templates = []
             self.dst_templates = []
             self.cb_call_count = 0
@@ -745,25 +757,34 @@ class RandomSequenceModelTests(unittest.TestCase):
             self.dst_templates.append(dst)
             self.cb_call_count += 1
             return self.cb_call_count
+        first_time = True
 
         model = RandomSequenceModel(name='uut', callback_generator=cb_gen, num_mutations=100, max_sequence=13)
         for template in self.templates:
             model.add_template(template)
         while model.mutate():
+            # this ugly piece of code is needed because we want to ignore the
+            # default sequence generation
+            delta = 0
+            def_len = len(model._default_sequence)
+            if first_time:
+                self.src_templates = self.src_templates[def_len:]
+                self.dst_templates = self.dst_templates[def_len:]
+                self.cb_call_count -= def_len
+                delta = def_len
+                first_time = False
             sequence = model.get_sequence()
             self.assertEqual(len(sequence), self.cb_call_count)
             for i in range(len(sequence)):
                 self.assertEqual(self.src_templates[i], sequence[i].src)
                 self.assertEqual(self.dst_templates[i], sequence[i].dst)
-                self.assertEqual(i + 1, sequence[i].callback)
+                self.assertEqual(delta + i + 1, sequence[i].callback)
             self.src_templates = []
             self.dst_templates = []
             self.cb_call_count = 0
 
     def testFailureToTo(self):
         self.assertEqual(len(self.todo), 0)
-
-import os
 
 if __name__ == '__main__':
     if not os.path.exists('logs'):

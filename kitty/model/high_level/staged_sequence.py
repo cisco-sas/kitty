@@ -26,6 +26,14 @@ from kitty.model.high_level.base import Connection, BaseModel
 from kitty.core import KittyObject, KittyException, khash
 
 
+class _RootNode(object):
+    def get_name(self):
+        return 'Start'
+
+    def hash(self):
+        return khash(self.get_name())
+
+
 class Stage(KittyObject):
     '''
     Stage supports 4 different sequence length strategy.
@@ -58,6 +66,8 @@ class Stage(KittyObject):
         self._seed = seed
         if seed:
             self._r.seed(seed)
+        self._current_sequence_templates = None
+        self._default_sequence_templates = None
         self._ready = False
         self._validate_strategy(selection_strategy)
 
@@ -113,6 +123,8 @@ class Stage(KittyObject):
                     raise KittyException('bad range strategy %s, max < min' % self._strategy)
                 if self._max_sequence > len(self._templates):
                     raise KittyException('bad range strategy %s, max > template count(%s)' % (self._max_sequence, len(self._templates)))
+            self._default_sequence_templates = tuple(self._templates[:self._min_sequence])
+            self._current_sequence_templates = self._default_sequence_templates
             self._ready = True
 
     def mutate(self):
@@ -125,6 +137,7 @@ class Stage(KittyObject):
         '''
         :return: templates of current sequence mutation
         '''
+        self._get_ready()
         return self._current_sequence_templates
 
     def __repr__(self):
@@ -209,24 +222,33 @@ class StagedSequenceModel(BaseModel):
 
     def _get_ready(self):
         if not self._ready:
+            templates = []
+            for stage in self._stages:
+                templates.extend(stage.get_sequence_templates())
+            self._default_sequence = self._sequence_from_templates(templates)
+            self._sequence = self._default_sequence
             self._ready = True
 
     def _mutate(self):
-        current_sequence_templates = []
+        templates = []
         for stage in self._stages:
             stage.mutate()
-            current_sequence_templates.extend(stage.get_sequence_templates())
+            templates.extend(stage.get_sequence_templates())
+        self._sequence = self._sequence_from_templates(templates)
+        if self._notification_handler:
+            self._notification_handler.handle_stage_changed(self)
+
+    def _sequence_from_templates(self, templates):
         sequence = []
-        cb = self.callback_generator(None, current_sequence_templates[0])
-        sequence.append(Connection(None, current_sequence_templates[0], cb))
-        prev = current_sequence_templates[0]
-        for t in current_sequence_templates[1:]:
+        root = _RootNode()
+        # cb = self.callback_generator(root, templates[0])
+        # sequence.append(Connection(root, templates[0], cb))
+        prev = root
+        for t in templates:
             cb = self.callback_generator(prev, t)
             sequence.append(Connection(prev, t, cb))
             prev = t
-        self._sequence = sequence
-        if self._notification_handler:
-            self._notification_handler.handle_stage_changed(self)
+        return sequence
 
     def get_model_info(self):
         '''
