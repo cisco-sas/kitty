@@ -18,6 +18,14 @@
 from kitty.core import KittyObject, khash
 
 
+class _RootNode(object):
+    def get_name(self):
+        return 'Start'
+
+    def hash(self):
+        return khash(self.get_name())
+
+
 class Connection(object):
     '''
     A connection between to messages,
@@ -55,6 +63,7 @@ class BaseModel(KittyObject):
         self._current_index = -1
         self._ready = False
         self._notification_handler = None
+        self.ROOT_NODE = _RootNode()
 
     def get_template_info(self):
         '''

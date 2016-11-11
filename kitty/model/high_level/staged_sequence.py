@@ -26,14 +26,6 @@ from kitty.model.high_level.base import Connection, BaseModel
 from kitty.core import KittyObject, KittyException, khash
 
 
-class _RootNode(object):
-    def get_name(self):
-        return 'Start'
-
-    def hash(self):
-        return khash(self.get_name())
-
-
 class Stage(KittyObject):
     '''
     Stage supports 4 different sequence length strategy.
@@ -240,10 +232,7 @@ class StagedSequenceModel(BaseModel):
 
     def _sequence_from_templates(self, templates):
         sequence = []
-        root = _RootNode()
-        # cb = self.callback_generator(root, templates[0])
-        # sequence.append(Connection(root, templates[0], cb))
-        prev = root
+        prev = self.ROOT_NODE
         for t in templates:
             cb = self.callback_generator(prev, t)
             sequence.append(Connection(prev, t, cb))

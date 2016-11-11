@@ -24,14 +24,6 @@ from kitty.model.high_level.base import Connection
 from kitty.core import KittyException, khash
 
 
-class _RootNode(object):
-    def get_name(self):
-        return 'Start'
-
-    def hash(self):
-        return khash(self.get_name())
-
-
 class GraphModel(BaseModel):
     '''
     The GraphModel is built of a simple digraph, where the nodes are templates, and on each edge there's a callback function.
@@ -94,7 +86,7 @@ class GraphModel(BaseModel):
         :param name: name for this model
         '''
         super(GraphModel, self).__init__(name)
-        self._root = _RootNode()
+        self._root = self.ROOT_NODE
         self._root_id = self._root.hash()
         self._graph = {}
         self._graph[self._root_id] = []
