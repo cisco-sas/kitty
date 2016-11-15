@@ -450,7 +450,8 @@ post\_test
             self.logger.debug('return code: %d', self._process.returncode)
             self.report.add('return_code', self._process.returncode)
             ## if the process crashed, we will have a different return code
-            self.report.add('failed', self._process.returncode != 0)
+            if self._process.returncode != 0:
+                self.report.failed('return code is not zero: %s' % self._process.returncode)
             self._process = None
             ## call the super
             super(LocalProcessController, self).post_test()
