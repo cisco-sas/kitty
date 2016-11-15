@@ -84,13 +84,13 @@ class KittyWebClientApi(object):
 
 def cmd_report_store(options, web):
     folder = options['<folder>']
-    folder = './%s' % folder
+    folder = os.path.join('.', folder)
     if not os.path.exists(folder):
         os.mkdir(folder)
     ids = [x[0] for x in web.get_report_list()]
     reports = web.get_reports(ids)
     for (rid, report) in reports.items():
-        with open('%s/report_%d.json' % (folder, rid), 'w') as f:
+        with open(os.path.join(folder, 'report_%d.json' % (rid)), 'w') as f:
             f.write(report)
 
 
