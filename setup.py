@@ -48,5 +48,5 @@ else:
                 'kitty-tool=kitty.bin.kitty_tool:_main',
             ]
         },
-        package_data={'kitty': ['interfaces/web/static/*', 'interfaces/web/images/*']}
+        package_data={'kitty': ['interfaces/web/static/*']}
     )

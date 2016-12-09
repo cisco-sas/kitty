@@ -75,6 +75,12 @@ class WebInterfaceTest(BaseTestCase):
     def _webGetStages(self):
         return self._webValidRequest('%s/api/stages.json' % self.url)
 
+    def _webGetFavicon(self):
+        resp = requests.get('%s/favicon.ico' % self.url)
+        self.assertIsNotNone(resp)
+        self.assertEqual(resp.status_code, 200)
+        return resp
+
     def _webGetReportList(self):
         resp = self._webGetStats()
         self.assertIn('reports_extended', resp)

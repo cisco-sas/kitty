@@ -100,7 +100,7 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return ''
 
     def _handle_favicon_request(self):
-        return self._handle_image_request(content_type='image/png')
+        return self._handle_image_request(content_type='image/x-icon')
 
     def do_GET(self):
         '''
