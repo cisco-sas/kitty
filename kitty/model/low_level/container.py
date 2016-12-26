@@ -607,11 +607,22 @@ class Pad(Container):
         :return: rendered value of the container, padded if needed
         '''
         super(Pad, self).render(ctx)
-        to_pad = self._pad_length - len(self._current_rendered)
+        self.set_current_value(self._pad_buffer(self._current_rendered))
+        return self._current_rendered
+
+    def _pad_buffer(self, prepad):
+        to_pad = self._pad_length - len(prepad)
         if to_pad > 0:
             padding_data = self._pad_data * (to_pad / len(self._pad_data) + 1)
-            self.set_current_value(self._current_rendered + padding_data[:to_pad])
-        return self._current_rendered
+            return prepad + padding_data[:to_pad]
+        return prepad
+
+    def _initialize_default_buffer(self):
+        prepad = super(Pad, self)._initialize_default_buffer()
+        padded = self._pad_buffer(prepad)
+        self._default_value = padded
+        self._default_rendered = self._encode_value(padded)
+        return self._default_rendered
 
     def hash(self):
         '''
