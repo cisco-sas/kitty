@@ -65,7 +65,7 @@ class StartEndList(object):
     def as_test_list_str(self):
         res = '%d-' % self._start
         if not self.open_ended():
-            res += '%d' % self._end
+            res += '%d' % (self._end - 1)
         return res
 
     def open_ended(self):
