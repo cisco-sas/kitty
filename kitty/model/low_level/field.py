@@ -735,20 +735,6 @@ class Float(_LibraryField):
         return lib
 
 
-class _WrapperField(BaseField):
-    '''
-    Wrap a different field, all BaseField's function calls will be passed to the internal field
-    '''
-
-    def __init__(self, field):
-        self.__wrapped = field
-
-    def __getattribute__(self, attr):
-        if attr == '__wrapped':
-            return BaseField.__getattribute__(self, '__wrapped')
-        return BaseField.__getattribute__(self, '__wrapped').__getattribute__(attr)
-
-
 def _calc_bitfield_bounds(self, value, minv, maxv):
         if self._length <= 0:
             raise KittyException('length (%d) <= 0' % (self._length))
