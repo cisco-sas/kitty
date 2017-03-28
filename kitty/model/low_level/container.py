@@ -900,12 +900,14 @@ class TakeFrom(OneOf):
 
         :example:
 
-            TakeFrom(fields=[
-                Static('A'), Static('B'), Static('C'),
-                Static('D'), Static('E'), Static('F'),
-            ])
-            # 'E', 'B', 'D', 'F', 'C', 'A', 'CE', 'FC', 'CF', 'BD', 'AF', 'BED',
-            # 'EBC', 'CDB', 'DCA', 'BFAD', 'FCBD', 'DBCF', 'BFACD' ...
+            ::
+
+                TakeFrom(fields=[
+                    Static('A'), Static('B'), Static('C'),
+                    Static('D'), Static('E'), Static('F'),
+                ])
+                # 'E', 'B', 'D', 'F', 'C', 'A', 'CE', 'FC', 'CF', 'BD', 'AF', 'BED',
+                # 'EBC', 'CDB', 'DCA', 'BFAD', 'FCBD', 'DBCF', 'BFACD' ...
         '''
         super(TakeFrom, self).__init__(fields, ENC_BITS_DEFAULT, fuzzable, name)
         self.subcontainer_encoder = encoder

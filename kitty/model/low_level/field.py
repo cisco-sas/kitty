@@ -735,13 +735,105 @@ class Float(_LibraryField):
         return lib
 
 
-class BitField(_LibraryField):
+class _WrapperField(BaseField):
+    '''
+    Wrap a different field, all BaseField's function calls will be passed to the internal field
+    '''
+
+    def __init__(self, field):
+        self.__wrapped = field
+
+    def __getattribute__(self, attr):
+        if attr == '__wrapped':
+            return BaseField.__getattribute__(self, '__wrapped')
+        return BaseField.__getattribute__(self, '__wrapped').__getattribute__(attr)
+
+
+def _calc_bitfield_bounds(self, value, minv, maxv):
+        if self._length <= 0:
+            raise KittyException('length (%d) <= 0' % (self._length))
+        max_possible = 2 ** self._length - 1
+        if self._signed:
+            self._min_value = ~(max_possible >> 1)
+        else:
+            self._min_value = 0
+        self._max_value = max_possible + self._min_value
+        self._max_min_diff = max_possible
+        if maxv is not None:
+            if maxv > self._max_value:
+                raise KittyException('max_value is too big %d > %d' % (maxv, self._max_value))
+            self._max_value = maxv
+        if minv is not None:
+            if minv < self._min_value:
+                raise KittyException('min_value is too small %d < %d' % (minv, self._min_value))
+            self._min_value = minv
+        if self._min_value > self._max_value:
+            raise KittyException('min_value (%d) > max_value (%d)' % (self._min_value, self._max_value))
+        if (value < self._min_value) or (value > self._max_value):
+            raise KittyException('default value (%d) not in range (min=%d, max=%d)' % (value, self._min_value, self._max_value))
+
+
+class _FullRangeBitField(BaseField):
+    '''
+    Represents a fixed-length sequence of bits, the mutations are the entire range between min_value and max_value
+    '''
+    _encoder_type_ = BitFieldEncoder
+    lib = None
+
+    def __init__(self, value, length, signed=False, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None):
+        '''
+        :type value: int
+        :param value: default value
+        :type length: positive int
+        :param length: length of field in bits
+        :param signed: are the values signed (default: False)
+        :param min_value: minimal allowed value (default: None)
+        :param max_value: maximal allowed value (default: None)
+        :type encoder: :class:`~kitty.model.low_level.encoder.BitFieldEncoder`
+        :param encoder: encoder for the field
+        :param fuzzable: is field fuzzable (default: True)
+        :param name: name of the object (default: None)
+        '''
+        self._length = length
+        self._signed = signed
+        self._min_value = None
+        self._max_value = None
+        self._max_min_diff = None
+        self._calc_bounds(value, min_value, max_value)
+        super(_FullRangeBitField, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
+        self._initialize()
+
+    _calc_bounds = _calc_bitfield_bounds
+
+    def _init(self):
+        self._num_mutations = self._max_value - self._min_value + 1
+
+    def _mutate(self):
+        self._current_value = self._min_value + self._current_index
+
+    def _encode_value(self, value):
+        return self._encoder.encode(value, self._length, self._signed)
+
+    def skip(self, count):
+        self._initialize()
+        skipped = 0
+        if not self._exhausted():
+            skipped = min(count, self.num_mutations() - self._current_index - 1)
+            self._current_index += skipped
+        return skipped
+
+    def hash(self):
+        '''
+        :rtype: int
+        :return: hash of the field
+        '''
+        hashed = super(_FullRangeBitField, self).hash()
+        return khash(hashed, self._length, self._signed, self._min_value, self._max_value)
+
+
+class _LibraryBitField(_LibraryField):
     '''
     Represents a fixed-length sequence of bits, the mutations target common integer related vulnerabilities
-
-        .. note::
-
-            Since BitField is frequently used in binary format, multiple aliases were created for it. See aliases.py for more details.
     '''
     _encoder_type_ = BitFieldEncoder
     lib = None
@@ -783,30 +875,9 @@ class BitField(_LibraryField):
         self._max_value = None
         self._max_min_diff = None
         self._calc_bounds(value, min_value, max_value)
-        super(BitField, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
+        super(_LibraryBitField, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
 
-    def _calc_bounds(self, value, minv, maxv):
-        if self._length <= 0:
-            raise KittyException('length (%d) <= 0' % (self._length))
-        max_possible = 2 ** self._length - 1
-        if self._signed:
-            self._min_value = ~(max_possible >> 1)
-        else:
-            self._min_value = 0
-        self._max_value = max_possible + self._min_value
-        self._max_min_diff = max_possible
-        if maxv is not None:
-            if maxv > self._max_value:
-                raise KittyException('max_value is too big %d > %d' % (maxv, self._max_value))
-            self._max_value = maxv
-        if minv is not None:
-            if minv < self._min_value:
-                raise KittyException('min_value is too small %d < %d' % (minv, self._min_value))
-            self._min_value = minv
-        if self._min_value > self._max_value:
-            raise KittyException('min_value (%d) > max_value (%d)' % (self._min_value, self._max_value))
-        if (value < self._min_value) or (value > self._max_value):
-            raise KittyException('default value (%d) not in range (min=%d, max=%d)' % (value, self._min_value, self._max_value))
+    _calc_bounds = _calc_bitfield_bounds
 
     def _get_local_lib(self):
         lib = []
@@ -895,8 +966,21 @@ class BitField(_LibraryField):
         :rtype: int
         :return: hash of the field
         '''
-        hashed = super(BitField, self).hash()
+        hashed = super(_LibraryBitField, self).hash()
         return khash(hashed, self._length, self._signed, self._min_value, self._max_value)
+
+
+def BitField(value, length, signed=False, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None, full_range=False):
+    '''
+    Returns an instance of some BitField class
+    .. note::
+
+        Since BitField is frequently used in binary format, multiple aliases were created for it. See aliases.py for more details.
+    '''
+    if not full_range:
+        return _LibraryBitField(value, length, signed, min_value, max_value, encoder, fuzzable, name)
+    else:
+        return _FullRangeBitField(value, length, signed, min_value, max_value, encoder, fuzzable, name)
 
 
 class Group(_LibraryField):

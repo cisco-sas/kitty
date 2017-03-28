@@ -760,28 +760,34 @@ class BitFieldTests(ValueTestCase):
             BitField(value=self.default_value, length=0)
 
     def testLengthVerySmall(self):
-        self._base_check(BitField(value=1, length=1))
+        for full_range in[True, False]:
+            self._base_check(BitField(value=1, length=1, full_range=full_range))
 
     def testLengthTooSmallForValueSigned(self):
-        with self.assertRaises(KittyException):
-            BitField(value=64, length=7, signed=True)
+        for full_range in[True, False]:
+            with self.assertRaises(KittyException):
+                BitField(value=64, length=7, signed=True, full_range=full_range)
 
     def testLengthTooSmallForValueUnsigned(self):
-        with self.assertRaises(KittyException):
-            BitField(value=64, length=6, signed=False)
+        for full_range in[True, False]:
+            with self.assertRaises(KittyException):
+                BitField(value=64, length=6, signed=False, full_range=full_range)
 
     def testLengthTooSmallForMaxValue(self):
-        with self.assertRaises(KittyException):
-            BitField(value=10, length=5, signed=True, max_value=17)
+        for full_range in[True, False]:
+            with self.assertRaises(KittyException):
+                BitField(value=10, length=5, signed=True, max_value=17, full_range=full_range)
 
     def testLengthVeryLarge(self):
-        field = BitField(value=1, length=1)
-        self._base_check(field)
+        for full_range in[True, False]:
+            field = BitField(value=1, length=1)
+            self._base_check(field)
 
     def testLengthNonByteAlignedUnsigned(self):
         signed = False
-        self._base_check(BitField(value=10, length=7, signed=signed))
-        self._base_check(BitField(value=10, length=14, signed=signed))
+        for full_range in[True, False]:
+            self._base_check(BitField(value=10, length=7, signed=signed, full_range=full_range))
+            self._base_check(BitField(value=10, length=14, signed=signed, full_range=full_range))
         self._base_check(BitField(value=10, length=15, signed=signed))
         self._base_check(BitField(value=10, length=16, signed=signed))
         self._base_check(BitField(value=10, length=58, signed=signed))
@@ -789,15 +795,17 @@ class BitFieldTests(ValueTestCase):
 
     def testLengthNonByteAlignedSigned(self):
         signed = True
-        self._base_check(BitField(value=10, length=7, signed=signed))
-        self._base_check(BitField(value=10, length=14, signed=signed))
+        for full_range in[True, False]:
+            self._base_check(BitField(value=10, length=7, signed=signed, full_range=full_range))
+            self._base_check(BitField(value=10, length=14, signed=signed, full_range=full_range))
         self._base_check(BitField(value=10, length=15, signed=signed))
         self._base_check(BitField(value=10, length=16, signed=signed))
         self._base_check(BitField(value=10, length=58, signed=signed))
         self._base_check(BitField(value=10, length=111, signed=signed))
 
     def testValueNegative(self):
-        self._base_check(BitField(value=-50, length=7, signed=True))
+        for full_range in[True, False]:
+            self._base_check(BitField(value=-50, length=7, signed=True, full_range=full_range))
 
     def _testIntsFromFile(self):
         values = [

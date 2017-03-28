@@ -101,84 +101,84 @@ from kitty.model.low_level.condition import Compare
 
 # ################### Field Aliases ####################
 
-def UInt8(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None):
+def UInt8(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None, full_range=False):
     '''Unsigned 8-bit field'''
-    return BitField(value, 8, signed=False, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name)
+    return BitField(value, 8, signed=False, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def UInt16(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None):
+def UInt16(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None, full_range=False):
     '''Unsigned 16-bit field'''
-    return BitField(value, 16, signed=False, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name)
+    return BitField(value, 16, signed=False, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def UInt32(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None):
+def UInt32(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None, full_range=False):
     '''Unsigned 32-bit field'''
-    return BitField(value, 32, signed=False, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name)
+    return BitField(value, 32, signed=False, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def UInt64(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None):
+def UInt64(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None, full_range=False):
     '''Unsigned 64-bit field'''
-    return BitField(value, 64, signed=False, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name)
+    return BitField(value, 64, signed=False, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def SInt8(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None):
+def SInt8(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None, full_range=False):
     '''Signed 8-bit field'''
-    return BitField(value, 8, signed=True, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name)
+    return BitField(value, 8, signed=True, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def SInt16(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None):
+def SInt16(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None, full_range=False):
     '''Signed 16-bit field'''
-    return BitField(value, 16, signed=True, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name)
+    return BitField(value, 16, signed=True, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def SInt32(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None):
+def SInt32(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None, full_range=False):
     '''Signed 32-bit field'''
-    return BitField(value, 32, signed=True, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name)
+    return BitField(value, 32, signed=True, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def SInt64(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None):
+def SInt64(value, min_value=None, max_value=None, encoder=ENC_INT_DEFAULT, fuzzable=True, name=None, full_range=False):
     '''Signed 64-bit field'''
-    return BitField(value, 64, signed=True, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name)
+    return BitField(value, 64, signed=True, min_value=min_value, max_value=max_value, encoder=encoder, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def BE8(value, min_value=None, max_value=None, fuzzable=True, name=None):
+def BE8(value, min_value=None, max_value=None, fuzzable=True, name=None, full_range=False):
     '''8-bit field, Big endian encoded'''
-    return UInt8(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_BE, fuzzable=fuzzable, name=name)
+    return UInt8(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_BE, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def BE16(value, min_value=None, max_value=None, fuzzable=True, name=None):
+def BE16(value, min_value=None, max_value=None, fuzzable=True, name=None, full_range=False):
     '''16-bit field, Big endian encoded'''
-    return UInt16(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_BE, fuzzable=fuzzable, name=name)
+    return UInt16(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_BE, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def BE32(value, min_value=None, max_value=None, fuzzable=True, name=None):
+def BE32(value, min_value=None, max_value=None, fuzzable=True, name=None, full_range=False):
     '''32-bit field, Big endian encoded'''
-    return UInt32(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_BE, fuzzable=fuzzable, name=name)
+    return UInt32(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_BE, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def BE64(value, min_value=None, max_value=None, fuzzable=True, name=None):
+def BE64(value, min_value=None, max_value=None, fuzzable=True, name=None, full_range=False):
     '''64-bit field, Big endian encoded'''
-    return UInt64(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_BE, fuzzable=fuzzable, name=name)
+    return UInt64(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_BE, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def LE8(value, min_value=None, max_value=None, fuzzable=True, name=None):
+def LE8(value, min_value=None, max_value=None, fuzzable=True, name=None, full_range=False):
     '''8-bit field, Little endian encoded'''
-    return UInt8(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_LE, fuzzable=fuzzable, name=name)
+    return UInt8(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_LE, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def LE16(value, min_value=None, max_value=None, fuzzable=True, name=None):
+def LE16(value, min_value=None, max_value=None, fuzzable=True, name=None, full_range=False):
     '''16-bit field, Little endian encoded'''
-    return UInt16(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_LE, fuzzable=fuzzable, name=name)
+    return UInt16(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_LE, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def LE32(value, min_value=None, max_value=None, fuzzable=True, name=None):
+def LE32(value, min_value=None, max_value=None, fuzzable=True, name=None, full_range=False):
     '''32-bit field, Little endian encoded'''
-    return UInt32(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_LE, fuzzable=fuzzable, name=name)
+    return UInt32(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_LE, fuzzable=fuzzable, name=name, full_range=full_range)
 
 
-def LE64(value, min_value=None, max_value=None, fuzzable=True, name=None):
+def LE64(value, min_value=None, max_value=None, fuzzable=True, name=None, full_range=False):
     '''64-bit field, Little endian encoded'''
-    return UInt64(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_LE, fuzzable=fuzzable, name=name)
+    return UInt64(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_LE, fuzzable=fuzzable, name=name, full_range=full_range)
 
 U8 = UInt8
 S8 = SInt8
