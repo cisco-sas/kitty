@@ -7,6 +7,6 @@ install:
 before_script:
     - mkdir logs
 script:
-    - coverage run --omit="*kitty/bin/*" --source=./kitty tests/runner.py
+    - coverage run tests/runner.py
 after_success:
     - coveralls

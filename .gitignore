@@ -6,3 +6,4 @@ tests/logs/
 docs/build/
 *kittylogs*
 */.coverage
+.coverage
