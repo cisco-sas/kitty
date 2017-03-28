@@ -519,12 +519,12 @@ class String(_LibraryField):
 
     def _get_local_lib(self):
         lib = []
-        l = len(self._default_value)
+        default_len = len(self._default_value)
         for i in [2, 10, 100]:
             lib.append((self._default_value * i, 'duplicate value %s times' % i))
         lib.append((self._default_value + '\xfe', 'value with utf8 escape char'))
         lib.append(('\x00' + self._default_value, 'null before value'))
-        lib.append((self._default_value[0:l / 2] + '\x00' + self._default_value[l / 2:], 'null in middle of value'))
+        lib.append((self._default_value[:default_len / 2] + '\x00' + self._default_value[default_len / 2:], 'null in middle of value'))
         lib.append((self._default_value + '\x00', 'null after value'))
         return lib
 
