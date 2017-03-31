@@ -1,7 +1,5 @@
 '''
 Tests for mutation based fields
-
-.. todo:: BlockDuplicates, MutableField
 '''
 
 from common import BaseTestCase, metaTest
@@ -9,6 +7,7 @@ from kitty.core import KittyException
 from kitty.model.low_level.mutated_field import BitFlip, ByteFlip
 from kitty.model.low_level.mutated_field import BitFlips, ByteFlips
 from kitty.model.low_level.mutated_field import BlockRemove, BlockDuplicate, BlockSet
+from kitty.model.low_level.mutated_field import BlockDuplicates, MutableField
 from struct import pack
 
 
@@ -520,3 +519,160 @@ class BlockDuplicateTests(BlockOperationTests):
     def testExceptionIfNumDupsNotPositive(self):
         with self.assertRaises(KittyException):
             BlockDuplicate(b'\x00\x00\x00', 2, num_dups=-1)
+
+
+class BlockDuplicatesTests(BaseTestCase):
+
+    __meta__ = False
+
+    def setUp(self):
+        super(BlockDuplicatesTests, self).setUp(BlockDuplicates)
+        self._uut_name = 'uut'
+        self._default_uut_value = '\x11\x22\x33\x44'
+        self._default_block_size = 2
+        self._default_num_dups_range = (2, 5, 10, 50, 100)
+
+    def _get_field(self, value=-1, block_size=None, num_dups_range=None, fuzzable=True):
+        if value == -1:
+            value = self._default_uut_value
+        if block_size is None:
+            block_size = self._default_block_size
+        if num_dups_range is None:
+            num_dups_range = self._default_num_dups_range
+        return BlockDuplicates(value, block_size, num_dups_range, fuzzable, name=self._uut_name)
+
+    def _get_all_mutations(self, field, reset=True):
+        res = []
+        while field.mutate():
+            res.append(field.render())
+        if reset:
+            field.reset()
+        return res
+
+    def _base_check(self, field):
+        num_mutations = field.num_mutations()
+        mutations = self._get_all_mutations(field)
+        self.assertEqual(num_mutations, len(mutations))
+        mutations = self._get_all_mutations(field)
+        self.assertEqual(num_mutations, len(mutations))
+
+    def testBase(self):
+        self._base_check(self._get_field())
+
+    def testNoMutationsWhenNotFuzzable(self):
+        uut = self._get_field(fuzzable=False)
+        uut_num_mutations = uut.num_mutations()
+        uut_mutations = self._get_all_mutations(uut)
+        self.assertEqual(0, uut_num_mutations)
+        self.assertEqual(uut_num_mutations, len(uut_mutations))
+
+    def testExceptionIfBlockSizeIsNegative(self):
+        with self.assertRaises(KittyException):
+            self._get_field(value='\x11\x22\x33\x44', block_size=-1)
+
+    def testExceptionIfBlockSizeIsZero(self):
+        with self.assertRaises(KittyException):
+            self._get_field(value='\x11\x22\x33\x44', block_size=0)
+
+    def testExceptionIfBlockSizeBiggerThanValue(self):
+        with self.assertRaises(KittyException):
+            self._get_field(value='\x11\x22\x33\x44', block_size=5)
+
+    def testExceptionNumDupsRangeNegativeValues(self):
+        with self.assertRaises(KittyException):
+            self._get_field(num_dups_range=(-1,))
+
+
+class MutableFieldTests(BaseTestCase):
+
+    def setUp(self):
+        super(MutableFieldTests, self).setUp(MutableField)
+        self._uut_name = 'uut'
+
+    def _get_field(self, value, fuzzable=True):
+        return MutableField(value=value, fuzzable=fuzzable, name=self._uut_name)
+
+    def _get_all_mutations(self, field, reset=True):
+        res = []
+        while field.mutate():
+            res.append(field.render())
+        if reset:
+            field.reset()
+        return res
+
+    def _base_check(self, field):
+        num_mutations = field.num_mutations()
+        mutations = self._get_all_mutations(field)
+        self.assertEqual(num_mutations, len(mutations))
+        mutations = self._get_all_mutations(field)
+        self.assertEqual(num_mutations, len(mutations))
+
+    def testBasePayloadShort(self):
+        self._base_check(self._get_field('012'))
+
+    def testBasePayloadOver4bytes(self):
+        self._base_check(self._get_field('01234'))
+
+    def testBasePayloadOver8bytes(self):
+        self._base_check(self._get_field('0123456789'))
+
+    def testBasePayloadOver16bytes(self):
+        self._base_check(self._get_field('0123456789abcdefghijklmno'))
+
+    def testNoMutationsWhenNotFuzzable(self):
+        uut = self._get_field(value='0123456789', fuzzable=False)
+        uut_num_mutations = uut.num_mutations()
+        uut_mutations = self._get_all_mutations(uut)
+        self.assertEqual(0, uut_num_mutations)
+        self.assertEqual(uut_num_mutations, len(uut_mutations))
+
+    #
+    # This set of tests looks at the internal fields of the
+    # MutableField. Kinda dirty, but this should be checked
+    #
+    def testInternalFieldsShortPayload(self):
+        uut = self._get_field('012')
+        fields = uut._fields
+        field_types = [type(f) for f in fields]
+        expected_field_types = [
+            ByteFlips, BitFlips
+        ]
+        self.assertEqual(field_types, expected_field_types)
+        self.assertEqual(len(fields[0]._fields), 2)
+
+    def testInternalFieldsPayloadOver4Bytes(self):
+        uut = self._get_field('01234')
+        fields = uut._fields
+        field_types = [type(f) for f in fields]
+        expected_field_types = [
+            ByteFlips, BitFlips,
+            BlockRemove, BlockDuplicate, BlockSet,
+        ]
+        self.assertEqual(field_types, expected_field_types)
+        self.assertEqual(len(fields[0]._fields), 3)
+
+    def testInternalFieldsPayloadOver8Bytes(self):
+        uut = self._get_field('012345678')
+        fields = uut._fields
+        field_types = [type(f) for f in fields]
+        expected_field_types = [
+            ByteFlips, BitFlips,
+            BlockRemove, BlockDuplicate, BlockSet,
+            BlockRemove, BlockDuplicates, BlockSet,
+        ]
+        self.assertEqual(field_types, expected_field_types)
+        self.assertEqual(len(fields[0]._fields), 3)
+
+    def testInternalFieldsPayloadOver16Bytes(self):
+        uut = self._get_field('0123456789abcdefgh')
+        fields = uut._fields
+        field_types = [type(f) for f in fields]
+        expected_field_types = [
+            ByteFlips, BitFlips,
+            BlockRemove, BlockDuplicate, BlockSet,
+            BlockRemove, BlockDuplicates, BlockSet,
+            BlockRemove, BlockDuplicates, BlockSet,
+        ]
+        self.assertEqual(field_types, expected_field_types)
+        self.assertEqual(len(fields[0]._fields), 3)
+
