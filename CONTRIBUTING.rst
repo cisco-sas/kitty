@@ -9,7 +9,6 @@ we only benefit from contribution.
 However, we want to keep Kitty stable, documented and easy to read.
 
 At this point, this guide is rather short, so please read it from start to end.
-it will 
 
 Code
 ----

@@ -1,3 +1,11 @@
+Version 0.7.1 (2017-03-31)
+==========================
+
+* bugfix: [DataModel] fixed default value of Pad container
+* bugfix: [TestList] fix string representation for some test ranges
+* new feature: [DataModel] BitField now supports full range mutation
+* enhancement: [EmptyController] now have a default name
+
 Version 0.7.0 (2016-11-11)
 ==========================
 
