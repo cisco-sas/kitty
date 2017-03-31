@@ -175,15 +175,6 @@ class BaseField(KittyObject):
         '''
         pass
 
-    def _get_enclosing_list(self):
-        '''
-        :return: list of fields from the top of the path to current field
-        '''
-        alist = [self]
-        if self.enclosing:
-            alist = self.enclosing._get_enclosing_list() + alist
-        return alist
-
     def get_structure(self):
         info = {
             'field_type': type(self).__name__,
