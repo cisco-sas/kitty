@@ -71,7 +71,6 @@ def encode_data(data):
     Encode data - list, dict, string, bool or int (and nested)
 
     :param data: data to encode
-    :param encoding: encoding to use (default: 'hex')
     :return: encoded object of the same type
     '''
     if isinstance(data, (six.string_types, bytes)):
@@ -93,7 +92,6 @@ def decode_data(data):
     Decode data - list, dict, string, bool or int (and nested)
 
     :param data: data to decode
-    :param encoding: encoding to use (default: 'hex')
     :return: decoded object of the same type
     '''
     if isinstance(data, (six.string_types, bytes)):
