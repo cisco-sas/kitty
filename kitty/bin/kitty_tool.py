@@ -53,6 +53,7 @@ import logging
 from pkg_resources import get_distribution
 from json import dumps
 import docopt
+import traceback
 from kitty.model import Template
 
 
@@ -225,6 +226,8 @@ def _main():
             file_iter = FileIterator(opts['<FILE>'], handler, logger)
             file_iter.iterate()
     except Exception as ex:
+        if opts['--verbose']:
+            logger.error(traceback.format_exc())
         logger.error('Error: %s' % ex)
         sys.exit(1)
 
