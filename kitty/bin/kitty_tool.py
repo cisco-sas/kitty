@@ -93,11 +93,11 @@ class FileIterator(object):
                 self.handler.handle(attr)
             elif isinstance(attr, types.ListType):
                 for mem in attr:
-                    if isinstance(attr, Template):
-                        self.handler.handle(attr)
+                    if isinstance(mem, Template):
+                        self.handler.handle(mem)
             elif isinstance(attr, types.DictionaryType):
                 for k in attr:
-                    if isinstance(attr, Template):
+                    if isinstance(attr[k], Template):
                         self.handler.handle(attr[k])
 
 
@@ -190,9 +190,9 @@ class FileGeneratorHandler(Handler):
 
     def _progress_print(self, current_index, info):
         tests_left = (self.end_index - current_index)
-        precent = int((self.total - tests_left) * self.step)
+        percent = int((self.total - tests_left) * self.step)
         out_line = ''
-        out_line += '\r%3d%%' % (precent)
+        out_line += '\r%3d%%' % (percent)
         out_line += ' %d/%d' % (current_index - self.skip + 1, self.end_index - self.skip + 1)
         if 'field/path' in info:
             out_line += ' %s' % (info['field/path'])
