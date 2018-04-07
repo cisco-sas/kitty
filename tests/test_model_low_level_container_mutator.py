@@ -291,3 +291,11 @@ class ListTests(BaseTestCase):
         for m in mutations:
             if m != '':
                 self.assertEqual(m.count('/'), (len(m) - 1) / 2)
+
+    def testExceptionOnEmptyListFields(self):
+        with self.assertRaises(KittyException):
+            self.cls(name=self.uut_name, fields=[])
+
+    def testExceptionOnNoneFields(self):
+        with self.assertRaises(KittyException):
+            self.cls(name=self.uut_name, fields=None)
