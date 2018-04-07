@@ -199,7 +199,8 @@ class FileGeneratorHandler(Handler):
         if len(out_line) > self.max_line_length:
             max_line_length = len(out_line)
         else:
-            out_line += ' ' * (max_line_length - len(out_line))
+            max_line_length = self.max_line_length
+        out_line += ' ' * (max_line_length - len(out_line))
         sys.stdout.write(out_line)
         sys.stdout.flush()
 
