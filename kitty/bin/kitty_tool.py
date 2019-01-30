@@ -90,11 +90,11 @@ class FileIterator(object):
             attr = getattr(module, name)
             if isinstance(attr, Template):
                 self.handler.handle(attr)
-            elif isinstance(attr, types.ListType):
+            elif isinstance(attr, list):
                 for mem in attr:
                     if isinstance(attr, Template):
                         self.handler.handle(attr)
-            elif isinstance(attr, types.DictionaryType):
+            elif isinstance(attr, dict):
                 for k in attr:
                     if isinstance(attr, Template):
                         self.handler.handle(attr[k])

@@ -61,7 +61,7 @@ class Calculated(BaseField):
         self._rendered_field = None
         self.dependency_type = Calculated.VALUE_BASED
         super(Calculated, self).__init__(value=self.__class__._default_value_, encoder=encoder, fuzzable=fuzzable, name=name)
-        if isinstance(depends_on, types.StringTypes):
+        if isinstance(depends_on, str):
             self._field_name = depends_on
             self._field = None
         elif isinstance(depends_on, BaseField):
@@ -209,7 +209,7 @@ class CalculatedStr(Calculated):
         '''
         try:
             res = func('')
-            kassert.is_of_types(res, types.StringTypes)
+            kassert.is_of_types(res, str)
             self._func = func
         except:
             raise KittyException('func should be func(str)->str')
@@ -269,7 +269,7 @@ class Hash(CalculatedStr):
         else:
             try:
                 res = algorithm('')
-                kassert.is_of_types(res, types.StringTypes)
+                kassert.is_of_types(res, str)
                 func = algorithm
                 self._hash_length = len(res) * 8
             except:
@@ -363,7 +363,7 @@ class FieldIntProperty(CalculatedInt):
         '''
         if correction:
             if not callable(correction):
-                if not isinstance(correction, types.IntType):
+                if not isinstance(correction, int):
                     raise KittyException('correction must be int, function or None!')
         self._correction = correction
         bit_field = BitField(value=0, length=length, encoder=encoder)
@@ -374,7 +374,7 @@ class FieldIntProperty(CalculatedInt):
         calculated = self._calculate(self._field)
         if callable(self._correction):
             calculated = self._correction(calculated)
-        elif isinstance(self._correction, types.IntType):
+        elif isinstance(self._correction, int):
             calculated += self._correction
         return calculated
 
@@ -484,7 +484,7 @@ class Checksum(CalculatedInt):
         else:
             try:
                 res = algorithm(empty_bits)
-                kassert.is_of_types(res, types.IntType)
+                kassert.is_of_types(res, int)
                 func = algorithm
             except:
                 raise KittyException('algorithm should be a func(str)->int or one of the strings %s' % (Checksum._algos.keys(),))
@@ -609,7 +609,7 @@ class Offset(FieldIntProperty):
         if correction is None:
             correction = num_bits_to_bytes
         super(Offset, self).__init__(depends_on=target_field, length=length, correction=correction, encoder=encoder, fuzzable=fuzzable, name=name)
-        if isinstance(base_field, types.StringTypes):
+        if isinstance(base_field, str):
             self.base_field_name = base_field
             self.base_field = None
         elif isinstance(base_field, BaseField):

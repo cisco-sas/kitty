@@ -139,11 +139,11 @@ def process_file(f, processor):
                 if isinstance(attr, Template):
                     description = '(member name %s)' % name
                     test_if_template(attr, description, processor)
-                elif isinstance(attr, types.ListType):
+                elif isinstance(attr, list):
                     for mem in attr:
                         description = '(element in list %s)' % name
                         test_if_template(mem, description, processor)
-                elif isinstance(attr, types.DictionaryType):
+                elif isinstance(attr, dict):
                     for k in attr:
                         description = '(%s[%s])' % (name, k)
                         test_if_template(attr[k], description, processor)
