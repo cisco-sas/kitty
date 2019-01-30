@@ -18,6 +18,8 @@
 '''
 Tests for low level encoders:
 '''
+from binascii import hexlify
+from struct import pack
 from kitty.model.low_level.encoder import BitFieldMultiByteEncoder
 from kitty.model.low_level.encoder import StrFuncEncoder, StrEncodeEncoder
 from kitty.model.low_level.encoder import StrBase64NoNewLineEncoder, StrNullTerminatedEncoder
@@ -26,7 +28,6 @@ from kitty.model.low_level.encoder import StrEncoderWrapper, BitsFuncEncoder
 from kitty.model.low_level.encoder import BitFieldBinEncoder
 from kitty.model.low_level import BitField
 from kitty.core import KittyException
-from struct import pack
 from bitstring import Bits
 from common import BaseTestCase
 
@@ -156,7 +157,7 @@ class StrFuncEncoderTest(BaseTestCase):
         super(StrFuncEncoderTest, self).setUp(cls)
 
     def _encode_func(self, s):
-        return s.encode('hex')
+        return hexlify(s)
 
     def get_default_encoder(self):
         return self.cls(self._encode_func)

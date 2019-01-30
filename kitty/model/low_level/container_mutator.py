@@ -44,6 +44,7 @@ class FieldRangeMutator(Container):
     not in the template declaration directly,
     and as such, they provide empty response when not mutated.
     '''
+
     def __init__(self, field_count, fields=[], delim=None, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :param field_count: how many fields to omit in each mutation
@@ -224,6 +225,7 @@ class List(OneOf):
     a List also performs mutation of full elements,
     by reordering, duplicating and omitting them.
     '''
+
     def __init__(self, fields=[], delim=None, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :type fields: field or iterable of fields

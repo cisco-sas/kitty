@@ -17,6 +17,7 @@
 '''
 This module defines the :class:`~kitty.data.report.Report` class
 '''
+from base64 import b64encode, b64decode
 
 
 class Report(object):
@@ -157,53 +158,51 @@ class Report(object):
             return self._sub_reports[key]
         return None
 
-    def to_dict(self, encoding='base64'):
+    def to_dict(self):
         '''
         Return a dictionary version of the report
 
-        :param encoding: required encoding for the string values (default: 'base64')
         :rtype: dictionary
         :return: dictionary representation of the report
         '''
         res = {}
         for k, v in self._data_fields.items():
-            if isinstance(v, unicode):
-                v = v.encode('utf-8')
+            # if sys.version_info < (3,) and isinstance(v, unicode):
+            #     v = str(v)
             if isinstance(v, str):
-                v = v.encode(encoding)[:-1]
+                v = b64encode(v)
             res[k] = v
         for k, v in self._sub_reports.items():
-            res[k] = v.to_dict(encoding)
+            res[k] = v.to_dict()
         return res
 
     @classmethod
-    def _decode(cls, val, encoding):
-        if isinstance(val, str):
-            val = val.decode(encoding)
+    def _decode(cls, val):
+        if isinstance(val, (str, bytes)):
+            val = b64decode(val)
         return val
 
     @classmethod
-    def from_dict(cls, d, encoding='base64'):
+    def from_dict(cls, d):
         '''
         Construct a ``Report`` object from dictionary.
 
         :type d: dictionary
         :param d: dictionary representing the report
-        :param encoding: encoding of strings in the dictionary (default: 'base64')
         :return: Report object
         '''
-        report = Report(Report._decode(d['name'], encoding))
-        report.set_status(Report._decode(d['status'], encoding))
-        sub_reports = Report._decode(d['sub_reports'], encoding)
+        report = Report(Report._decode(d['name']))
+        report.set_status(Report._decode(d['status']))
+        sub_reports = Report._decode(d['sub_reports'])
         del d['sub_reports']
         for k, v in d.items():
             if k in sub_reports:
                 report.add(k, Report.from_dict(v))
             else:
                 if k.lower() == 'status':
-                    report.set_status(Report._decode(v, encoding))
+                    report.set_status(Report._decode(v))
                 else:
-                    report.add(k, Report._decode(v, encoding))
+                    report.add(k, Report._decode(v))
 
         return report
 

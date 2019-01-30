@@ -15,18 +15,24 @@
 # You should have received a copy of the GNU General Public License
 # along with Kitty.  If not, see <http://www.gnu.org/licenses/>.
 
-import BaseHTTPServer
 import json
 import datetime
 import time
-from urlparse import urlparse, parse_qs
 import os
+import sys
 
 from kitty.interfaces.base import EmptyInterface
 from kitty.core.threading_utils import FuncThread
 
+if sys.version_info >= (3,):
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+    from urllib.parse import urlparse, parse_qs
+else:
+    from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+    from urlparse import urlparse, parse_qs
 
-class _WebInterfaceServer(BaseHTTPServer.HTTPServer):
+
+class _WebInterfaceServer(HTTPServer):
     '''
     http://docs.python.org/lib/module-BaseHTTPServer.html
     '''
@@ -37,7 +43,7 @@ class _WebInterfaceServer(BaseHTTPServer.HTTPServer):
         :param handler: handler for requests
         :param interface: reference to the interface object
         '''
-        BaseHTTPServer.HTTPServer.__init__(self, server_address, handler)
+        HTTPServer.__init__(self, server_address, handler)
         # kitty.interfaces... interface object
         self.interface = interface
         self.RequestHandlerClass.logger = interface.logger
@@ -52,17 +58,18 @@ class _WebInterfaceServer(BaseHTTPServer.HTTPServer):
         return
 
 
-class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class _WebInterfaceHandler(BaseHTTPRequestHandler):
     '''
     Our HTTP request handler
     '''
+
     def __init__(self, request, client_address, server):
         '''
         :param request: the request from the client
         :param client_address: client address
         :param server: HTTP server
         '''
-        BaseHTTPServer.BaseHTTPRequestHandler.__init__(
+        BaseHTTPRequestHandler.__init__(
             self, request, client_address, server)
         self.dataman = None
 
@@ -217,7 +224,7 @@ class _WebInterfaceHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 if report:
                     response = {
                         'encoding': encoding,
-                        'report': report.to_dict(encoding)
+                        'report': report.to_dict()
                     }
                 else:
                     raise 'No report with id %d' % key

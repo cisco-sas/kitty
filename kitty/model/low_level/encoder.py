@@ -34,9 +34,10 @@ There are four families of encoders:
     Used to encode fields that inherit from FloatingPoint field (Float, Double)
     Those encoders are also refferred to as Float Encoders
 '''
+from struct import pack
+from binascii import hexlify
 from bitstring import Bits, BitArray
 from kitty.core import kassert, KittyException
-from struct import pack
 
 
 # ################### String Encoders ####################
@@ -76,6 +77,7 @@ class StrFuncEncoder(StrEncoder):
     '''
     Encode string using a given function
     '''
+
     def __init__(self, func):
         '''
         :param func: encoder function(str)->str
@@ -93,6 +95,7 @@ class StrEncodeEncoder(StrEncoder):
     '''
     Encode the string using str.encode function
     '''
+
     def __init__(self, encoding):
         '''
         :type encoding: ``str``
@@ -128,7 +131,7 @@ class StrBase64NoNewLineEncoder(StrEncoder):
         :param value: value to encode
         '''
         kassert.is_of_types(value, str)
-        encoded = value.encode('base64')
+        encoded = hexlify(value)
         if encoded:
             encoded = encoded[:-1]
         return Bits(bytes=encoded)
@@ -368,6 +371,7 @@ class StrEncoderWrapper(ByteAlignedBitsEncoder):
     '''
     Encode the data using str.encode function
     '''
+
     def __init__(self, encoder):
         '''
         :type encoding: StrEncoder
@@ -390,6 +394,7 @@ class BitsFuncEncoder(BitsEncoder):
     '''
     Encode bits using a given function
     '''
+
     def __init__(self, func):
         '''
         :param func: encoder function(Bits)->Bits

@@ -48,10 +48,9 @@ File name formats:
 '''
 import os
 import sys
-import types
 import logging
-from pkg_resources import get_distribution
 from json import dumps
+from pkg_resources import get_distribution
 import docopt
 from kitty.model import Template
 

@@ -55,7 +55,7 @@ class BitFlipTests(BaseTestCase):
         self._testBase(b'\x00\x00', 16, expected_mutations)
 
     def testFuzzableIsFalse(self):
-        uut = BitFlip(b'\x00\x00',  num_bits=3, fuzzable=False)
+        uut = BitFlip(b'\x00\x00', num_bits=3, fuzzable=False)
         self.assertEqual(uut.num_mutations(), 0)
         self.assertEqual(self.get_all_mutations(uut), [])
 
@@ -236,7 +236,7 @@ class ByteFlipTests(BaseTestCase):
             ByteFlip(value=value, num_bytes=-1)
 
     def testFuzzableIsFalse(self):
-        uut = ByteFlip(b'\x00\x00\x00\x00',  num_bytes=2, fuzzable=False)
+        uut = ByteFlip(b'\x00\x00\x00\x00', num_bytes=2, fuzzable=False)
         self.assertEqual(uut.num_mutations(), 0)
         self.assertEqual(self.get_all_mutations(uut), [])
 
@@ -675,4 +675,3 @@ class MutableFieldTests(BaseTestCase):
         ]
         self.assertEqual(field_types, expected_field_types)
         self.assertEqual(len(fields[0]._fields), 3)
-

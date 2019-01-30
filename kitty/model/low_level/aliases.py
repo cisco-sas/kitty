@@ -180,6 +180,7 @@ def LE64(value, min_value=None, max_value=None, fuzzable=True, name=None, full_r
     '''64-bit field, Little endian encoded'''
     return UInt64(value, min_value=min_value, max_value=max_value, encoder=ENC_INT_LE, fuzzable=fuzzable, name=name, full_range=full_range)
 
+
 U8 = UInt8
 S8 = SInt8
 Byte = UInt8

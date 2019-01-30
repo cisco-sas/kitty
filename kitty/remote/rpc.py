@@ -76,7 +76,7 @@ def encode_data(data):
     '''
     if isinstance(data, (six.string_types, bytes)):
         return encode_string(data)
-    elif isinstance(data, (six.integer_types, bool, float)):
+    elif isinstance(data, (int, bool, float)):
         return data
     elif data is None:
         return data
@@ -98,7 +98,7 @@ def decode_data(data):
     '''
     if isinstance(data, (six.string_types, bytes)):
         return decode_string(data)
-    elif isinstance(data, (six.integer_types, bool, float)):
+    elif isinstance(data, (int, bool, float)):
         return data
     elif data is None:
         return data
