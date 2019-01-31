@@ -214,7 +214,7 @@ class RpcHandler(BaseHTTPRequestHandler):
         self.req_params = {}
         self.req_rpc_version = '2.0'
         self.req_id = 0
-        self.data = self.rfile.read(int(self.headers.getheader('content-length')))
+        self.data = self.rfile.read(int(self.headers.get('content-length')))
         data_dict = json.loads(self.data)
         self.req_method = data_dict['method']
         self.req_params = decode_data(data_dict['params'])
@@ -291,7 +291,7 @@ class RpcHandler(BaseHTTPRequestHandler):
         jresponse = json.dumps(response)
         self.send_header("Content-length", len(jresponse))
         self.end_headers()
-        self.wfile.write(jresponse)
+        self.wfile.write(jresponse.encode())
 
 
 class RpcServer(object):

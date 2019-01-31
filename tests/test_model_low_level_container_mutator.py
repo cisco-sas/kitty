@@ -84,14 +84,14 @@ class MutatorTests(BaseTestCase):
         fields = [Static(c) for c in values]
         uut = self.get_uut(field_count, fields, **kwargs)
         self.assertEqual(uut.num_mutations(), len(expected))
-        mutations = [x.tobytes() for x in self.get_all_mutations(uut)]
+        mutations = [x.tobytes().decode() for x in self.get_all_mutations(uut)]
         self.assertEqual(mutations, expected)
 
     def _stringTest(self, values, field_count, expected, **kwargs):
         fields = [String(c) for c in values]
         uut = self.get_uut(field_count, fields, **kwargs)
         self.assertEqual(uut.num_mutations(), len(expected))
-        mutations = [x.tobytes() for x in self.get_all_mutations(uut)]
+        mutations = [x.tobytes().decode() for x in self.get_all_mutations(uut)]
         self.assertEqual(mutations, expected)
 
 
@@ -289,5 +289,5 @@ class ListTests(BaseTestCase):
         uut = self.get_uut(fields=fields, delim=String('/'))
         mutations = [m.tobytes() for m in self.get_all_mutations(uut)]
         for m in mutations:
-            if m != '':
-                self.assertEqual(m.count('/'), (len(m) - 1) / 2)
+            if m != b'':
+                self.assertEqual(m.count(b'/'), (len(m) - 1) // 2)

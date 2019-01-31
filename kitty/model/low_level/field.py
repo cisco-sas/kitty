@@ -24,6 +24,7 @@ from random import Random
 import copy
 import os
 import logging
+import six
 from base64 import b64encode
 from bitstring import Bits
 from kitty.core import KittyObject, KittyException, kassert, khash
@@ -197,9 +198,9 @@ class BaseField(KittyObject):
             'path': self.name if self.name else '<no name>',
             'field_type': type(self).__name__,
             'value': {
-                'raw': repr(self._current_value),
+                'base64': b64encode(repr(self._current_value).encode()).decode(),
                 'rendered': {
-                    'base64': b64encode(self._current_rendered.tobytes()),
+                    'base64': b64encode(self._current_rendered.tobytes()).decode(),
                     'length_in_bits': len(self._current_rendered),
                     'length_in_bytes': len(self._current_rendered.tobytes()),
                 }
@@ -505,8 +506,11 @@ class String(_LibraryField):
                 String('this is the default value', max_size=5)
         '''
         self._max_size = None if max_size is None else max_size
-        if isinstance(value, unicode):
-            value = value.encode('utf-8')
+        if isinstance(value, six.string_types):
+            if six.PY2:
+                value = value.encode('utf-8')
+            else:
+                value = bytes(value, 'utf-8')
         super(String, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
 
     def _get_local_lib(self):
@@ -514,10 +518,10 @@ class String(_LibraryField):
         default_len = len(self._default_value)
         for i in [2, 10, 100]:
             lib.append((self._default_value * i, 'duplicate value %s times' % i))
-        lib.append((self._default_value + '\xfe', 'value with utf8 escape char'))
-        lib.append(('\x00' + self._default_value, 'null before value'))
-        lib.append((self._default_value[:default_len // 2] + '\x00' + self._default_value[default_len // 2:], 'null in middle of value'))
-        lib.append((self._default_value + '\x00', 'null after value'))
+        lib.append((self._default_value + b'\xfe', 'value with utf8 escape char'))
+        lib.append((b'\x00' + self._default_value, 'null before value'))
+        lib.append((self._default_value[:default_len // 2] + b'\x00' + self._default_value[default_len // 2:], 'null in middle of value'))
+        lib.append((self._default_value + b'\x00', 'null after value'))
         return lib
 
     def _add_command_injection_strings_unix(self, lib):
@@ -883,13 +887,13 @@ class _LibraryBitField(_LibraryField):
             for s in range(1, num_sections):
                 lib.append(
                     (
-                        (lambda x, i=i, s=s: x._max_value - (x._max_min_diff / num_sections) * s + i),
+                        (lambda x, i=i, s=s: x._max_value - (x._max_min_diff // num_sections) * s + i),
                         'off by %d from section %d' % (i, s)
                     )
                 )
                 lib.append(
                     (
-                        (lambda x, i=i, s=s: x._max_value - (x._max_min_diff / num_sections) * s - i),
+                        (lambda x, i=i, s=s: x._max_value - (x._max_min_diff // num_sections) * s - i),
                         'off by %d from section %d' % (i, s)
                     )
                 )
@@ -1112,7 +1116,7 @@ class RandomBits(BaseField):
         '''
         if unused_bits not in range(8):
             raise KittyException('unused bits (%d) is not between 0-7' % unused_bits)
-        value = Bits(bytes=value)
+        value = Bits(bytes=value.encode())
         if unused_bits:
             value = value[:-unused_bits]
         super(RandomBits, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
@@ -1127,7 +1131,7 @@ class RandomBits(BaseField):
         if self._step:
             if self._step < 0:
                 raise KittyException('step (%d) < 0' % (step))
-            self._num_mutations = (self._max_length - self._min_length) / self._step
+            self._num_mutations = (self._max_length - self._min_length) // self._step
 
     def _validate_lengths(self, min_length, max_length):
         kassert.is_int(min_length)
@@ -1149,9 +1153,9 @@ class RandomBits(BaseField):
         else:
             length = self._random.randint(self._min_length, self._max_length)
         current_bytes = ''
-        for i in range(length / 8 + 1):
+        for i in range(length // 8 + 1):
             current_bytes += chr(self._random.randint(0, 255))
-        self._current_value = Bits(bytes=current_bytes)[:length]
+        self._current_value = Bits(bytes=current_bytes.encode())[:length]
 
     def hash(self):
         '''
@@ -1204,7 +1208,7 @@ class RandomBytes(BaseField):
         if self._step:
             if self._step < 0:
                 raise KittyException('step (%d) < 0' % (step))
-            self._num_mutations = (self._max_length - self._min_length) / self._step
+            self._num_mutations = (self._max_length - self._min_length) // self._step
 
     def _validate_lengths(self, min_length, max_length):
         kassert.is_int(min_length)

@@ -19,13 +19,13 @@
 '''
 Tests for low level fields:
 '''
+import struct
+import os
 from common import metaTest, BaseTestCase
 from bitstring import Bits
-import struct
 from kitty.model import String, Delimiter, RandomBits, RandomBytes, Dynamic, Static, Group, Float
 from kitty.model import BitField, UInt8, UInt16, UInt32, UInt64, SInt8, SInt16, SInt32, SInt64
 from kitty.core import KittyException
-import os
 
 
 class ValueTestCase(BaseTestCase):
@@ -97,6 +97,8 @@ class ValueTestCase(BaseTestCase):
         self.assertEqual(num_mutations, 0)
         rendered = field.render()
         as_val = self.bits_to_value(rendered)
+        if isinstance(self.default_value, str):
+            self.default_value = bytes(self.default_value, 'utf-8')
         self.assertAlmostEqual(as_val, self.default_value, places=5)
         mutated = field.mutate()
         self.assertFalse(mutated)
@@ -153,7 +155,7 @@ class ValueTestCase(BaseTestCase):
     def testSkipHalf(self):
         field = self.get_default_field(fuzzable=True)
         num_mutations = field.num_mutations()
-        to_skip = num_mutations / 2
+        to_skip = num_mutations // 2
         expected_skipped = min(to_skip, num_mutations)
         expected_mutated = num_mutations - expected_skipped
         self._check_skip(field, to_skip, expected_skipped, expected_mutated)
@@ -295,7 +297,7 @@ class StringTests(ValueTestCase):
 
     __meta__ = False
     default_value = 'kitty'
-    default_value_rendered = Bits(bytes=default_value)
+    default_value_rendered = Bits(bytes=default_value.encode())
 
     def setUp(self, cls=String):
         super(StringTests, self).setUp(cls)
@@ -343,7 +345,7 @@ class StringTests(ValueTestCase):
         uut = String(name=self.uut_name, value='streetlight')
         all_mutations = self.get_all_mutations(uut)
         for value in values:
-            self.assertIn(Bits(bytes=value), all_mutations)
+            self.assertIn(Bits(bytes=value.encode()), all_mutations)
         os.remove(filename)
 
 
@@ -351,7 +353,7 @@ class DelimiterTests(StringTests):
 
     __meta__ = False
     default_value = 'kitty'
-    default_value_rendered = Bits(bytes=default_value)
+    default_value_rendered = Bits(bytes=default_value.encode())
 
     def setUp(self, cls=Delimiter):
         super(DelimiterTests, self).setUp(cls)
@@ -361,7 +363,7 @@ class DynamicTests(ValueTestCase):
 
     __meta__ = False
     default_value = 'kitty'
-    default_value_rendered = Bits(bytes=default_value)
+    default_value_rendered = Bits(bytes=default_value.encode())
 
     def setUp(self, cls=Dynamic):
         super(DynamicTests, self).setUp(cls)
@@ -379,14 +381,14 @@ class DynamicTests(ValueTestCase):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
 
     def testSessionDataNotFuzzableAfterReset(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
         field.reset()
         self.assertEqual(self.default_value_rendered, field.render())
 
@@ -394,25 +396,25 @@ class DynamicTests(ValueTestCase):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
         new_val = 'new value'
         field.set_session_data({self.key_exists: new_val})
-        self.assertEqual(Bits(bytes=new_val), field.render())
+        self.assertEqual(Bits(bytes=new_val.encode()), field.render())
 
     def testSessionDataNotFuzzableDataChangeKeyNotExist(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
         new_val = 'new value'
         field.set_session_data({self.key_not_exist: new_val})
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
 
     def testSessionDataFuzzableAfterReset(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value, length=len(self.default_value), fuzzable=True)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
         field.reset()
         self.assertEqual(self.default_value_rendered, field.render())
 
@@ -420,19 +422,19 @@ class DynamicTests(ValueTestCase):
         field = self.cls(key=self.key_exists, default_value=self.default_value, length=len(self.default_value), fuzzable=True)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
         new_val = 'new value'
         field.set_session_data({self.key_exists: new_val})
-        self.assertEqual(Bits(bytes=new_val), field.render())
+        self.assertEqual(Bits(bytes=new_val.encode()), field.render())
 
     def testSessionDataFuzzableDataChangeKeyNotExist(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value, length=len(self.default_value), fuzzable=True)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
         new_val = 'new value'
         field.set_session_data({self.key_not_exist: new_val})
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
 
 
 class RandomBitsTests(ValueTestCase):
@@ -440,7 +442,7 @@ class RandomBitsTests(ValueTestCase):
     __meta__ = False
     default_value = 'kitty'
     default_unused_bits = 3
-    default_value_rendered = Bits(bytes=default_value)[:-3]
+    default_value_rendered = Bits(bytes=default_value.encode())[:-3]
 
     def setUp(self, cls=RandomBits):
         super(RandomBitsTests, self).setUp(cls)
@@ -516,7 +518,7 @@ class RandomBitsTests(ValueTestCase):
         min_length = 10
         max_length = 100
         step = 3
-        excepted_num_mutations = (max_length - min_length) / step
+        excepted_num_mutations = (max_length - min_length) // step
         field = self.cls(value=self.default_value, min_length=min_length, max_length=max_length, unused_bits=7, step=step)
         self._check_mutation_count(field, excepted_num_mutations)
         field.reset()
@@ -566,7 +568,7 @@ class RandomBytesTests(ValueTestCase):
 
     __meta__ = False
     default_value = 'kitty'
-    default_value_rendered = Bits(bytes=default_value)
+    default_value_rendered = Bits(bytes=default_value.encode())
 
     def setUp(self, cls=RandomBytes):
         super(RandomBytesTests, self).setUp(cls)
@@ -626,7 +628,7 @@ class RandomBytesTests(ValueTestCase):
         min_length = 10
         max_length = 100
         step = 3
-        excepted_num_mutations = (max_length - min_length) / step
+        excepted_num_mutations = (max_length - min_length) // step
         field = RandomBytes(value=self.default_value, min_length=min_length, max_length=max_length, step=step)
         self._check_mutation_count(field, excepted_num_mutations)
         field.reset()
@@ -676,7 +678,7 @@ class StaticTests(ValueTestCase):
 
     __meta__ = False
     default_value = 'kitty'
-    default_value_rendered = Bits(bytes=default_value)
+    default_value_rendered = Bits(bytes=default_value.encode())
 
     def setUp(self, cls=Static):
         super(StaticTests, self).setUp(cls)
@@ -697,7 +699,7 @@ class GroupTests(ValueTestCase):
 
     __meta__ = False
     default_value = 'group 1'
-    default_value_rendered = Bits(bytes=default_value)
+    default_value_rendered = Bits(bytes=default_value.encode())
     default_values = [default_value, 'group 2', 'group 3', 'group 4', 'group 5']
 
     def setUp(self, cls=Group):
@@ -710,9 +712,9 @@ class GroupTests(ValueTestCase):
     def testMutations(self):
         field = self.get_default_field()
         mutations = self._get_all_mutations(field)
-        self.assertListEqual([Bits(bytes=x) for x in self.default_values], mutations)
+        self.assertListEqual([Bits(bytes=x.encode()) for x in self.default_values], mutations)
         mutations = self._get_all_mutations(field)
-        self.assertListEqual([Bits(bytes=x) for x in self.default_values], mutations)
+        self.assertListEqual([Bits(bytes=x.encode()) for x in self.default_values], mutations)
 
 
 class FloatTests(ValueTestCase):
@@ -732,7 +734,7 @@ class BitFieldTests(ValueTestCase):
     __meta__ = False
     default_value = 500
     default_length = 15
-    default_value_rendered = Bits('uint:%d=%d' % (default_length, default_value))
+    default_value_rendered = Bits(('uint:%d=%d' % (default_length, default_value)).encode())
 
     def setUp(self, cls=BitField):
         super(BitFieldTests, self).setUp(cls)
@@ -829,7 +831,7 @@ class AlignedBitTests(ValueTestCase):
     __meta__ = True
     default_value = 500
     default_length = 16
-    default_value_rendered = Bits('uint:%d=%d' % (default_length, default_value))
+    default_value_rendered = Bits(('uint:%d=%d' % (default_length, default_value)).encode())
 
     def setUp(self, cls=None):
         super(AlignedBitTests, self).setUp(cls)
@@ -884,7 +886,7 @@ class SInt8Tests(SignedAlignedBitTests):
     __meta__ = False
     default_value = 50
     default_length = 8
-    default_value_rendered = Bits('int:%d=%d' % (default_length, default_value))
+    default_value_rendered = Bits(('int:%d=%d' % (default_length, default_value)).encode())
 
     def setUp(self, cls=SInt8):
         super(SInt8Tests, self).setUp(cls)
@@ -895,7 +897,7 @@ class SInt16Tests(SignedAlignedBitTests):
     __meta__ = False
     default_value = 0x1000
     default_length = 16
-    default_value_rendered = Bits('int:%d=%d' % (default_length, default_value))
+    default_value_rendered = Bits(('int:%d=%d' % (default_length, default_value)).encode())
 
     def setUp(self, cls=SInt16):
         super(SInt16Tests, self).setUp(cls)
@@ -906,7 +908,7 @@ class SInt32Tests(SignedAlignedBitTests):
     __meta__ = False
     default_value = 0x12345678
     default_length = 32
-    default_value_rendered = Bits('int:%d=%d' % (default_length, default_value))
+    default_value_rendered = Bits(('int:%d=%d' % (default_length, default_value)).encode())
 
     def setUp(self, cls=SInt32):
         super(SInt32Tests, self).setUp(cls)
@@ -917,7 +919,7 @@ class SInt64Tests(SignedAlignedBitTests):
     __meta__ = False
     default_value = 0x1122334455667788
     default_length = 64
-    default_value_rendered = Bits('int:%d=%d' % (default_length, default_value))
+    default_value_rendered = Bits(('int:%d=%d' % (default_length, default_value)).encode())
 
     def setUp(self, cls=SInt64):
         super(SInt64Tests, self).setUp(cls)
@@ -936,7 +938,7 @@ class UInt8Tests(UnsignedAlignedBitTests):
     __meta__ = False
     default_value = 50
     default_length = 8
-    default_value_rendered = Bits('uint:%d=%d' % (default_length, default_value))
+    default_value_rendered = Bits(('uint:%d=%d' % (default_length, default_value)).encode())
 
     def setUp(self, cls=UInt8):
         super(UInt8Tests, self).setUp(cls)
@@ -947,7 +949,7 @@ class UInt16Tests(UnsignedAlignedBitTests):
     __meta__ = False
     default_value = 0x1000
     default_length = 16
-    default_value_rendered = Bits('uint:%d=%d' % (default_length, default_value))
+    default_value_rendered = Bits(('uint:%d=%d' % (default_length, default_value)).encode())
 
     def setUp(self, cls=UInt16):
         super(UInt16Tests, self).setUp(cls)
@@ -958,7 +960,7 @@ class UInt32Tests(UnsignedAlignedBitTests):
     __meta__ = False
     default_value = 0x12345678
     default_length = 32
-    default_value_rendered = Bits('uint:%d=%d' % (default_length, default_value))
+    default_value_rendered = Bits(('uint:%d=%d' % (default_length, default_value)).encode())
 
     def setUp(self, cls=UInt32):
         super(UInt32Tests, self).setUp(cls)
@@ -969,7 +971,7 @@ class UInt64Tests(UnsignedAlignedBitTests):
     __meta__ = False
     default_value = 0x1122334455667788
     default_length = 64
-    default_value_rendered = Bits('uint:%d=%d' % (default_length, default_value))
+    default_value_rendered = Bits(('uint:%d=%d' % (default_length, default_value)).encode())
 
     def setUp(self, cls=UInt64):
         super(UInt64Tests, self).setUp(cls)

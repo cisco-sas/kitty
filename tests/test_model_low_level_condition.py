@@ -20,9 +20,9 @@ Tests for conditions (used by If/IfNot containers)
 '''
 from common import metaTest, BaseTestCase
 from kitty.core import KittyException
-from kitty.model import Container, If, IfNot, Meta
+from kitty.model import Container, If, Meta
 from kitty.model import String, U8, Static
-from kitty.model import Condition, Compare
+from kitty.model import Condition
 from kitty.model import Equal, NotEqual, Greater, GreaterEqual, AtLeast
 from kitty.model import Lesser, LesserEqual, AtMost, BitMaskSet, BitMaskNotSet
 
@@ -37,7 +37,7 @@ class ConditionTests(BaseTestCase):
 
     @metaTest
     def testApplies(self):
-        expected_value = 'Expected'
+        expected_value = b'Expected'
         value_field = self._get_applies_field()
         condition = self._get_condition(value_field)
         c = Container(
@@ -53,7 +53,7 @@ class ConditionTests(BaseTestCase):
 
     @metaTest
     def testNotApplies(self):
-        expected_value = ''
+        expected_value = b''
         value_field = self._get_not_applies_field()
         condition = self._get_condition(value_field)
         c = Container(
@@ -97,7 +97,7 @@ class EqualTests(CompareTests):
         super(ConditionTests, self).setUp(Equal)
 
     def testStringApplies(self):
-        expected_value = 'Expected'
+        expected_value = b'Expected'
         value_field = String(name='comp_field', value='applies')
         condition = self.cls(field=value_field, comp_value='applies')
         c = Container(
@@ -112,7 +112,7 @@ class EqualTests(CompareTests):
         self.assertEqual(rendered, expected_value)
 
     def testStringNotApplies(self):
-        expected_value = ''
+        expected_value = b''
         value_field = String(name='comp_field', value='napplies')
         condition = self.cls(field=value_field, comp_value='applies')
         c = Container(
@@ -137,7 +137,7 @@ class NotEqualTests(CompareTests):
         super(ConditionTests, self).setUp(NotEqual)
 
     def testStringApplies(self):
-        expected_value = 'Expected'
+        expected_value = b'Expected'
         value_field = String(name='comp_field', value='napplies')
         condition = self.cls(field=value_field, comp_value='applies')
         c = Container(
@@ -152,7 +152,7 @@ class NotEqualTests(CompareTests):
         self.assertEqual(rendered, expected_value)
 
     def testStringNotApplies(self):
-        expected_value = ''
+        expected_value = b''
         value_field = String(name='comp_field', value='applies')
         condition = self.cls(field=value_field, comp_value='applies')
         c = Container(

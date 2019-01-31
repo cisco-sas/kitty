@@ -82,8 +82,8 @@ class ServerTarget(BaseTarget):
         self.transmission_report = trans_report
         self.report.add(trans_report_name, trans_report)
         try:
-            trans_report.add('request (hex)', hexlify(payload))
-            trans_report.add('request (raw)', '%s' % payload)
+            trans_report.add('hex', hexlify(payload))
+            trans_report.add('raw', '%s' % payload)
             trans_report.add('request length', len(payload))
             trans_report.add('request time', time.time())
 
@@ -97,8 +97,8 @@ class ServerTarget(BaseTarget):
                 try:
                     response = self._receive_from_target()
                     trans_report.add('response time', time.time())
-                    trans_report.add('response (hex)', hexlify(response))
-                    trans_report.add('response (raw)', '%s' % response)
+                    trans_report.add('hex', hexlify(response))
+                    trans_report.add('raw', '%s' % response)
                     trans_report.add('response length', len(response))
                     printed_response = hexlify(response)
                     printed_response = printed_response if len(printed_response) < 100 else (printed_response[:100] + ' ...')

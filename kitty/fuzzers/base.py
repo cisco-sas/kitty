@@ -440,7 +440,7 @@ class BaseFuzzer(KittyObject):
             self._store_report(report)
             self.user_interface.failure_detected()
             failure_detected = True
-            self.logger.warn('!! Failure detected !!')
+            self.logger.warning('!! Failure detected !!')
         elif self.config.store_all_reports:
             self._store_report(report)
         if failure_detected:

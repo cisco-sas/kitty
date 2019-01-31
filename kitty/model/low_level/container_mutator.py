@@ -214,7 +214,7 @@ class RotateMutator(FieldRangeMutator):
         return fields[rot_count:] + fields[:rot_count]
 
     def _first_mutated_field_index(self):
-        return self._current_index / (self._field_count - 1)
+        return self._current_index // (self._field_count - 1)
 
 
 class List(OneOf):
@@ -265,7 +265,7 @@ class List(OneOf):
     def _get_dups(self, fields, delim):
         num_fields = len(fields)
         res = []
-        for field_count in set(x for x in [1, 2, num_fields / 2, num_fields] if x > 0):
+        for field_count in set(x for x in [1, 2, num_fields // 2, num_fields] if x > 0):
             for i in [2, 5, 10, 100, 1000]:
                 res.append(
                     DuplicateMutator(
@@ -281,7 +281,7 @@ class List(OneOf):
     def _get_omits(self, fields, delim):
         num_fields = len(fields)
         res = []
-        for field_count in set([1, 2, num_fields / 2, num_fields]):
+        for field_count in set([1, 2, num_fields // 2, num_fields]):
             if field_count > 0:
                 res.append(
                     OmitMutator(
@@ -296,7 +296,7 @@ class List(OneOf):
     def _get_rotations(self, fields, delim):
         num_fields = len(fields)
         res = []
-        counts = set([2, 5, 10, num_fields / 3, num_fields / 2, num_fields])
+        counts = set([2, 5, 10, num_fields // 3, num_fields // 2, num_fields])
         counts = [c for c in counts if c >= 2]
         counts = [c for c in counts if c <= num_fields]
         for field_count in counts:

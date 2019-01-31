@@ -90,7 +90,7 @@ class TestActor(KittyActorInterface):
         config_report = self.config.get_vals()
         if config_report:
             self.logger.debug('found matching config: %s', repr(config_report))
-            for k, v in config_report.iteritems():
+            for k, v in config_report.items():
                 if k.lower() == 'status':
                     report.set_status(v)
                 else:

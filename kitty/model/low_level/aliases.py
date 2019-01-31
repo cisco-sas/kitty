@@ -208,7 +208,7 @@ def SizeInBytes(sized_field, length, encoder=ENC_INT_DEFAULT, fuzzable=False, na
     :rtype: :class:`~kitty.model.low_level.calculated.Size`
     :return: Size field, which holds the size in bytes of the sized field
     '''
-    return Size(sized_field=sized_field, length=length, calc_func=lambda x: len(x) / 8, encoder=encoder, fuzzable=fuzzable, name=name)
+    return Size(sized_field=sized_field, length=length, calc_func=lambda x: len(x) // 8, encoder=encoder, fuzzable=fuzzable, name=name)
 
 
 def Md5(depends_on, encoder=ENC_STR_DEFAULT, fuzzable=False, name=None):

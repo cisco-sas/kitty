@@ -35,7 +35,7 @@ There are four families of encoders:
     Those encoders are also refferred to as Float Encoders
 '''
 from struct import pack
-from binascii import hexlify
+import codecs
 from bitstring import Bits, BitArray
 from kitty.core import kassert, KittyException
 
@@ -69,7 +69,9 @@ class StrEncoder(object):
         :type value: ``str``
         :param value: value to encode
         '''
-        kassert.is_of_types(value, str)
+        kassert.is_of_types(value, (bytes, str))
+        if isinstance(value, str):
+            return Bits(bytes=bytes(value, 'utf-8'))
         return Bits(bytes=value)
 
 
@@ -108,9 +110,11 @@ class StrEncodeEncoder(StrEncoder):
         '''
         :param value: value to encode
         '''
-        kassert.is_of_types(value, str)
+        kassert.is_of_types(value, (bytes, str))
+        if isinstance(value, str):
+            value = bytes(value, 'utf-8')
         try:
-            encoded = value.encode(self._encoding)
+            encoded = codecs.encode(value, self._encoding)
         except UnicodeError:
             # TODO: make it better
             try:
@@ -130,8 +134,10 @@ class StrBase64NoNewLineEncoder(StrEncoder):
         '''
         :param value: value to encode
         '''
-        kassert.is_of_types(value, str)
-        encoded = hexlify(value)
+        kassert.is_of_types(value, (bytes, str))
+        if isinstance(value, str):
+            value = bytes(value, 'utf-8')
+        encoded = codecs.encode(value, 'base64')
         if encoded:
             encoded = encoded[:-1]
         return Bits(bytes=encoded)
@@ -147,7 +153,7 @@ class StrNullTerminatedEncoder(StrEncoder):
         :param value: value to encode
         '''
         kassert.is_of_types(value, str)
-        encoded = value + '\x00'
+        encoded = value.encode() + b'\x00'
         return Bits(bytes=encoded)
 
 
@@ -238,7 +244,7 @@ class BitFieldAsciiEncoder(BitFieldEncoder):
         self._fmt = fmt
 
     def encode(self, value, length, signed):
-        return Bits(bytes=self._fmt % value)
+        return Bits(bytes=bytes(self._fmt % value, 'utf-8'))
 
 
 class BitFieldMultiByteEncoder(BitFieldEncoder):
@@ -280,7 +286,7 @@ class BitFieldMultiByteEncoder(BitFieldEncoder):
         # remove msb from last byte
         bytes_arr[-1] = bytes_arr[-1] & 0x7f
 
-        multi_bytes = ''.join(chr(x) for x in bytes_arr)
+        multi_bytes = bytes(''.join(chr(x) for x in bytes_arr), 'utf-8')
         return Bits(bytes=multi_bytes)
 
 
@@ -499,7 +505,7 @@ class FloatAsciiEncoder(FloatEncoder):
         '''
         :param value: value to encode
         '''
-        packed = self.fmt % (value)
+        packed = bytes(self.fmt % (value), 'utf-8')
         return Bits(bytes=packed)
 
 

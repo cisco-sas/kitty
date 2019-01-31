@@ -35,7 +35,7 @@ empty_bits = Bits()
 
 
 def num_bits_to_bytes(x):
-    return x / 8
+    return x // 8
 
 
 class Calculated(BaseField):
@@ -208,7 +208,7 @@ class CalculatedStr(Calculated):
         '''
         try:
             res = func('')
-            kassert.is_of_types(res, str)
+            kassert.is_of_types(res, (bytes, str))
             self._func = func
         except:
             raise KittyException('func should be func(str)->str')
@@ -261,6 +261,8 @@ class Hash(CalculatedStr):
             algo = Hash._algos[algorithm][0]
 
             def algo_func(x):
+                if isinstance(x, str):
+                    x = bytes(x, 'utf-8')
                 return algo(x).digest()
 
             func = algo_func
@@ -268,7 +270,7 @@ class Hash(CalculatedStr):
         else:
             try:
                 res = algorithm('')
-                kassert.is_of_types(res, str)
+                kassert.is_of_types(res, (bytes, str))
                 func = algorithm
                 self._hash_length = len(res) * 8
             except:
@@ -507,7 +509,7 @@ class Size(CalculatedInt):
         instead, which receives the same arguments except of `calc_func`
     '''
 
-    def __init__(self, sized_field, length, calc_func=lambda x: len(x) / 8, encoder=ENC_INT_DEFAULT, fuzzable=False, name=None):
+    def __init__(self, sized_field, length, calc_func=lambda x: len(x) // 8, encoder=ENC_INT_DEFAULT, fuzzable=False, name=None):
         '''
         :param sized_field: (name of) field to be sized
         :param length: length of the size field (in bits)
@@ -543,7 +545,7 @@ class Size(CalculatedInt):
                         name='size in bytes plus 5',
                         sized_field='chunk',
                         length=32,
-                        calc_func=lambda x: len(x) / 8 + 5
+                        calc_func=lambda x: len(x) // 8 + 5
                     )
                 ])
         '''

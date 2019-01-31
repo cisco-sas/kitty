@@ -21,6 +21,7 @@ they all inherit from ``Container``, which inherits from
 '''
 from bitstring import Bits, BitArray
 import random
+from base64 import b64encode
 from kitty.model.low_level.field import BaseField, empty_bits, Dynamic, BitField
 from kitty.model.low_level.encoder import BitsEncoder, ENC_BITS_DEFAULT, ENC_BITS_BYTE_ALIGNED
 from kitty.core import kassert, KittyException, khash
@@ -581,10 +582,10 @@ class Pad(Container):
     Pad the rendered value of the enclosed fields
     '''
 
-    def __init__(self, pad_length, pad_data='\x00', fields=[], fuzzable=True, name=None):
+    def __init__(self, pad_length, pad_data=b'\x00', fields=[], fuzzable=True, name=None):
         '''
         :param pad_length: length to pad up to (in bits)
-        :param pad_data: data to pad with (default: '\x00')
+        :param pad_data: data to pad with (default: b'\x00')
         :param fields: enclosed field(s) (default: [])
         :param fuzzable: is fuzzable (default: True)
         :param name: (unique) name of the template (default: None)
@@ -600,6 +601,8 @@ class Pad(Container):
         '''
         super(Pad, self).__init__(fields=fields, encoder=ENC_BITS_DEFAULT, fuzzable=fuzzable, name=name)
         self._pad_length = pad_length
+        if not isinstance(pad_data, bytes):
+            pad_data = bytes(pad_data, 'utf-8')
         self._pad_data = Bits(bytes=pad_data)
 
     def render(self, ctx=None):
@@ -615,7 +618,7 @@ class Pad(Container):
     def _pad_buffer(self, prepad):
         to_pad = self._pad_length - len(prepad)
         if to_pad > 0:
-            padding_data = self._pad_data * (to_pad / len(self._pad_data) + 1)
+            padding_data = self._pad_data * (to_pad // len(self._pad_data) + 1)
             return prepad + padding_data[:to_pad]
         return prepad
 
@@ -665,7 +668,7 @@ class Repeat(Container):
         self._min_times = min_times
         self._max_times = max_times
         self._step = step
-        self._repeats = (self._max_times - self._min_times) / self._step
+        self._repeats = (self._max_times - self._min_times) // self._step
 
     def _check_times(self, min_times, max_times, step):
         '''
@@ -1028,7 +1031,7 @@ class Template(Container):
         }
         res['value'] = {
             'rendered': {
-                'base64': self._current_rendered.tobytes().encode('base64'),
+                'base64': b64encode(self._current_rendered.tobytes()).decode(),
                 'length_in_bytes': len(self._current_rendered.tobytes()),
             }
         }

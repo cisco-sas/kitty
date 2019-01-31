@@ -263,6 +263,8 @@ class _WebInterfaceHandler(BaseHTTPRequestHandler):
                     break
 
         if response is not None:
+            if not isinstance(response, bytes):
+                response = response.encode()
             self.wfile.write(response)
         else:
             self.send_response(401)

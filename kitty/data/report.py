@@ -17,7 +17,8 @@
 '''
 This module defines the :class:`~kitty.data.report.Report` class
 '''
-from base64 import b64encode, b64decode
+import six
+import codecs
 
 
 class Report(object):
@@ -158,51 +159,71 @@ class Report(object):
             return self._sub_reports[key]
         return None
 
-    def to_dict(self):
+    def to_dict(self, encoding='base64'):
         '''
         Return a dictionary version of the report
 
+        :param encoding: required encoding for the string values (default: 'base64')
         :rtype: dictionary
         :return: dictionary representation of the report
         '''
         res = {}
         for k, v in self._data_fields.items():
-            # if sys.version_info < (3,) and isinstance(v, unicode):
-            #     v = str(v)
-            if isinstance(v, str):
-                v = b64encode(v)
+            if isinstance(v, six.string_types):
+                if six.PY2:
+                    v = v.encode('utf-8')
+                else:
+                    v = bytes(v, 'utf-8')
+            if isinstance(v, (str, bytes)):
+                v = codecs.encode(v, encoding)[:-1].decode()
+            if k in ['raw', 'hex']:
+                k = 'base64'
             res[k] = v
         for k, v in self._sub_reports.items():
             res[k] = v.to_dict()
         return res
 
     @classmethod
-    def _decode(cls, val):
+    def _decode(cls, val, encoding):
+        if isinstance(val, six.string_types):
+            if six.PY2:
+                val = val.encode('utf-8')
+            else:
+                val = bytes(val, 'utf-8')
         if isinstance(val, (str, bytes)):
-            val = b64decode(val)
+            val = codecs.decode(val, encoding)
+            try:
+                val = val.decode()
+            except UnicodeDecodeError:
+                pass
         return val
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d, encoding='base64'):
         '''
         Construct a ``Report`` object from dictionary.
 
         :type d: dictionary
         :param d: dictionary representing the report
+        :param encoding: encoding of strings in the dictionary (default: 'base64')
         :return: Report object
         '''
-        report = Report(Report._decode(d['name']))
-        report.set_status(Report._decode(d['status']))
-        sub_reports = Report._decode(d['sub_reports'])
+        report = Report(Report._decode(d['name'], encoding))
+        report.set_status(Report._decode(d['status'], encoding))
+        sub_reports = Report._decode(d['sub_reports'], encoding)
         del d['sub_reports']
         for k, v in d.items():
             if k in sub_reports:
                 report.add(k, Report.from_dict(v))
             else:
                 if k.lower() == 'status':
-                    report.set_status(Report._decode(v))
+                    report.set_status(Report._decode(v, encoding))
+                elif k.lower() == 'raw':
+                    report.add(k, v)
+                elif k.lower() == 'hex':
+                    report.add(k, Report._decode(v, 'hex'))
                 else:
-                    report.add(k, Report._decode(v))
+                    report.add(k, Report._decode(v, encoding))
 
         return report
 

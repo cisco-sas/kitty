@@ -28,6 +28,7 @@ The last one, `MutableField`, combines all strategies, with reasonable parameter
 Currently all strategies are inspired by this article:
 http://lcamtuf.blogspot.com/2014/08/binary-fuzzing-strategies-what-works.html
 '''
+import six
 from bitstring import Bits, BitArray
 from kitty.model.low_level.field import BaseField
 from kitty.model.low_level.container import OneOf
@@ -59,7 +60,9 @@ class BitFlip(BaseField):
         :raises: ``KittyException`` if num_bits is bigger than the value length in bits
         :raises: ``KittyException`` if num_bits is not positive
         '''
-        kassert.is_of_types(value, str)
+        kassert.is_of_types(value, (str, bytes))
+        if isinstance(value, str):
+            value = bytes(value, 'utf-8')
         if len(value) * 8 < num_bits:
             raise KittyException('len of value in bits(%d) < num_bits(%d)' % (len(value) * 8, num_bits))
         if num_bits <= 0:
@@ -121,7 +124,9 @@ class ByteFlip(BaseField):
         :raises: ``KittyException`` if num_bytes is bigger than the value length
         :raises: ``KittyException`` if num_bytes is not positive
         '''
-        kassert.is_of_types(value, str)
+        kassert.is_of_types(value, (bytes, str))
+        if isinstance(value, str):
+            value = bytes(value, 'utf-8')
         if len(value) < num_bytes:
             raise KittyException('len(value) <= num_bytes', (len(value), num_bytes))
         if num_bytes <= 0:
@@ -140,9 +145,12 @@ class ByteFlip(BaseField):
         start, end = self._start_end()
         pre = self._default_value[:start]
         current = self._default_value[start:end]
-        mutated = ''.join(chr(ord(c) ^ 0xff) for c in current)
+        if six.PY2:
+            mutated = ''.join(chr(ord(c) ^ 0xff) for c in current)
+        else:
+            mutated = ''.join(chr(c ^ 0xff) for c in current)
         post = self._default_value[end:]
-        self.set_current_value(pre + mutated + post)
+        self.set_current_value(pre + bytes(mutated, 'utf-8') + post)
 
     def get_info(self):
         info = super(ByteFlip, self).get_info()
