@@ -29,7 +29,7 @@ from kitty.model.low_level.calculated import ElementCount, IndexOf, Checksum, Si
 from kitty.model.low_level.container import Container, ForEach, Conditional, If, IfNot
 from kitty.model.low_level.container import Meta, Pad, Repeat, OneOf, TakeFrom, Template
 from kitty.model.low_level.container import Trunc
-from kitty.model.low_level.encoder import ENC_INT_DEC, ENC_STR_BASE64_NO_NL, ENC_INT_BE
+from kitty.model.low_level.encoder import ENC_INT_DEC, ENC_STR_BASE64, ENC_INT_BE
 from kitty.model.low_level.aliases import SizeInBytes, Sha256
 from common import BaseTestCase
 
@@ -54,7 +54,7 @@ class ComplexTest(BaseTestCase):
                     name='leeter ',
                     fields=[
                         Dynamic(key='hmm', default_value='L3'),
-                        String('\xde\xd7\xab', encoder=ENC_STR_BASE64_NO_NL),  # 3ter
+                        String('\xde\xd7\xab', encoder=ENC_STR_BASE64),  # 3ter
                         RandomBytes(' ', min_length=1, max_length=100)
                     ])
             ])
