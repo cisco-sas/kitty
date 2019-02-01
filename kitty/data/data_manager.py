@@ -20,13 +20,13 @@ It provides both means of communications between the fuzzer and the user
 interface, and persistent storage of the fuzzing session results.
 '''
 import sqlite3
-import cPickle
+from six.moves import cPickle
 import zlib
 import traceback
 from kitty.core import KittyObject
 from kitty.data.report import Report
 from threading import Event, Thread
-from Queue import Queue
+from six.moves import queue
 
 
 class DataManagerTask(object):
@@ -119,7 +119,7 @@ class DataManager(Thread):
         :param dbname: database name for storing the data
         '''
         super(DataManager, self).__init__()
-        self._queue = Queue()
+        self._queue = queue()
         self._dbname = dbname
         self._connection = None
         self._cursor = None
