@@ -27,6 +27,7 @@ from kitty.model.low_level.encoder import StrNullTerminatedEncoder
 from kitty.model.low_level.encoder import BitsEncoder, ByteAlignedBitsEncoder, ReverseBitsEncoder
 from kitty.model.low_level.encoder import StrEncoderWrapper, BitsFuncEncoder
 from kitty.model.low_level.encoder import BitFieldBinEncoder
+from kitty.model.low_level.encoder import strToBytes
 from kitty.model.low_level import BitField
 from kitty.core import KittyException
 from common import BaseTestCase
@@ -204,7 +205,7 @@ class StrEncodeEncoderTest(StrFuncEncoderTest):
         self.encoding = 'hex'
 
     def _encode_func(self, s):
-        return s.encode('hex')
+        return hexlify(s)
 
     def get_default_encoder(self):
         return self.cls(self.encoding)
@@ -216,7 +217,7 @@ class StrNullTerminatedEncoderTest(StrFuncEncoderTest):
         super(StrNullTerminatedEncoderTest, self).setUp(cls)
 
     def _encode_func(self, s):
-        return s + '\x00'
+        return strToBytes(s) + b'\x00'
 
     def get_default_encoder(self):
         return self.cls()
