@@ -112,7 +112,7 @@ class StrFuncEncoder(StrEncoder):
         return Bits(bytes=encoded)
 
 
-class StrEncodeEncoder(StrEncoder):
+class StrEncodeEncoder(StrFuncEncoder):
     '''
     Encode the string using str.encode function
     '''
@@ -122,24 +122,17 @@ class StrEncodeEncoder(StrEncoder):
         :type encoding: ``str``
         :param encoding: encoding to be used, should be a valid argument for str.encode
         '''
-        super(StrEncodeEncoder, self).__init__()
         if encoding == 'hex':
-            self._func = hexlify
+            func = hexlify
         elif encoding == 'base64':
-            self._func = b64encode
+            func = b64encode
         elif encoding == 'utf-8':
-            self._func = strToUtf8
+            func = strToUtf8
         elif encoding == 'bytes':
-            self._func = strToBytes
-        self._encoding = encoding
-
-    def encode(self, value):
-        '''
-        :param value: value to encode
-        '''
-        kassert.is_of_types(value, (bytes, str))
-        encoded = StrFuncEncoder(self._func).encode(value)
-        return Bits(bytes=encoded)
+            func = strToBytes
+        else:
+            func = encoding
+        super(StrEncodeEncoder, self).__init__(func)
 
 
 class StrNullTerminatedEncoder(StrEncoder):
