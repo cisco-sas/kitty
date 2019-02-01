@@ -26,7 +26,7 @@ import traceback
 from kitty.core import KittyObject
 from kitty.data.report import Report
 from threading import Event, Thread
-from six.moves import queue
+from six.moves.queue import Queue
 
 
 class DataManagerTask(object):
@@ -119,7 +119,7 @@ class DataManager(Thread):
         :param dbname: database name for storing the data
         '''
         super(DataManager, self).__init__()
-        self._queue = queue()
+        self._queue = Queue()
         self._dbname = dbname
         self._connection = None
         self._cursor = None
