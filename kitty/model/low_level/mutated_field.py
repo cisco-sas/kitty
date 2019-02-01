@@ -60,7 +60,7 @@ class BitFlip(BaseField):
         :raises: ``KittyException`` if num_bits is bigger than the value length in bits
         :raises: ``KittyException`` if num_bits is not positive
         '''
-        kassert.is_of_types(value, types.StringTypes)
+        kassert.is_of_types(value, str)
         if len(value) * 8 < num_bits:
             raise KittyException('len of value in bits(%d) < num_bits(%d)' % (len(value) * 8, num_bits))
         if num_bits <= 0:
@@ -122,7 +122,7 @@ class ByteFlip(BaseField):
         :raises: ``KittyException`` if num_bytes is bigger than the value length
         :raises: ``KittyException`` if num_bytes is not positive
         '''
-        kassert.is_of_types(value, types.StringTypes)
+        kassert.is_of_types(value, str)
         if len(value) < num_bytes:
             raise KittyException('len(value) <= num_bytes', (len(value), num_bytes))
         if num_bytes <= 0:

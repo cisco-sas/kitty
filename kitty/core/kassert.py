@@ -38,7 +38,7 @@ def is_int(obj):
     :param obj: object to assert
     :raise: an exception if obj is not an int type
     '''
-    is_of_types(obj, types.IntType)
+    is_of_types(obj, int)
 
 
 def is_in(obj, it):

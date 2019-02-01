@@ -71,7 +71,7 @@ class FieldCondition(Condition):
         :param field: (name of, or) field that should meet the condition
         '''
         super(FieldCondition, self).__init__()
-        if isinstance(field, types.StringTypes):
+        if isinstance(field, str):
             self._field_name = field
             self._field = None
         else:

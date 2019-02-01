@@ -198,9 +198,9 @@ class ValueTestCase(BaseTestCase):
     @metaTest
     def testReturnTypeMutateFuzzable(self):
         field = self.get_default_field(fuzzable=True)
-        self.assertIsInstance(field.mutate(), types.BooleanType)
+        self.assertIsInstance(field.mutate(), bool)
         field.reset()
-        self.assertIsInstance(field.mutate(), types.BooleanType)
+        self.assertIsInstance(field.mutate(), bool)
 
     @metaTest
     def testReturnTypeRenderNotFuzzable(self):
@@ -223,9 +223,9 @@ class ValueTestCase(BaseTestCase):
     @metaTest
     def testReturnTypeMutateNotFuzzable(self):
         field = self.get_default_field(fuzzable=False)
-        self.assertIsInstance(field.mutate(), types.BooleanType)
+        self.assertIsInstance(field.mutate(), bool)
         field.reset()
-        self.assertIsInstance(field.mutate(), types.BooleanType)
+        self.assertIsInstance(field.mutate(), bool)
 
     @metaTest
     def testHashTheSameForTwoSimilarObjects(self):

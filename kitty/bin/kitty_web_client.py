@@ -142,7 +142,7 @@ def print_entry(k, v, depth, decode_str):
 
 
 def print_key_val(k, val, depth, decode_str):
-    if isinstance(val, types.StringTypes) and decode_str:
+    if isinstance(val, str) and decode_str:
         try:
             val = val.decode('base64')
         except:
