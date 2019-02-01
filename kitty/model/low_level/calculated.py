@@ -35,7 +35,7 @@ empty_bits = Bits()
 
 
 def num_bits_to_bytes(x):
-    return x / 8
+    return x // 8
 
 
 class Calculated(BaseField):
@@ -507,7 +507,7 @@ class Size(CalculatedInt):
         instead, which receives the same arguments except of `calc_func`
     '''
 
-    def __init__(self, sized_field, length, calc_func=lambda x: len(x) / 8, encoder=ENC_INT_DEFAULT, fuzzable=False, name=None):
+    def __init__(self, sized_field, length, calc_func=lambda x: len(x) // 8, encoder=ENC_INT_DEFAULT, fuzzable=False, name=None):
         '''
         :param sized_field: (name of) field to be sized
         :param length: length of the size field (in bits)
@@ -543,7 +543,7 @@ class Size(CalculatedInt):
                         name='size in bytes plus 5',
                         sized_field='chunk',
                         length=32,
-                        calc_func=lambda x: len(x) / 8 + 5
+                        calc_func=lambda x: len(x) // 8 + 5
                     )
                 ])
         '''

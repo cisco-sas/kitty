@@ -615,7 +615,7 @@ class Pad(Container):
     def _pad_buffer(self, prepad):
         to_pad = self._pad_length - len(prepad)
         if to_pad > 0:
-            padding_data = self._pad_data * (to_pad / len(self._pad_data) + 1)
+            padding_data = self._pad_data * (to_pad // len(self._pad_data) + 1)
             return prepad + padding_data[:to_pad]
         return prepad
 
@@ -665,7 +665,7 @@ class Repeat(Container):
         self._min_times = min_times
         self._max_times = max_times
         self._step = step
-        self._repeats = (self._max_times - self._min_times) / self._step
+        self._repeats = (self._max_times - self._min_times) // self._step
 
     def _check_times(self, min_times, max_times, step):
         '''
