@@ -22,7 +22,6 @@ Conditions are used by the *If* and *IfNot* fields to decide wether to render th
 In many cases the decision is made based on a value of a specific field, but you can create whatever condition you want.
 In future versions, they will probably be used to make other decisions, not only basic rendering decisions.
 '''
-import types
 import copy
 from kitty.core import KittyException, khash
 
@@ -71,7 +70,7 @@ class FieldCondition(Condition):
         :param field: (name of, or) field that should meet the condition
         '''
         super(FieldCondition, self).__init__()
-        if isinstance(field, types.StringTypes):
+        if isinstance(field, str):
             self._field_name = field
             self._field = None
         else:

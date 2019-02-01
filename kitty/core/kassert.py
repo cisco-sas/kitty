@@ -20,7 +20,6 @@ not that important, but makes the life easier.
 Useful for making assertions that throw :class:`~kitty.core.KittyException`
 '''
 from kitty.core import KittyException
-import types
 
 
 def is_of_types(obj, the_types):
@@ -38,7 +37,7 @@ def is_int(obj):
     :param obj: object to assert
     :raise: an exception if obj is not an int type
     '''
-    is_of_types(obj, types.IntType)
+    is_of_types(obj, int)
 
 
 def is_in(obj, it):

@@ -18,9 +18,9 @@
 '''
 Tests for low level fields
 '''
+from struct import unpack
 from common import metaTest, BaseTestCase
 from bitstring import Bits
-from struct import unpack
 from kitty.model.low_level import String, Static, Group, BE32
 from kitty.model.low_level.container import Container, ForEach, If, IfNot, Repeat, Template, Switch
 from kitty.model.low_level.container import Meta, Pad, Trunc, PseudoTemplate, OneOf, TakeFrom
@@ -253,6 +253,7 @@ class ContainerTest(BaseTestCase):
         class BadString(String):
             def render(self, ctx=None):
                 return self._current_value
+
             def _initialize_default_buffer(self):
                 super(BadString, self)._initialize_default_buffer()
                 return self._current_value
