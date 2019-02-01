@@ -42,10 +42,10 @@ class MyHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        print '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
-        print 'response:'
-        print resp
-        print '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'
+        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+        print('response:')
+        print(resp)
+        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
         self.wfile.write(resp)
 
     def default_response(self):
@@ -73,6 +73,7 @@ def main():
     server = MyHttpServer(('localhost', 8082), MyHttpHandler, agent)
     while True:
         server.handle_request()
+
 
 if __name__ == '__main__':
     main()

@@ -71,5 +71,6 @@ def main():
     remote = RpcServer(host='localhost', port=26007, impl=fuzzer)
     remote.start()
 
+
 if __name__ == '__main__':
     main()

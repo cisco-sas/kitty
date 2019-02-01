@@ -17,8 +17,6 @@
 '''
 Fields that are dependant on other fields - Size, Checksum etc.
 '''
-
-import types
 import zlib
 import hashlib
 from bitstring import Bits
@@ -137,6 +135,7 @@ class CalculatedBits(Calculated):
     '''
     field that depends on the rendered value of a field, and rendered into Bits() object
     '''
+
     def __init__(self, depends_on, func, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :param depends_on: (name of) field we depend on
@@ -350,6 +349,7 @@ class FieldIntProperty(CalculatedInt):
     is that it provides the field itself to the calculation function,
     not its rendered value.
     '''
+
     def __init__(self, depends_on, length, correction=None, encoder=ENC_INT_DEFAULT, fuzzable=False, name=None):
         '''
         :param depends_on: (name of) field we depend on
@@ -402,6 +402,7 @@ class ElementCount(FieldIntProperty):
                 ])
             ])
     '''
+
     def _calculate(self, field):
         return len(field.get_rendered_fields(RenderContext(self)))
 

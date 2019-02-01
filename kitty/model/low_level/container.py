@@ -423,6 +423,7 @@ class Conditional(Container):
     '''
     Container that its rendering is dependant on a condition
     '''
+
     def __init__(self, condition, fields=[], encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :type condition: an object that has a function applies(self, Container) -> Boolean
@@ -579,6 +580,7 @@ class Pad(Container):
     '''
     Pad the rendered value of the enclosed fields
     '''
+
     def __init__(self, pad_length, pad_data='\x00', fields=[], fuzzable=True, name=None):
         '''
         :param pad_length: length to pad up to (in bits)
@@ -887,6 +889,7 @@ class TakeFrom(OneOf):
     '''
     Render to only part of the enclosed fields, performing all mutations on them
     '''
+
     def __init__(self, fields=[], min_elements=1, max_elements=None, encoder=ENC_BITS_DEFAULT, fuzzable=True, name=None):
         '''
         :type fields: field or iterable of fields
@@ -1108,6 +1111,7 @@ class Trunc(Container):
     '''
     Truncate the size of the enclosed fields
     '''
+
     def __init__(self, max_size, fields=[], fuzzable=True, name=None):
         '''
         :param max_size: maximum size of the container (in bits)

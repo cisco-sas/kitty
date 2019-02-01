@@ -28,7 +28,6 @@ The last one, `MutableField`, combines all strategies, with reasonable parameter
 Currently all strategies are inspired by this article:
 http://lcamtuf.blogspot.com/2014/08/binary-fuzzing-strategies-what-works.html
 '''
-import types
 from bitstring import Bits, BitArray
 from kitty.model.low_level.field import BaseField
 from kitty.model.low_level.container import OneOf
@@ -334,6 +333,7 @@ class BlockDuplicates(OneOf):
     '''
     Perform block duplication with multiple number of duplications
     '''
+
     def __init__(self, value, block_size, num_dups_range=(2, 5, 10, 50, 200), fuzzable=True, name=None):
         field_name = (name + '_%d') if name else 'block_duplicates_%d'
         fields = [BlockDuplicate(value, block_size, i, fuzzable, field_name % i) for i in num_dups_range]
@@ -345,6 +345,7 @@ class MutableField(OneOf):
     Container to perform mutation fuzzing on a value
     ByteFlips, BitFlips and block operations
     '''
+
     def __init__(self, value, encoder=ENC_BITS_BYTE_ALIGNED, fuzzable=True, name=None):
         '''
         :type value: str

@@ -21,7 +21,6 @@ Tests for low level fields:
 '''
 from common import metaTest, BaseTestCase
 from bitstring import Bits
-import types
 import struct
 from kitty.model import String, Delimiter, RandomBits, RandomBytes, Dynamic, Static, Group, Float
 from kitty.model import BitField, UInt8, UInt16, UInt32, UInt64, SInt8, SInt16, SInt32, SInt64
