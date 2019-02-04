@@ -14,39 +14,23 @@ URL = 'https://github.com/cisco-sas/kitty.git'
 DESCRIPTION = read('README.rst')
 KEYWORDS = 'fuzz,fuzzing,framework,sulley,kitty,kittyfuzzer,security'
 
-# python 3 - install only the remote package
-if sys.version_info >= (3,):
-    setup(
-        name='kittyfuzzer-remote',
-        version=VERSION,
-        description='Kitty remote agent for python 3',
-        long_description=DESCRIPTION,
-        author=AUTHOR,
-        author_email=EMAIL,
-        url=URL,
-        packages=['kitty/remote'],
-        install_requires=['docopt', 'six', 'requests'],
-        keywords=KEYWORDS,
-    )
-# python 2 - install full kitty framework
-else:
-    setup(
-        name='kittyfuzzer',
-        version=VERSION,
-        description='Kitty fuzzing framework',
-        long_description=DESCRIPTION,
-        author=AUTHOR,
-        author_email=EMAIL,
-        url=URL,
-        packages=find_packages(),
-        install_requires=['docopt', 'bitstring', 'six', 'requests'],
-        keywords=KEYWORDS,
-        entry_points={
-            'console_scripts': [
-                'kitty-web-client=kitty.bin.kitty_web_client:_main',
-                'kitty-template-tester=kitty.bin.kitty_template_tester:_main',
-                'kitty-tool=kitty.bin.kitty_tool:_main',
-            ]
-        },
-        package_data={'kitty': ['interfaces/web/static/*']}
-    )
+setup(
+    name='kittyfuzzer',
+    version=VERSION,
+    description='Kitty fuzzing framework',
+    long_description=DESCRIPTION,
+    author=AUTHOR,
+    author_email=EMAIL,
+    url=URL,
+    packages=find_packages(),
+    install_requires=['docopt', 'bitstring', 'six', 'requests'],
+    keywords=KEYWORDS,
+    entry_points={
+        'console_scripts': [
+            'kitty-web-client=kitty.bin.kitty_web_client:_main',
+            'kitty-template-tester=kitty.bin.kitty_template_tester:_main',
+            'kitty-tool=kitty.bin.kitty_tool:_main',
+        ]
+    },
+    package_data={'kitty': ['interfaces/web/static/*']}
+)
