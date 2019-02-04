@@ -23,6 +23,7 @@ Each "field" type is a discrete component in the full Template.
 from random import Random
 import copy
 import os
+from base64 import b64encode
 import logging
 from bitstring import Bits
 from kitty.core import KittyObject, KittyException, kassert, khash
@@ -198,7 +199,7 @@ class BaseField(KittyObject):
             'value': {
                 'raw': repr(self._current_value),
                 'rendered': {
-                    'base64': self._current_rendered.tobytes().encode('base64'),
+                    'base64': b64encode(self._current_rendered.tobytes()).decode(),
                     'length_in_bits': len(self._current_rendered),
                     'length_in_bytes': len(self._current_rendered.tobytes()),
                 }
@@ -727,27 +728,27 @@ class Float(_LibraryField):
 
 
 def _calc_bitfield_bounds(self, value, minv, maxv):
-        if self._length <= 0:
-            raise KittyException('length (%d) <= 0' % (self._length))
-        max_possible = 2 ** self._length - 1
-        if self._signed:
-            self._min_value = ~(max_possible >> 1)
-        else:
-            self._min_value = 0
-        self._max_value = max_possible + self._min_value
-        self._max_min_diff = max_possible
-        if maxv is not None:
-            if maxv > self._max_value:
-                raise KittyException('max_value is too big %d > %d' % (maxv, self._max_value))
-            self._max_value = maxv
-        if minv is not None:
-            if minv < self._min_value:
-                raise KittyException('min_value is too small %d < %d' % (minv, self._min_value))
-            self._min_value = minv
-        if self._min_value > self._max_value:
-            raise KittyException('min_value (%d) > max_value (%d)' % (self._min_value, self._max_value))
-        if (value < self._min_value) or (value > self._max_value):
-            raise KittyException('default value (%d) not in range (min=%d, max=%d)' % (value, self._min_value, self._max_value))
+    if self._length <= 0:
+        raise KittyException('length (%d) <= 0' % (self._length))
+    max_possible = 2 ** self._length - 1
+    if self._signed:
+        self._min_value = ~(max_possible >> 1)
+    else:
+        self._min_value = 0
+    self._max_value = max_possible + self._min_value
+    self._max_min_diff = max_possible
+    if maxv is not None:
+        if maxv > self._max_value:
+            raise KittyException('max_value is too big %d > %d' % (maxv, self._max_value))
+        self._max_value = maxv
+    if minv is not None:
+        if minv < self._min_value:
+            raise KittyException('min_value is too small %d < %d' % (minv, self._min_value))
+        self._min_value = minv
+    if self._min_value > self._max_value:
+        raise KittyException('min_value (%d) > max_value (%d)' % (self._min_value, self._max_value))
+    if (value < self._min_value) or (value > self._max_value):
+        raise KittyException('default value (%d) not in range (min=%d, max=%d)' % (value, self._min_value, self._max_value))
 
 
 class _FullRangeBitField(BaseField):
@@ -956,8 +957,7 @@ def BitField(value, length, signed=False, min_value=None, max_value=None, encode
     '''
     if not full_range:
         return _LibraryBitField(value, length, signed, min_value, max_value, encoder, fuzzable, name)
-    else:
-        return _FullRangeBitField(value, length, signed, min_value, max_value, encoder, fuzzable, name)
+    return _FullRangeBitField(value, length, signed, min_value, max_value, encoder, fuzzable, name)
 
 
 class Group(_LibraryField):

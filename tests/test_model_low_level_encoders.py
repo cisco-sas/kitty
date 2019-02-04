@@ -78,7 +78,7 @@ class BitFieldMultiByteEncoderTest(BaseTestCase):
 
     def _multibyte_len(self, num):
         num_bits = len(bin(num)) - 2
-        num_bytes = num_bits / 7
+        num_bytes = num_bits // 7
         if num_bits % 7 != 0:
             num_bytes += 1
         return num_bytes * 8

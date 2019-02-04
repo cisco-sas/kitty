@@ -307,8 +307,7 @@ class CalculatedInt(Calculated):
         '''
         if self._bit_field.get_name() == field_name:
             return self._bit_field
-        else:
-            return None
+        return None
 
     def reset(self):
         super(CalculatedInt, self).reset()

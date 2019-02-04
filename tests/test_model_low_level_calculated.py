@@ -439,7 +439,7 @@ class SizeTests(CalculatedTestCase):
             ])
         rendered = container.render()
         self.assertEqual(len(rendered), self.length)
-        self.assertEquals(unpack('>I', rendered.tobytes())[0], self.length / 8)
+        self.assertEquals(unpack('>I', rendered.tobytes())[0], self.length // 8)
 
 
 class SizeInBytesTest(CalculatedTestCase):

@@ -290,7 +290,7 @@ class ListTests(BaseTestCase):
         mutations = [m.tobytes() for m in self.get_all_mutations(uut)]
         for m in mutations:
             if m != '':
-                self.assertEqual(m.count('/'), (len(m) - 1) / 2)
+                self.assertEqual(m.count('/'), (len(m) - 1) // 2)
 
     def testExceptionOnEmptyListFields(self):
         with self.assertRaises(KittyException):
