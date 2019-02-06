@@ -153,7 +153,7 @@ class ValueTestCase(BaseTestCase):
     def testSkipHalf(self):
         field = self.get_default_field(fuzzable=True)
         num_mutations = field.num_mutations()
-        to_skip = num_mutations / 2
+        to_skip = num_mutations // 2
         expected_skipped = min(to_skip, num_mutations)
         expected_mutated = num_mutations - expected_skipped
         self._check_skip(field, to_skip, expected_skipped, expected_mutated)
@@ -295,7 +295,7 @@ class StringTests(ValueTestCase):
 
     __meta__ = False
     default_value = 'kitty'
-    default_value_rendered = Bits(bytes=default_value)
+    default_value_rendered = Bits(bytes=default_value.encode())
 
     def setUp(self, cls=String):
         super(StringTests, self).setUp(cls)
@@ -351,7 +351,7 @@ class DelimiterTests(StringTests):
 
     __meta__ = False
     default_value = 'kitty'
-    default_value_rendered = Bits(bytes=default_value)
+    default_value_rendered = Bits(bytes=default_value.encode())
 
     def setUp(self, cls=Delimiter):
         super(DelimiterTests, self).setUp(cls)
@@ -361,7 +361,7 @@ class DynamicTests(ValueTestCase):
 
     __meta__ = False
     default_value = 'kitty'
-    default_value_rendered = Bits(bytes=default_value)
+    default_value_rendered = Bits(bytes=default_value.encode())
 
     def setUp(self, cls=Dynamic):
         super(DynamicTests, self).setUp(cls)
@@ -440,7 +440,7 @@ class RandomBitsTests(ValueTestCase):
     __meta__ = False
     default_value = 'kitty'
     default_unused_bits = 3
-    default_value_rendered = Bits(bytes=default_value)[:-3]
+    default_value_rendered = Bits(bytes=default_value.encode())[:-3]
 
     def setUp(self, cls=RandomBits):
         super(RandomBitsTests, self).setUp(cls)
@@ -516,7 +516,7 @@ class RandomBitsTests(ValueTestCase):
         min_length = 10
         max_length = 100
         step = 3
-        excepted_num_mutations = (max_length - min_length) / step
+        excepted_num_mutations = (max_length - min_length) // step
         field = self.cls(value=self.default_value, min_length=min_length, max_length=max_length, unused_bits=7, step=step)
         self._check_mutation_count(field, excepted_num_mutations)
         field.reset()
@@ -566,7 +566,7 @@ class RandomBytesTests(ValueTestCase):
 
     __meta__ = False
     default_value = 'kitty'
-    default_value_rendered = Bits(bytes=default_value)
+    default_value_rendered = Bits(bytes=default_value.encode())
 
     def setUp(self, cls=RandomBytes):
         super(RandomBytesTests, self).setUp(cls)
@@ -626,7 +626,7 @@ class RandomBytesTests(ValueTestCase):
         min_length = 10
         max_length = 100
         step = 3
-        excepted_num_mutations = (max_length - min_length) / step
+        excepted_num_mutations = (max_length - min_length) // step
         field = RandomBytes(value=self.default_value, min_length=min_length, max_length=max_length, step=step)
         self._check_mutation_count(field, excepted_num_mutations)
         field.reset()
@@ -676,7 +676,7 @@ class StaticTests(ValueTestCase):
 
     __meta__ = False
     default_value = 'kitty'
-    default_value_rendered = Bits(bytes=default_value)
+    default_value_rendered = Bits(bytes=default_value.encode())
 
     def setUp(self, cls=Static):
         super(StaticTests, self).setUp(cls)
@@ -697,7 +697,7 @@ class GroupTests(ValueTestCase):
 
     __meta__ = False
     default_value = 'group 1'
-    default_value_rendered = Bits(bytes=default_value)
+    default_value_rendered = Bits(bytes=default_value.encode())
     default_values = [default_value, 'group 2', 'group 3', 'group 4', 'group 5']
 
     def setUp(self, cls=Group):
@@ -710,9 +710,9 @@ class GroupTests(ValueTestCase):
     def testMutations(self):
         field = self.get_default_field()
         mutations = self._get_all_mutations(field)
-        self.assertListEqual([Bits(bytes=x) for x in self.default_values], mutations)
+        self.assertListEqual([Bits(bytes=x.encode()) for x in self.default_values], mutations)
         mutations = self._get_all_mutations(field)
-        self.assertListEqual([Bits(bytes=x) for x in self.default_values], mutations)
+        self.assertListEqual([Bits(bytes=x.encode()) for x in self.default_values], mutations)
 
 
 class FloatTests(ValueTestCase):

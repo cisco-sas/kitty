@@ -547,7 +547,7 @@ class RepeatTest(ContainerTest):
         return Repeat(fields=fields, fuzzable=fuzzable, name=self.uut_name)
 
     def _test_mutations(self, repeater, fields, min_times=1, max_times=1, step=1):
-        repeats = max_times - min_times / step
+        repeats = max_times - min_times // step
         expected_num_mutations = sum(f.num_mutations() for f in fields) + repeats
         repeater_num_mutations = repeater.num_mutations()
         self.assertEqual(repeater_num_mutations, expected_num_mutations)
@@ -646,7 +646,7 @@ class PadTest(BaseTestCase):
         fdata = field.render()
         udata = uut.render()
         actual_pad_len = max(0, pad_length - len(fdata))
-        expected_padding = Bits(bytes=pad_data * (actual_pad_len / 8 + 1))[:actual_pad_len]
+        expected_padding = Bits(bytes=pad_data * (actual_pad_len // 8 + 1))[:actual_pad_len]
         self.assertEqual(fdata, udata[:len(fdata)])
         self.assertEqual(expected_padding, udata[len(fdata):])
 

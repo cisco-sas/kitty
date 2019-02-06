@@ -15,8 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Kitty.  If not, see <http://www.gnu.org/licenses/>.
 
-from mock_config import Config
-from mock_instruments import MockInstrumentation
+from .mock_config import Config
+from .mock_instruments import MockInstrumentation
 from kitty.targets.server import ServerTarget
 from kitty.targets.client import ClientTarget
 from kitty.data.report import Report
@@ -55,7 +55,7 @@ class ServerTargetMock(ServerTarget):
         config_report = self.config.get_vals()
         if config_report:
             self.logger.debug('found matching config: %s', repr(config_report))
-            for k, v in config_report.iteritems():
+            for k, v in config_report.items():
                 if k.lower() == 'status':
                     report.set_status(v)
                 else:
@@ -106,7 +106,7 @@ class ClientTargetMock(ClientTarget):
         config_report = self.config.get_vals()
         if config_report:
             self.logger.debug('found matching config: %s', repr(config_report))
-            for k, v in config_report.iteritems():
+            for k, v in config_report.items():
                 if k.lower() == 'status':
                     report.set_status(v)
                 else:

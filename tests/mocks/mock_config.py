@@ -33,7 +33,7 @@ class Config(object):
             if 'global' in full_config:
                 self.config = full_config['global']
             if config_name in full_config:
-                for k, v in full_config[config_name].iteritems():
+                for k, v in full_config[config_name].items():
                     self.config[k] = v
         self.func = None
         self.test_conf = {}
