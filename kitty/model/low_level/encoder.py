@@ -34,12 +34,37 @@ There are four families of encoders:
     Used to encode fields that inherit from FloatingPoint field (Float, Double)
     Those encoders are also refferred to as Float Encoders
 '''
+import sys
+from struct import pack
+from binascii import hexlify
+from base64 import b64encode
 from bitstring import Bits, BitArray
 from kitty.core import kassert, KittyException
-from struct import pack
 
+
+def strToBytes(value):
+    '''
+    :type value: ``str``
+    :param value: value to encode
+    '''
+    kassert.is_of_types(value, (bytes, str))
+    if isinstance(value, str):
+        return bytearray([ord(x) for x in value])
+    return value
+
+
+def strToUtf8(value):
+    '''
+    :type value: ``str``
+    :param value: value to encode
+    '''
+    kassert.is_of_types(value, str)
+    if sys.version_info < (3,):
+        return ''.join([unichr(ord(x)) for x in value])
+    return value
 
 # ################### String Encoders ####################
+
 
 class StrEncoder(object):
     '''
@@ -55,9 +80,6 @@ class StrEncoder(object):
     +----------------------+------------------------------------+                           |
     | ENC_STR_BASE64       | Encode the str in base64           |                           |
     +----------------------+------------------------------------+---------------------------+
-    | ENC_STR_BASE64_NO_NL | Encode the str in base64 but       | StrBase64NoNewLineEncoder |
-    |                      | remove the new line from the end   |                           |
-    +----------------------+------------------------------------+---------------------------+
     | ENC_STR_DEFAULT      | Do nothing, just convert the str   | StrEncoder                |
     |                      | to Bits object                     |                           |
     +----------------------+------------------------------------+---------------------------+
@@ -68,14 +90,15 @@ class StrEncoder(object):
         :type value: ``str``
         :param value: value to encode
         '''
-        kassert.is_of_types(value, str)
-        return Bits(bytes=value)
+        kassert.is_of_types(value, (bytes, str))
+        return Bits(bytes=strToBytes(value))
 
 
 class StrFuncEncoder(StrEncoder):
     '''
-    Encode string using a given function
+    Encode string/byte_string using a given function
     '''
+
     def __init__(self, func):
         '''
         :param func: encoder function(str)->str
@@ -84,54 +107,32 @@ class StrFuncEncoder(StrEncoder):
         self._func = func
 
     def encode(self, value):
-        kassert.is_of_types(value, str)
-        encoded = self._func(value)
+        kassert.is_of_types(value, (bytes, str))
+        encoded = self._func(strToBytes(value))
         return Bits(bytes=encoded)
 
 
-class StrEncodeEncoder(StrEncoder):
+class StrEncodeEncoder(StrFuncEncoder):
     '''
     Encode the string using str.encode function
     '''
+
     def __init__(self, encoding):
         '''
         :type encoding: ``str``
         :param encoding: encoding to be used, should be a valid argument for str.encode
         '''
-        super(StrEncodeEncoder, self).__init__()
-        self._encoding = encoding
-
-    def encode(self, value):
-        '''
-        :param value: value to encode
-        '''
-        kassert.is_of_types(value, str)
-        try:
-            encoded = value.encode(self._encoding)
-        except UnicodeError:
-            # TODO: make it better
-            try:
-                encoded = ''.join(unichr(ord(x)) for x in value).encode(self._encoding)
-            except UnicodeError:
-                encoded = value
-
-        return Bits(bytes=encoded)
-
-
-class StrBase64NoNewLineEncoder(StrEncoder):
-    '''
-    Encode the string as base64, but without the new line at the end
-    '''
-
-    def encode(self, value):
-        '''
-        :param value: value to encode
-        '''
-        kassert.is_of_types(value, str)
-        encoded = value.encode('base64')
-        if encoded:
-            encoded = encoded[:-1]
-        return Bits(bytes=encoded)
+        if encoding == 'hex':
+            func = hexlify
+        elif encoding == 'base64':
+            func = b64encode
+        elif encoding == 'utf-8':
+            func = strToUtf8
+        elif encoding == 'bytes':
+            func = strToBytes
+        else:
+            func = encoding
+        super(StrEncodeEncoder, self).__init__(func)
 
 
 class StrNullTerminatedEncoder(StrEncoder):
@@ -143,13 +144,12 @@ class StrNullTerminatedEncoder(StrEncoder):
         '''
         :param value: value to encode
         '''
-        kassert.is_of_types(value, str)
-        encoded = value + '\x00'
+        kassert.is_of_types(value, (bytes, str))
+        encoded = strToBytes(value) + b'\x00'
         return Bits(bytes=encoded)
 
 
 ENC_STR_BASE64 = StrEncodeEncoder('base64')
-ENC_STR_BASE64_NO_NL = StrBase64NoNewLineEncoder()
 ENC_STR_UTF8 = StrEncodeEncoder('utf-8')
 ENC_STR_HEX = StrEncodeEncoder('hex')
 ENC_STR_NULL_TERM = StrNullTerminatedEncoder()
@@ -278,7 +278,7 @@ class BitFieldMultiByteEncoder(BitFieldEncoder):
         bytes_arr[-1] = bytes_arr[-1] & 0x7f
 
         multi_bytes = ''.join(chr(x) for x in bytes_arr)
-        return Bits(bytes=multi_bytes)
+        return Bits(bytes=strToBytes(multi_bytes))
 
 
 ENC_INT_BIN = BitFieldBinEncoder('')
@@ -312,9 +312,6 @@ class BitsEncoder(object):
     | ENC_BITS_REVERSE      | Reverse the order of bits              | ReverseBitsEncoder     |
     +-----------------------+----------------------------------------+------------------------+
     | ENC_BITS_BASE64       | Encode a Byte aligned bits in base64   | StrEncoderWrapper      |
-    +-----------------------+----------------------------------------+                        |
-    | ENC_BITS_BASE64_NO_NL | Encode a Byte aligned bits in base64,  |                        |
-    |                       | but removes the new line from the end  |                        |
     +-----------------------+----------------------------------------+                        |
     | ENC_BITS_UTF8         | Encode a Byte aligned bits in UTF-8    |                        |
     +-----------------------+----------------------------------------+                        |
@@ -368,6 +365,7 @@ class StrEncoderWrapper(ByteAlignedBitsEncoder):
     '''
     Encode the data using str.encode function
     '''
+
     def __init__(self, encoder):
         '''
         :type encoding: StrEncoder
@@ -390,6 +388,7 @@ class BitsFuncEncoder(BitsEncoder):
     '''
     Encode bits using a given function
     '''
+
     def __init__(self, func):
         '''
         :param func: encoder function(Bits)->Bits
@@ -408,7 +407,6 @@ ENC_BITS_BYTE_ALIGNED = ByteAlignedBitsEncoder()
 ENC_BITS_REVERSE = ReverseBitsEncoder()
 
 ENC_BITS_BASE64 = StrEncoderWrapper(StrEncodeEncoder('base64'))
-ENC_BITS_BASE64_NO_NL = StrEncoderWrapper(StrBase64NoNewLineEncoder())
 ENC_BITS_UTF8 = StrEncoderWrapper(StrEncodeEncoder('utf-8'))
 ENC_BITS_HEX = StrEncoderWrapper(StrEncodeEncoder('hex'))
 

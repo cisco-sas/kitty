@@ -18,16 +18,18 @@
 '''
 Tests for low level encoders:
 '''
+from struct import pack
+from binascii import hexlify
+from bitstring import Bits
 from kitty.model.low_level.encoder import BitFieldMultiByteEncoder
 from kitty.model.low_level.encoder import StrFuncEncoder, StrEncodeEncoder
-from kitty.model.low_level.encoder import StrBase64NoNewLineEncoder, StrNullTerminatedEncoder
+from kitty.model.low_level.encoder import StrNullTerminatedEncoder
 from kitty.model.low_level.encoder import BitsEncoder, ByteAlignedBitsEncoder, ReverseBitsEncoder
 from kitty.model.low_level.encoder import StrEncoderWrapper, BitsFuncEncoder
 from kitty.model.low_level.encoder import BitFieldBinEncoder
+from kitty.model.low_level.encoder import strToBytes
 from kitty.model.low_level import BitField
 from kitty.core import KittyException
-from struct import pack
-from bitstring import Bits
 from common import BaseTestCase
 
 
@@ -78,7 +80,7 @@ class BitFieldMultiByteEncoderTest(BaseTestCase):
 
     def _multibyte_len(self, num):
         num_bits = len(bin(num)) - 2
-        num_bytes = num_bits / 7
+        num_bytes = num_bits // 7
         if num_bits % 7 != 0:
             num_bytes += 1
         return num_bytes * 8
@@ -87,7 +89,7 @@ class BitFieldMultiByteEncoderTest(BaseTestCase):
         expected_len = self._multibyte_len(bitfield._default_value)
         # bitfield.mutate()
         rendered = bitfield.render()
-        self.assertEquals(expected_len, len(rendered))
+        self.assertEqual(expected_len, len(rendered))
 
     def testUnsignedLength8(self):
         bitfield = BitField(
@@ -156,7 +158,7 @@ class StrFuncEncoderTest(BaseTestCase):
         super(StrFuncEncoderTest, self).setUp(cls)
 
     def _encode_func(self, s):
-        return s.encode('hex')
+        return hexlify(s)
 
     def get_default_encoder(self):
         return self.cls(self._encode_func)
@@ -203,22 +205,10 @@ class StrEncodeEncoderTest(StrFuncEncoderTest):
         self.encoding = 'hex'
 
     def _encode_func(self, s):
-        return s.encode('hex')
+        return hexlify(s)
 
     def get_default_encoder(self):
         return self.cls(self.encoding)
-
-
-class StrBase64NoNewLineEncoderTest(StrFuncEncoderTest):
-
-    def setUp(self, cls=StrBase64NoNewLineEncoder):
-        super(StrBase64NoNewLineEncoderTest, self).setUp(cls)
-
-    def _encode_func(self, s):
-        return s.encode('base64')[:-1]
-
-    def get_default_encoder(self):
-        return self.cls()
 
 
 class StrNullTerminatedEncoderTest(StrFuncEncoderTest):
@@ -227,7 +217,7 @@ class StrNullTerminatedEncoderTest(StrFuncEncoderTest):
         super(StrNullTerminatedEncoderTest, self).setUp(cls)
 
     def _encode_func(self, s):
-        return s + '\x00'
+        return strToBytes(s) + b'\x00'
 
     def get_default_encoder(self):
         return self.cls()
