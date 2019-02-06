@@ -112,10 +112,10 @@ class RpcServerTestCase(unittest.TestCase):
         retval = self.rpc_client.func_with_args(arg1='hello', arg2='world')
         self.assertEqual(retval, 1)
         self.stop_server()
-        self.assertEqual(self.called_functions, [('func_with_args', {u'arg1': 'hello', u'arg2': 'world'})])
+        self.assertEqual(self.called_functions, [('func_with_args', {u'arg1': b'hello', u'arg2': b'world'})])
 
     def testCallWithDict(self):
-        arg = {'k1': 'hello', 'k2': 1}
+        arg = {'k1': b'hello', 'k2': 1}
         self.start_server()
         retval = self.rpc_client.func_with_args(arg=arg)
         self.assertEqual(retval, 1)
@@ -123,7 +123,7 @@ class RpcServerTestCase(unittest.TestCase):
         self.assertEqual(self.called_functions, [('func_with_args', {u'arg': arg})])
 
     def testCallWithArr(self):
-        arg = ['a string', 123]
+        arg = [b'a string', 123]
         self.start_server()
         retval = self.rpc_client.func_with_args(arg=arg)
         self.assertEqual(retval, 1)
