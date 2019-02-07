@@ -252,9 +252,7 @@ class BaseField(KittyObject):
         current = self
         while current.enclosing:
             current = current.enclosing
-        if name == '/':
-            return current
-        else:
+        if name != '/':
             components = name.split('/')[1:]
             for component in components:
                 current = current.get_field_by_name(component)
@@ -282,8 +280,7 @@ class BaseField(KittyObject):
         '''
         if self.get_name() == field_name:
             return self
-        else:
-            return None
+        return None
 
     def get_rendered_fields(self, ctx=None):
         '''
@@ -431,11 +428,9 @@ class _LibraryField(BaseField):
         self.not_implemented('_get_local_lib')
 
     def _wrap_get_class_lib(self):
-        if self.__class__.lib:
-            return self.__class__.lib
-        else:
+        if not self.__class__.lib:
             self.__class__.lib = self._get_class_lib()
-            return self.__class__.lib
+        return self.__class__.lib
 
     def _get_class_lib(self):
         '''
@@ -490,7 +485,7 @@ class String(_LibraryField):
 
     def __init__(self, value, max_size=None, encoder=ENC_STR_DEFAULT, fuzzable=True, name=None):
         '''
-        :type value: str
+        :type value: str or bytes
         :param value: default value
         :param max_size: maximal size of the string before encoding (default: None)
         :type encoder: :class:`~kitty.model.low_level.encoder.StrEncoder`
@@ -505,8 +500,8 @@ class String(_LibraryField):
                 String('this is the default value', max_size=5)
         '''
         self._max_size = None if max_size is None else max_size
-        if isinstance(value, unicode):
-            value = value.encode('utf-8')
+        # if isinstance(value, unicode):
+        #     value = value.encode('utf-8')
         super(String, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
 
     def _get_local_lib(self):
@@ -1148,7 +1143,7 @@ class RandomBits(BaseField):
         else:
             length = self._random.randint(self._min_length, self._max_length)
         current_bytes = ''
-        for i in range(length // 8 + 1):
+        for _ in range(length // 8 + 1):
             current_bytes += chr(self._random.randint(0, 255))
         self._current_value = Bits(bytes=current_bytes)[:length]
 
@@ -1225,7 +1220,7 @@ class RandomBytes(BaseField):
         else:
             length = self._random.randint(self._min_length, self._max_length)
         current = ''
-        for i in range(length):
+        for _ in range(length):
             current += chr(self._random.randint(0, 255))
         self._current_value = current
 
