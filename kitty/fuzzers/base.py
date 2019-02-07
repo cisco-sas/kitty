@@ -26,13 +26,14 @@ import sys
 import time
 import traceback
 import shlex
-import docopt
+from binascii import hexlify
 from threading import Event
+import docopt
+from pkg_resources import get_distribution
 from kitty.core import KittyException, KittyObject
 from kitty.data.data_manager import DataManager, SessionInfo
 from kitty.data.report import Report
 from kitty.fuzzers.test_list import RangesList, StartEndList
-from pkg_resources import get_distribution
 
 
 def _flatten_dict_entry(orig_key, v):
@@ -545,7 +546,7 @@ class BaseFuzzer(KittyObject):
         if payload is not None:
             data_report = Report('payload')
             data_report.add('raw', payload)
-            data_report.add('hex', payload.encode('hex'))
+            data_report.add('hex', hexlify(payload).decode())
             data_report.add('length', len(payload))
             report.add('payload', data_report)
         else:

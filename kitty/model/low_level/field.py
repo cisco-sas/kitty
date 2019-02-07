@@ -31,6 +31,7 @@ from kitty.model.low_level.encoder import ENC_STR_DEFAULT, StrEncoder
 from kitty.model.low_level.encoder import ENC_INT_DEFAULT, BitFieldEncoder
 from kitty.model.low_level.encoder import ENC_BITS_DEFAULT, BitsEncoder
 from kitty.model.low_level.encoder import ENC_FLT_DEFAULT, FloatEncoder
+from kitty.model.low_level.encoder import strToBytes
 
 
 empty_bits = Bits()
@@ -468,6 +469,7 @@ class Static(BaseField):
 
                 Static('this will never change')
         '''
+        value = strToBytes(value)
         super(Static, self).__init__(value=value, encoder=encoder, fuzzable=False, name=name)
 
 
@@ -500,8 +502,7 @@ class String(_LibraryField):
                 String('this is the default value', max_size=5)
         '''
         self._max_size = None if max_size is None else max_size
-        # if isinstance(value, unicode):
-        #     value = value.encode('utf-8')
+        value = strToBytes(value)
         super(String, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
 
     def _get_local_lib(self):
@@ -509,10 +510,10 @@ class String(_LibraryField):
         default_len = len(self._default_value)
         for i in [2, 10, 100]:
             lib.append((self._default_value * i, 'duplicate value %s times' % i))
-        lib.append((self._default_value + '\xfe', 'value with utf8 escape char'))
-        lib.append(('\x00' + self._default_value, 'null before value'))
-        lib.append((self._default_value[:default_len // 2] + '\x00' + self._default_value[default_len // 2:], 'null in middle of value'))
-        lib.append((self._default_value + '\x00', 'null after value'))
+        lib.append((self._default_value + b'\xfe', 'value with utf8 escape char'))
+        lib.append((b'\x00' + self._default_value, 'null before value'))
+        lib.append((self._default_value[:default_len // 2] + b'\x00' + self._default_value[default_len // 2:], 'null in middle of value'))
+        lib.append((self._default_value + b'\x00', 'null after value'))
         return lib
 
     def _add_command_injection_strings_unix(self, lib):

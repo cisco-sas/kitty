@@ -19,8 +19,9 @@ Containers are fields that group multiple fields into a single logical unit,
 they all inherit from ``Container``, which inherits from
 :class:`~kitty.model.low_level.field.BaseField`.
 '''
-from bitstring import Bits, BitArray
 import random
+from base64 import b64encode
+from bitstring import Bits, BitArray
 from kitty.model.low_level.field import BaseField, empty_bits, Dynamic, BitField
 from kitty.model.low_level.encoder import BitsEncoder, ENC_BITS_DEFAULT, ENC_BITS_BYTE_ALIGNED
 from kitty.core import kassert, KittyException, khash
@@ -1028,7 +1029,7 @@ class Template(Container):
         }
         res['value'] = {
             'rendered': {
-                'base64': self._current_rendered.tobytes().encode('base64'),
+                'base64': b64encode(self._current_rendered.tobytes()).decode(),
                 'length_in_bytes': len(self._current_rendered.tobytes()),
             }
         }
