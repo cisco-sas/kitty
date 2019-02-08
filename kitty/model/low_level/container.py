@@ -24,6 +24,7 @@ from base64 import b64encode
 from bitstring import Bits, BitArray
 from kitty.model.low_level.field import BaseField, empty_bits, Dynamic, BitField
 from kitty.model.low_level.encoder import BitsEncoder, ENC_BITS_DEFAULT, ENC_BITS_BYTE_ALIGNED
+from kitty.model.low_level.encoder import strToBytes
 from kitty.core import kassert, KittyException, khash
 from kitty.model.low_level.ll_utils import RenderContext
 
@@ -582,10 +583,10 @@ class Pad(Container):
     Pad the rendered value of the enclosed fields
     '''
 
-    def __init__(self, pad_length, pad_data='\x00', fields=[], fuzzable=True, name=None):
+    def __init__(self, pad_length, pad_data=b'\x00', fields=[], fuzzable=True, name=None):
         '''
         :param pad_length: length to pad up to (in bits)
-        :param pad_data: data to pad with (default: '\x00')
+        :param pad_data: data to pad with (default: b'\x00')
         :param fields: enclosed field(s) (default: [])
         :param fuzzable: is fuzzable (default: True)
         :param name: (unique) name of the template (default: None)
@@ -601,7 +602,7 @@ class Pad(Container):
         '''
         super(Pad, self).__init__(fields=fields, encoder=ENC_BITS_DEFAULT, fuzzable=fuzzable, name=name)
         self._pad_length = pad_length
-        self._pad_data = Bits(bytes=pad_data)
+        self._pad_data = Bits(bytes=strToBytes(pad_data))
 
     def render(self, ctx=None):
         '''

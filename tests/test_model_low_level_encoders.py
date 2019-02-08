@@ -158,7 +158,7 @@ class StrFuncEncoderTest(BaseTestCase):
         super(StrFuncEncoderTest, self).setUp(cls)
 
     def _encode_func(self, s):
-        return hexlify(s)
+        return hexlify(strToBytes(s))
 
     def get_default_encoder(self):
         return self.cls(self._encode_func)
@@ -205,7 +205,7 @@ class StrEncodeEncoderTest(StrFuncEncoderTest):
         self.encoding = 'hex'
 
     def _encode_func(self, s):
-        return hexlify(s)
+        return hexlify(strToBytes(s))
 
     def get_default_encoder(self):
         return self.cls(self.encoding)

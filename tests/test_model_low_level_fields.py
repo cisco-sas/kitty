@@ -19,13 +19,13 @@
 '''
 Tests for low level fields:
 '''
+import struct
+import os
 from common import metaTest, BaseTestCase
 from bitstring import Bits
-import struct
 from kitty.model import String, Delimiter, RandomBits, RandomBytes, Dynamic, Static, Group, Float
 from kitty.model import BitField, UInt8, UInt16, UInt32, UInt64, SInt8, SInt16, SInt32, SInt64
 from kitty.core import KittyException
-import os
 
 
 class ValueTestCase(BaseTestCase):
@@ -51,7 +51,7 @@ class ValueTestCase(BaseTestCase):
         '''
         default behavior: take the bytes
         '''
-        return bits.bytes
+        return bits.bytes.decode()
 
     def _get_all_mutations(self, field, reset=True):
         res = []
@@ -379,14 +379,14 @@ class DynamicTests(ValueTestCase):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
 
     def testSessionDataNotFuzzableAfterReset(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
         field.reset()
         self.assertEqual(self.default_value_rendered, field.render())
 
@@ -394,25 +394,25 @@ class DynamicTests(ValueTestCase):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
         new_val = 'new value'
         field.set_session_data({self.key_exists: new_val})
-        self.assertEqual(Bits(bytes=new_val), field.render())
+        self.assertEqual(Bits(bytes=new_val.encode()), field.render())
 
     def testSessionDataNotFuzzableDataChangeKeyNotExist(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
         new_val = 'new value'
         field.set_session_data({self.key_not_exist: new_val})
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
 
     def testSessionDataFuzzableAfterReset(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value, length=len(self.default_value), fuzzable=True)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
         field.reset()
         self.assertEqual(self.default_value_rendered, field.render())
 
@@ -420,19 +420,19 @@ class DynamicTests(ValueTestCase):
         field = self.cls(key=self.key_exists, default_value=self.default_value, length=len(self.default_value), fuzzable=True)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
         new_val = 'new value'
         field.set_session_data({self.key_exists: new_val})
-        self.assertEqual(Bits(bytes=new_val), field.render())
+        self.assertEqual(Bits(bytes=new_val.encode()), field.render())
 
     def testSessionDataFuzzableDataChangeKeyNotExist(self):
         field = self.cls(key=self.key_exists, default_value=self.default_value, length=len(self.default_value), fuzzable=True)
         self.assertEqual(self.default_value_rendered, field.render())
         field.set_session_data(self.default_session_data)
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
         new_val = 'new value'
         field.set_session_data({self.key_not_exist: new_val})
-        self.assertEqual(Bits(bytes=self.value_exists), field.render())
+        self.assertEqual(Bits(bytes=self.value_exists.encode()), field.render())
 
 
 class RandomBitsTests(ValueTestCase):

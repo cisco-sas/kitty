@@ -1107,7 +1107,7 @@ class RandomBits(BaseField):
         '''
         if unused_bits not in range(8):
             raise KittyException('unused bits (%d) is not between 0-7' % unused_bits)
-        value = Bits(bytes=value)
+        value = Bits(bytes=strToBytes(value))
         if unused_bits:
             value = value[:-unused_bits]
         super(RandomBits, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
@@ -1146,7 +1146,7 @@ class RandomBits(BaseField):
         current_bytes = ''
         for _ in range(length // 8 + 1):
             current_bytes += chr(self._random.randint(0, 255))
-        self._current_value = Bits(bytes=current_bytes)[:length]
+        self._current_value = Bits(bytes=strToBytes(current_bytes))[:length]
 
     def hash(self):
         '''

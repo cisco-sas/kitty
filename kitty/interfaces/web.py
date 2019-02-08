@@ -104,7 +104,7 @@ class _WebInterfaceHandler(BaseHTTPRequestHandler):
         except Exception:
             self.send_response(401)
             self.end_headers()
-            return ''
+            return b''
 
     def _handle_favicon_request(self):
         return self._handle_image_request(content_type='image/x-icon')
@@ -207,7 +207,7 @@ class _WebInterfaceHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', data_type)
             self.end_headers()
-        return response
+        return response.encode()
 
     def _get_report(self):
         report = None

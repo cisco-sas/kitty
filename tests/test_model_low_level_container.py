@@ -19,8 +19,8 @@
 Tests for low level fields
 '''
 from struct import unpack
-from common import metaTest, BaseTestCase
 from bitstring import Bits
+from common import metaTest, BaseTestCase
 from kitty.model.low_level import String, Static, Group, BE32
 from kitty.model.low_level.container import Container, ForEach, If, IfNot, Repeat, Template, Switch
 from kitty.model.low_level.container import Meta, Pad, Trunc, PseudoTemplate, OneOf, TakeFrom
@@ -167,11 +167,11 @@ class ContainerTest(BaseTestCase):
         container = self.get_default_container(fields=fields, fuzzable=False)
         self.assertEqual(container.num_mutations(), 0)
         rendered = container.render()
-        for i in range(10):
+        for _ in range(10):
             self.assertFalse(container.mutate())
             self.assertEqual(container.render(), rendered)
         container.reset()
-        for i in range(10):
+        for _ in range(10):
             self.assertFalse(container.mutate())
             self.assertEqual(container.render(), rendered)
 
@@ -222,13 +222,13 @@ class ContainerTest(BaseTestCase):
             Group(name='test_group_5', values=['A', 'B', 'C'])
         ]
         container = self.get_default_container(fields)
-        expected_list = filter(lambda x: len(x.render()), fields)
+        expected_list = list(filter(lambda x: len(x.render()), fields))
         if len(container.render()):
             self.assertListEqual(container.get_rendered_fields(), expected_list)
         else:
             self.assertListEqual(container.get_rendered_fields(), [])
         while container.mutate():
-            expected_list = filter(lambda x: len(x.render()), fields)
+            expected_list = list(filter(lambda x: len(x.render()), fields))
             if len(container.render()):
                 self.assertEqual(container.get_rendered_fields(), expected_list)
             else:
@@ -653,14 +653,14 @@ class PadTest(BaseTestCase):
     def testPadWhenFuzzable(self):
         field = String(name='padded', value='abc')
         uut = Pad(self.pad_length, fields=field, name=self.uut_name)
-        self._testValuePadded(field, uut, self.pad_length, '\x00')
+        self._testValuePadded(field, uut, self.pad_length, b'\x00')
         while uut.mutate():
-            self._testValuePadded(field, uut, self.pad_length, '\x00')
+            self._testValuePadded(field, uut, self.pad_length, b'\x00')
 
     def testPadWhenNotFuzzable(self):
         field = String(name='padded', value='abc')
         uut = Pad(self.pad_length, fields=field, name=self.uut_name, fuzzable=False)
-        self._testValuePadded(field, uut, self.pad_length, '\x00')
+        self._testValuePadded(field, uut, self.pad_length, b'\x00')
 
     def testNumMutations(self):
         field = String(name='padded', value='abc')
@@ -676,8 +676,8 @@ class PadTest(BaseTestCase):
 
     def testFixedWithPad(self):
         data = 'abcd'
-        expected = Bits(bytes='abcd\xff\xff\xff\xff\xff\xff')
-        uut = Pad(pad_length=10 * 8, fields=Static(data), pad_data='\xff')
+        expected = Bits(bytes=b'abcd\xff\xff\xff\xff\xff\xff')
+        uut = Pad(pad_length=10 * 8, fields=Static(data), pad_data=b'\xff')
         uut_num_mutations = uut.num_mutations()
         self.assertEqual(uut_num_mutations, 0)
         actual_num_mutations = 0
@@ -688,8 +688,8 @@ class PadTest(BaseTestCase):
 
     def testFixedWithoutPad(self):
         data = 'abcdefghijklmnop'
-        expected = Bits(bytes=data)
-        uut = Pad(pad_length=10 * 8, fields=Static(data), pad_data='\xff')
+        expected = Bits(bytes=data.encode())
+        uut = Pad(pad_length=10 * 8, fields=Static(data), pad_data=b'\xff')
         uut_num_mutations = uut.num_mutations()
         self.assertEqual(uut_num_mutations, 0)
         actual_num_mutations = 0
@@ -699,12 +699,12 @@ class PadTest(BaseTestCase):
         self.assertEqual(uut.render(), expected)
 
     def testHashTheSameForTwoSimilarObjects(self):
-        pad1 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data='\xff')
-        pad2 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data='\xff')
+        pad1 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data=b'\xff')
+        pad2 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data=b'\xff')
         self.assertEqual(pad1.hash(), pad2.hash())
 
     def testHashTheSameAfterReset(self):
-        container = Pad(pad_length=10 * 8, fields=String('abc'), pad_data='\xff')
+        container = Pad(pad_length=10 * 8, fields=String('abc'), pad_data=b'\xff')
         hash_after_creation = container.hash()
         container.mutate()
         hash_after_mutate = container.hash()
@@ -720,13 +720,13 @@ class PadTest(BaseTestCase):
             self.assertEqual(hash_after_creation, hash_after_render_all)
 
     def testDifferentHashIfPadLengthIsDifferend(self):
-        pad1 = Pad(pad_length=11 * 8, fields=String('abc'), pad_data='\xff')
-        pad2 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data='\xff')
+        pad1 = Pad(pad_length=11 * 8, fields=String('abc'), pad_data=b'\xff')
+        pad2 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data=b'\xff')
         self.assertNotEqual(pad1.hash(), pad2.hash())
 
     def testDifferentHashIfPadDataIsDifferend(self):
-        pad1 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data='\x00')
-        pad2 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data='\xff')
+        pad1 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data=b'\x00')
+        pad2 = Pad(pad_length=10 * 8, fields=String('abc'), pad_data=b'\xff')
         self.assertNotEqual(pad1.hash(), pad2.hash())
 
 
