@@ -139,7 +139,7 @@ class BitFieldMultiByteEncoderTest(BaseTestCase):
 
     def testZero(self):
         uut = BitFieldMultiByteEncoder()
-        self.assertEqual(uut.encode(0, 10, False), Bits(bytes='\x00'))
+        self.assertEqual(uut.encode(0, 10, False), Bits(bytes=b'\x00'))
 
     def testBitFieldMultiByteEncoderSignedUnsupported(self):
         with self.assertRaises(KittyException):
@@ -272,7 +272,7 @@ class ByteAlignedBitsEncoderTest(BitsEncoderTest):
         return bits + Bits(pad_len)
 
     def testPaddingNoPad(self):
-        value = Bits(bytes='\x01')
+        value = Bits(bytes=b'\x01')
         uut = self.get_default_encoder()
         self.assertEqual(uut.encode(value), value)
 

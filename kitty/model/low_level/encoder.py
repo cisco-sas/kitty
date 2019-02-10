@@ -35,6 +35,7 @@ There are four families of encoders:
     Those encoders are also refferred to as Float Encoders
 '''
 import sys
+import six
 from struct import pack
 from binascii import hexlify
 from base64 import b64encode
@@ -47,9 +48,11 @@ def strToBytes(value):
     :type value: ``str``
     :param value: value to encode
     '''
-    kassert.is_of_types(value, (bytes, str))
-    if isinstance(value, str):
-        return bytearray([ord(x) for x in value])
+    kassert.is_of_types(value, (bytes, bytearray, six.string_types))
+    if isinstance(value, six.string_types):
+        return bytes(bytearray([ord(x) for x in value]))
+    elif isinstance(value, bytearray):
+        return bytes(value)
     return value
 
 
@@ -90,7 +93,6 @@ class StrEncoder(object):
         :type value: ``str``
         :param value: value to encode
         '''
-        kassert.is_of_types(value, (bytes, str))
         return Bits(bytes=strToBytes(value))
 
 
@@ -107,7 +109,6 @@ class StrFuncEncoder(StrEncoder):
         self._func = func
 
     def encode(self, value):
-        kassert.is_of_types(value, (bytes, str))
         encoded = self._func(strToBytes(value))
         return Bits(bytes=encoded)
 
@@ -144,7 +145,6 @@ class StrNullTerminatedEncoder(StrEncoder):
         '''
         :param value: value to encode
         '''
-        kassert.is_of_types(value, (bytes, str))
         encoded = strToBytes(value) + b'\x00'
         return Bits(bytes=encoded)
 

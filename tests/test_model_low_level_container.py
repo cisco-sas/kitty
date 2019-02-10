@@ -169,11 +169,11 @@ class ContainerTest(BaseTestCase):
         rendered = container.render()
         for i in range(10):
             self.assertFalse(container.mutate())
-            self.assertEquals(container.render(), rendered)
+            self.assertEqual(container.render(), rendered)
         container.reset()
         for i in range(10):
             self.assertFalse(container.mutate())
-            self.assertEquals(container.render(), rendered)
+            self.assertEqual(container.render(), rendered)
 
     @metaTest
     def testNotFuzzable1(self):
@@ -1041,7 +1041,7 @@ class PseudoTemplateTest(BaseTestCase):
 
     def testRendersToEmptyBits(self):
         uut = PseudoTemplate('uut')
-        self.assertEquals(uut.render(), Bits())
+        self.assertEqual(uut.render(), Bits())
 
     def testNotFuzzable(self):
         uut = PseudoTemplate('uut')

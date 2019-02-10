@@ -31,6 +31,7 @@ from kitty.model.low_level.encoder import ENC_STR_DEFAULT, StrEncoder
 from kitty.model.low_level.encoder import ENC_INT_DEFAULT, BitFieldEncoder
 from kitty.model.low_level.encoder import ENC_BITS_DEFAULT, BitsEncoder
 from kitty.model.low_level.encoder import ENC_FLT_DEFAULT, FloatEncoder
+from kitty.model.low_level.encoder import strToBytes
 
 
 empty_bits = Bits()
@@ -252,9 +253,7 @@ class BaseField(KittyObject):
         current = self
         while current.enclosing:
             current = current.enclosing
-        if name == '/':
-            return current
-        else:
+        if name != '/':
             components = name.split('/')[1:]
             for component in components:
                 current = current.get_field_by_name(component)
@@ -282,8 +281,7 @@ class BaseField(KittyObject):
         '''
         if self.get_name() == field_name:
             return self
-        else:
-            return None
+        return None
 
     def get_rendered_fields(self, ctx=None):
         '''
@@ -431,11 +429,9 @@ class _LibraryField(BaseField):
         self.not_implemented('_get_local_lib')
 
     def _wrap_get_class_lib(self):
-        if self.__class__.lib:
-            return self.__class__.lib
-        else:
+        if not self.__class__.lib:
             self.__class__.lib = self._get_class_lib()
-            return self.__class__.lib
+        return self.__class__.lib
 
     def _get_class_lib(self):
         '''
@@ -473,6 +469,7 @@ class Static(BaseField):
 
                 Static('this will never change')
         '''
+        value = strToBytes(value)
         super(Static, self).__init__(value=value, encoder=encoder, fuzzable=False, name=name)
 
 
@@ -490,7 +487,7 @@ class String(_LibraryField):
 
     def __init__(self, value, max_size=None, encoder=ENC_STR_DEFAULT, fuzzable=True, name=None):
         '''
-        :type value: str
+        :type value: str or bytes
         :param value: default value
         :param max_size: maximal size of the string before encoding (default: None)
         :type encoder: :class:`~kitty.model.low_level.encoder.StrEncoder`
@@ -505,8 +502,7 @@ class String(_LibraryField):
                 String('this is the default value', max_size=5)
         '''
         self._max_size = None if max_size is None else max_size
-        if isinstance(value, unicode):
-            value = value.encode('utf-8')
+        value = strToBytes(value)
         super(String, self).__init__(value=value, encoder=encoder, fuzzable=fuzzable, name=name)
 
     def _get_local_lib(self):
@@ -514,10 +510,10 @@ class String(_LibraryField):
         default_len = len(self._default_value)
         for i in [2, 10, 100]:
             lib.append((self._default_value * i, 'duplicate value %s times' % i))
-        lib.append((self._default_value + '\xfe', 'value with utf8 escape char'))
-        lib.append(('\x00' + self._default_value, 'null before value'))
-        lib.append((self._default_value[:default_len // 2] + '\x00' + self._default_value[default_len // 2:], 'null in middle of value'))
-        lib.append((self._default_value + '\x00', 'null after value'))
+        lib.append((self._default_value + b'\xfe', 'value with utf8 escape char'))
+        lib.append((b'\x00' + self._default_value, 'null before value'))
+        lib.append((self._default_value[:default_len // 2] + b'\x00' + self._default_value[default_len // 2:], 'null in middle of value'))
+        lib.append((self._default_value + b'\x00', 'null after value'))
         return lib
 
     def _add_command_injection_strings_unix(self, lib):
@@ -1148,7 +1144,7 @@ class RandomBits(BaseField):
         else:
             length = self._random.randint(self._min_length, self._max_length)
         current_bytes = ''
-        for i in range(length // 8 + 1):
+        for _ in range(length // 8 + 1):
             current_bytes += chr(self._random.randint(0, 255))
         self._current_value = Bits(bytes=current_bytes)[:length]
 
@@ -1225,7 +1221,7 @@ class RandomBytes(BaseField):
         else:
             length = self._random.randint(self._min_length, self._max_length)
         current = ''
-        for i in range(length):
+        for _ in range(length):
             current += chr(self._random.randint(0, 255))
         self._current_value = current
 
