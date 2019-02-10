@@ -93,7 +93,6 @@ class StrEncoder(object):
         :type value: ``str``
         :param value: value to encode
         '''
-        kassert.is_of_types(value, (bytes, bytearray, six.string_types))
         return Bits(bytes=strToBytes(value))
 
 
@@ -110,7 +109,6 @@ class StrFuncEncoder(StrEncoder):
         self._func = func
 
     def encode(self, value):
-        kassert.is_of_types(value, (bytes, bytearray, six.string_types))
         encoded = self._func(strToBytes(value))
         return Bits(bytes=encoded)
 
@@ -147,7 +145,6 @@ class StrNullTerminatedEncoder(StrEncoder):
         '''
         :param value: value to encode
         '''
-        kassert.is_of_types(value, (bytes, bytearray, six.string_types))
         encoded = strToBytes(value) + b'\x00'
         return Bits(bytes=encoded)
 
