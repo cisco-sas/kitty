@@ -235,7 +235,7 @@ class BitFieldAsciiEncoder(BitFieldEncoder):
         self._fmt = fmt
 
     def encode(self, value, length, signed):
-        return Bits(bytes=self._fmt % value)
+        return Bits(bytes=strToBytes(self._fmt % value))
 
 
 class BitFieldMultiByteEncoder(BitFieldEncoder):

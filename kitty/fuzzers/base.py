@@ -440,7 +440,7 @@ class BaseFuzzer(KittyObject):
             self._store_report(report)
             self.user_interface.failure_detected()
             failure_detected = True
-            self.logger.warn('!! Failure detected !!')
+            self.logger.warning('!! Failure detected !!')
         elif self.config.store_all_reports:
             self._store_report(report)
         if failure_detected:
@@ -584,10 +584,9 @@ class BaseFuzzer(KittyObject):
             self.logger.info('Loaded session from DB')
             self.session_info = info
             return True
-        else:
-            self.logger.info('No session loaded')
-            self._set_session_info()
-            return False
+        self.logger.info('No session loaded')
+        self._set_session_info()
+        return False
 
     def _exit_now(self, dummy1, dummy2):
         self.stop()

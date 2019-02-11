@@ -235,7 +235,7 @@ class StagedSequenceModelTests(unittest.TestCase):
         self.logger = get_test_logger()
         self.logger.debug('TESTING METHOD: %s', self._testMethodName)
         self.stage_lengths = self.get_stage_map()
-        self.stages = self.stage_lengths.keys()
+        self.stages = list(self.stage_lengths.keys())
         self.todo = []
 
     def get_stage_map(self):
@@ -404,7 +404,7 @@ class StageTests(unittest.TestCase):
         templates = self.templates
         for template in templates:
             stage.add_template(template)
-        for i in range(100):
+        for _ in range(100):
             sequence = stage.mutate()
             sequence2 = stage.get_sequence_templates()
             self.assertEqual(sequence, sequence2)
@@ -531,7 +531,7 @@ class StageTests(unittest.TestCase):
             stage.add_template(template)
         sequences = set()
         iterations = 100
-        for i in range(iterations):
+        for _ in range(iterations):
             sequence = tuple(stage.mutate())
             sequences.add(sequence)
         self.assertGreater(len(sequences), iterations // 2)
@@ -555,7 +555,7 @@ class StageTests(unittest.TestCase):
             stage.add_template(template)
         sequences = set()
         iterations = 100
-        for i in range(iterations):
+        for _ in range(iterations):
             sequence = stage.mutate()
             sequences.add(len(sequence))
         self.assertGreater(len(sequences), iterations // 8)
@@ -567,7 +567,7 @@ class StageTests(unittest.TestCase):
         for template in self.templates:
             stage1.add_template(template)
             stage2.add_template(template)
-        for i in range(1000):
+        for _ in range(1000):
             self.assertEqual(stage1.mutate(), stage2.mutate())
 
     def _check_different_seed(self, strategy):
@@ -707,7 +707,7 @@ class RandomSequenceModelTests(unittest.TestCase):
         for template in self.templates:
             model1.add_template(template)
             model2.add_template(template)
-        for i in range(1000):
+        for _ in range(1000):
             self.assertEqual(model1.mutate(), model2.mutate())
 
     def testDifferentSeed(self):
@@ -732,7 +732,7 @@ class RandomSequenceModelTests(unittest.TestCase):
             model.add_template(template)
         sequences = set()
         iterations = 100
-        for i in range(iterations):
+        for _ in range(iterations):
             model.mutate()
             sequence = model.get_sequence()
             sequences.add(len(sequence))

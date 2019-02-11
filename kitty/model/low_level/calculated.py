@@ -207,8 +207,8 @@ class CalculatedStr(Calculated):
         :param name: (unique) name of the container
         '''
         try:
-            res = func('')
-            kassert.is_of_types(res, str)
+            res = func(b'')
+            kassert.is_of_types(res, bytes)
             self._func = func
         except:
             raise KittyException('func should be func(str)->str')
@@ -267,7 +267,7 @@ class Hash(CalculatedStr):
             self._hash_length = Hash._algos[algorithm][1]
         else:
             try:
-                res = algorithm('')
+                res = algorithm(b'')
                 kassert.is_of_types(res, str)
                 func = algorithm
                 self._hash_length = len(res) * 8

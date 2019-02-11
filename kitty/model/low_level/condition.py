@@ -23,7 +23,9 @@ In many cases the decision is made based on a value of a specific field, but you
 In future versions, they will probably be used to make other decisions, not only basic rendering decisions.
 '''
 import copy
+import six
 from kitty.core import KittyException, khash
+from kitty.model.low_level.encoder import strToBytes
 
 
 class Condition(object):
@@ -231,6 +233,8 @@ class Compare(FieldCondition):
             self._comp_fn = Compare._comparison_types[comp_type]
         else:
             raise KittyException('unknown comparison type (%s)' % (comp_type))
+        if isinstance(comp_value, six.string_types):
+            comp_value = strToBytes(comp_value)
         self._comp_value = comp_value
 
     def _applies(self, container, ctx):
