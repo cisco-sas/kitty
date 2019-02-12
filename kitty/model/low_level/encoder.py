@@ -113,6 +113,13 @@ class StrFuncEncoder(StrEncoder):
         return Bits(bytes=encoded)
 
 
+_py2_str_encoder_funcs_cache = {}
+def py2_str_encoder_func(encoding):
+    if encoding not in _py2_str_encoder_funcs_cache:
+        _py2_str_encoder_funcs_cache[encoding] = lambda x: x.encode(encoding)
+    return _py2_str_encoder_funcs_cache[encoding]
+
+
 class StrEncodeEncoder(StrFuncEncoder):
     '''
     Encode the string using str.encode function
@@ -131,6 +138,11 @@ class StrEncodeEncoder(StrFuncEncoder):
             func = strToUtf8
         elif encoding == 'bytes':
             func = strToBytes
+        elif isinstance(encoding, str):
+            if sys.version_info < (3, 0):
+                func = py2_str_encoder_func(encoding)
+            else:
+                raise KittyException('Kitty does not support encoding "%s" on python3' % encoding)
         else:
             func = encoding
         super(StrEncodeEncoder, self).__init__(func)
