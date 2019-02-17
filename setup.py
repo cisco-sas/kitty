@@ -6,7 +6,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
-VERSION = '0.7.1'
+VERSION = '0.7.2'
 AUTHOR = 'Cisco SAS team'
 EMAIL = 'kitty-fuzzer@googlegroups.com'
 URL = 'https://github.com/cisco-sas/kitty.git'
