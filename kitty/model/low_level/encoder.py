@@ -114,6 +114,8 @@ class StrFuncEncoder(StrEncoder):
 
 
 _py2_str_encoder_funcs_cache = {}
+
+
 def py2_str_encoder_func(encoding):
     if encoding not in _py2_str_encoder_funcs_cache:
         _py2_str_encoder_funcs_cache[encoding] = lambda x: x.encode(encoding)
@@ -504,8 +506,7 @@ class FloatAsciiEncoder(FloatEncoder):
         '''
         :param value: value to encode
         '''
-        packed = self.fmt % (value)
-        return Bits(bytes=packed)
+        return Bits(bytes=strToBytes(self.fmt % value))
 
 
 ENC_FLT_LE = FloatBinEncoder('<f')
