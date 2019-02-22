@@ -49,11 +49,10 @@ def strToBytes(value):
     :param value: value to encode
     '''
     kassert.is_of_types(value, (bytes, bytearray, six.string_types))
-    if six.PY3:
-        if isinstance(value, six.string_types):
-            return bytes(bytearray([ord(x) for x in value]))
-        elif isinstance(value, bytearray):
-            return bytes(value)
+    if isinstance(value, six.string_types):
+        return bytes(bytearray([ord(x) for x in value]))
+    elif isinstance(value, bytearray):
+        return bytes(value)
     return value
 
 
