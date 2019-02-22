@@ -286,7 +286,7 @@ class Container(BaseField):
         field = self._current_field()
         if field:
             info = field.get_info()
-            info['path'] = '%s/%s' % (self.name if self.name else '<no name>', info['path'])
+            info['path'] = '%s/%s' % (self.name if self.name else '<no name>', info['path'] if info.get('path') else info['field']['path'])
         else:
             info = super(Container, self).get_info()
         return info
