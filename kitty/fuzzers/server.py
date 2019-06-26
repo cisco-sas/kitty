@@ -66,12 +66,12 @@ class ServerFuzzer(BaseFuzzer):
         self._test_info()
         resp = None
         for edge in sequence:
-            if edge.callback:
-                edge.callback(self, edge, resp)
             session_data = self.target.get_session_data()
             node = edge.dst
             node.set_session_data(session_data)
             resp = self._transmit(node)
+            if edge.callback:
+                edge.callback(self, edge, resp)
         return self._post_test()
 
     def _transmit(self, node):
