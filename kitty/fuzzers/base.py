@@ -495,7 +495,7 @@ class BaseFuzzer(KittyObject):
 
     def _test_info(self):
         fuzz_node_info = self.model.get_test_info()
-        self.logger.info('Current test: %s/%s' % (self.model.current_index()+1, self.model._num_mutations))
+        self.logger.info('Current test: %s/%s' % (self.model.current_index()+1, self.model.num_mutations()))
         self.logger.debug('----------------------------------------------')
         keys = sorted(fuzz_node_info.keys())
         keys = [k for k in keys if k.startswith('node/field')]
