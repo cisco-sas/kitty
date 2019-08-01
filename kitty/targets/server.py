@@ -77,11 +77,12 @@ class ServerTarget(BaseTarget):
         :return: the response (if received)
         '''
         response = None
-        trans_report_name = 'transmission_0x%04x' % self.transmission_count
+        trans_report_name = 'transmission'
         trans_report = Report(trans_report_name)
         self.transmission_report = trans_report
         self.report.add(trans_report_name, trans_report)
         try:
+            trans_report.add('index', self.transmission_count)
             trans_report.add('request (hex)', hexlify(payload).decode())
             trans_report.add('request (raw)', '%s' % payload)
             trans_report.add('request length', len(payload))
