@@ -162,6 +162,49 @@ class Report(object):
             return self._sub_reports[key]
         return None
 
+    def _dict_decode(self, encoding, dic):
+        res = {}
+        for k, v in dic:
+            if isinstance(v, (bytes, bytearray)):
+                v = StrEncodeEncoder(encoding).encode(v).tobytes().decode()
+            elif isinstance(v, dict):
+                v = self._dict_decode(encoding, v)
+            elif isinstance(v, list):
+                v = self._list_decode(encoding, v)
+            elif isinstance(v, tuple):
+                v = self._tuple_decode(encoding, v)
+            res[k] = v
+        return res
+
+    def _list_decode(self, encoding, array):
+        res = []
+        for v in array:
+            if isinstance(v, (bytes, bytearray)):
+                v = StrEncodeEncoder(encoding).encode(v).tobytes().decode()
+            elif isinstance(v, dict):
+                v = self._dict_decode(encoding, v)
+            elif isinstance(v, list):
+                v = self._list_decode(encoding, v)
+            elif isinstance(v, tuple):
+                v = self._tuple_decode(encoding, v)
+            res.append(v)
+        return res
+
+    def _tuple_decode(self, encoding, tup):
+        res = []
+        for i in range(len(tup)):
+            v = tup[i]
+            if isinstance(v, (bytes, bytearray)):
+                v = StrEncodeEncoder(encoding).encode(v).tobytes().decode()
+            elif isinstance(v, dict):
+                v = self._dict_decode(encoding, v)
+            elif isinstance(v, list):
+                v = self._list_decode(encoding, v)
+            elif isinstance(v, tuple):
+                v = self._tuple_decode(encoding, v)
+            res.append(v)
+        return res
+
     def to_dict(self, encoding='base64'):
         '''
         Return a dictionary version of the report
@@ -174,6 +217,12 @@ class Report(object):
         for k, v in self._data_fields.items():
             if isinstance(v, (bytes, bytearray, six.string_types)):
                 v = StrEncodeEncoder(encoding).encode(v).tobytes().decode()
+            elif isinstance(v, dict):
+                v = self._dict_decode(encoding, v)
+            elif isinstance(v, list):
+                v = self._list_decode(encoding, v)
+            elif isinstance(v, tuple):
+                v = self._tuple_decode(encoding, v)
             res[k] = v
         for k, v in self._sub_reports.items():
             res[k] = v.to_dict(encoding)
