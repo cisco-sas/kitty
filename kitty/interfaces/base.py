@@ -75,7 +75,7 @@ class BaseInterface(KittyObject):
         :return: whether current state is paused
         '''
         assert(self._continue_event)
-        return not self._continue_event.isSet()
+        return not self._continue_event.is_set()
 
     def resume(self):
         '''

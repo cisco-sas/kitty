@@ -69,7 +69,7 @@ class LoopFuncThread(threading.Thread):
         '''
         run the the function in a loop until stoped
         '''
-        while not self._stop_event.isSet():
+        while not self._stop_event.is_set():
             self._func(*self._args)
 
     def stop(self):
@@ -80,5 +80,5 @@ class LoopFuncThread(threading.Thread):
         if self._func_stop_event is not None:
             self._func_stop_event.set()
         self.join(timeout=1)
-        if self.isAlive():
+        if self.is_alive():
             print('Failed to stop thread')

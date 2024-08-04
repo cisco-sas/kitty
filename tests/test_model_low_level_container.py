@@ -56,13 +56,10 @@ class ContainerTest(BaseTestCase):
         for f in all_fields:
             field_default_values.append(f.render())
         fields_mutations = []
+        joiner = Bits(0)
         for i, field in enumerate(all_fields):
-            prefix = sum(field_default_values[:i])
-            postfix = sum(field_default_values[i + 1:])
-            if prefix == 0:
-                prefix = Bits()
-            if postfix == 0:
-                postfix = Bits()
+            prefix = joiner.join(field_default_values[:i])
+            postfix = joiner.join(field_default_values[i + 1:])
             while field.mutate():
                 fields_mutations.append(prefix + field.render() + postfix)
             field.reset()
@@ -554,15 +551,12 @@ class RepeatTest(ContainerTest):
 
         field_default_values = [field.render() for field in fields]
         fields_mutations = []
+        joiner = Bits(0)
         for i in range(min_times, max_times, step):
-            fields_mutations.append(sum(field_default_values) * i)
+            fields_mutations.append(joiner.join(field_default_values) * i)
         for j, field in enumerate(fields):
-            prefix = sum(field_default_values[:j])
-            postfix = sum(field_default_values[j + 1:])
-            if prefix == 0:
-                prefix = Bits()
-            if postfix == 0:
-                postfix = Bits()
+            prefix = joiner.join(field_default_values[:j])
+            postfix = joiner.join(field_default_values[j + 1:])
             while field.mutate():
                 fields_mutations.append((prefix + field.render() + postfix) * min_times)
             field.reset()
